@@ -1,0 +1,157 @@
+/*
+===============================================================================
+ Name        : main.c
+ Author      : $(author)
+ Version     :
+ Copyright   : $(copyright)
+ Description : main definition
+===============================================================================
+*/
+
+#include "board.h"
+//#include "canopen_driver.h"
+#include "weigand.h"
+/* Kernel includes. */
+#include "FreeRTOS.h"
+#include "task.h"
+#include "queue.h"
+#include "timers.h"
+
+/*****************************************************************************
+ * Private types/enumerations/variables
+ ****************************************************************************/
+
+/* The configCHECK_FOR_STACK_OVERFLOW setting in FreeRTOSConifg can be used to
+check task stacks for overflows.  It does not however check the stack used by
+interrupts.  This demo has a simple addition that will also check the stack used
+by interrupts if mainCHECK_INTERRUPT_STACK is set to 1.  Note that this check is
+only performed from the tick hook function (which runs in an interrupt context).
+It is a good debugging aid - but won't catch interrupt stack problems until the
+tick interrupt next executes. */
+#define mainCHECK_INTERRUPT_STACK 0
+#if mainCHECK_INTERRUPT_STACK == 1
+	const unsigned char ucExpectedInterruptStackValues[] = { 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC };
+#endif
+
+/*****************************************************************************
+ * Public types/enumerations/variables
+ ****************************************************************************/
+
+
+/*****************************************************************************
+ * Private functions
+ ****************************************************************************/
+
+static void setup_hardware(void)
+{
+	extern unsigned long _vStackTop[], _pvHeapStart[];
+	unsigned long ulInterruptStackSize;
+
+    // Read clock settings and update SystemCoreClock variable
+    SystemCoreClockUpdate();
+    // Set up and initialize all required blocks and
+    // functions related to the board hardware
+    Board_Init();
+
+	Board_LED_Set(0, false);
+    Board_LED_Set(1, false);
+    Board_LED_Set(2, false);
+
+    weigand_init(CARD_READER1_PORT, CARD_READER1_D0_PIN, CARD_READER1_D1_PIN);
+
+	/* The size of the stack used by main and interrupts is not defined in
+	the linker, but just uses whatever RAM is left.  Calculate the amount of
+	RAM available for the main/interrupt/system stack, and check it against
+	a reasonable number.  If this assert is hit then it is likely you don't
+	have enough stack to start the kernel, or to allow interrupts to nest.
+	Note - this is separate to the stacks that are used by tasks.  The stacks
+	that are used by tasks are automatically checked if
+	configCHECK_FOR_STACK_OVERFLOW is not 0 in FreeRTOSConfig.h - but the stack
+	used by interrupts is not.  Reducing the conifgTOTAL_HEAP_SIZE setting will
+	increase the stack available to main() and interrupts. */
+	ulInterruptStackSize = ( ( unsigned long ) _vStackTop ) - ( ( unsigned long ) _pvHeapStart );
+	configASSERT( ulInterruptStackSize > 350UL );
+
+}
+
+static void alive_task(void *pvParameters)
+{
+	Board_LED_Set(0, true);
+	while (1)
+	{
+		vTaskDelay(1500 / portTICK_PERIOD_MS);
+		Board_LED_Toggle(0);
+	}
+}
+
+/*****************************************************************************
+ * Public functions
+ ****************************************************************************/
+
+int main(void)
+{
+	setup_hardware();
+
+	xTaskCreate(alive_task, "alive_task",configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 1UL), NULL);
+
+    printf("started\n");
+
+    NVIC_EnableIRQ(EINT3_IRQn);
+    __enable_irq();
+
+    /* Start the kernel.  From here on, only tasks and interrupts will run. */
+    vTaskStartScheduler();
+
+    return 1;
+}
+
+void vApplicationMallocFailedHook(void)
+{
+	/* vApplicationMallocFailedHook() will only be called if
+	configUSE_MALLOC_FAILED_HOOK is set to 1 in FreeRTOSConfig.h.  It is a hook
+	function that will get called if a call to pvPortMalloc() fails.
+	pvPortMalloc() is called internally by the kernel whenever a task, queue,
+	timer or semaphore is created.  It is also called by various parts of the
+	demo application.  If heap_1.c or heap_2.c are used, then the size of the
+	heap available to pvPortMalloc() is defined by configTOTAL_HEAP_SIZE in
+	FreeRTOSConfig.h, and the xPortGetFreeHeapSize() API function can be used
+	to query the size of free heap space that remains (although it does not
+	provide information on how the remaining heap might be fragmented). */
+	taskDISABLE_INTERRUPTS();
+	for( ;; );
+}
+
+void vApplicationIdleHook(void)
+{
+	/* vApplicationIdleHook() will only be called if configUSE_IDLE_HOOK is set
+	to 1 in FreeRTOSConfig.h.  It will be called on each iteration of the idle
+	task.  It is essential that code added to this hook function never attempts
+	to block in any way (for example, call xQueueReceive() with a block time
+	specified, or call vTaskDelay()).  If the application makes use of the
+	vTaskDelete() API function (as this demo application does) then it is also
+	important that vApplicationIdleHook() is permitted to return to its calling
+	function, because it is the responsibility of the idle task to clean up
+	memory allocated by the kernel to any task that has since been deleted. */
+}
+
+void vApplicationStackOverflowHook( TaskHandle_t pxTask, char *pcTaskName )
+{
+	( void ) pcTaskName;
+	( void ) pxTask;
+
+	/* Run time stack overflow checking is performed if
+	configCHECK_FOR_STACK_OVERFLOW is defined to 1 or 2.  This hook
+	function is called if a stack overflow is detected. */
+	taskDISABLE_INTERRUPTS();
+	for( ;; );
+}
+
+void vApplicationTickHook( void )
+{
+	/* This function will be called by each tick interrupt if
+	configUSE_TICK_HOOK is set to 1 in FreeRTOSConfig.h.  User code can be
+	added here, but the tick hook is called from an interrupt context, so
+	code must not attempt to block, and only the interrupt safe FreeRTOS API
+	functions can be used (those that end in FromISR()). */
+}
+

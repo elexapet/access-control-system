@@ -13,17 +13,17 @@
 #include "weigand.h"
 
 
-static WEIGAND_T instance[4];
+static weigand_t instance[4];
 
 
-WEIGAND_T * weigand_init(uint8_t dx_port, uint8_t d0_pin, uint8_t d1_pin)
+weigand_t * weigand_init(uint8_t dx_port, uint8_t d0_pin, uint8_t d1_pin)
 {
 	if (dx_port > 3) return NULL;
 
 	instance[dx_port].port = dx_port;
 	instance[dx_port].pin_d0 = d0_pin;
 	instance[dx_port].pin_d1 = d1_pin;
-	instance[dx_port].frame_buffer = 0;
+	instance[dx_port].frame_buffer.value = 0;
 	instance[dx_port].frame_buffer_ptr = WEIGAND_TRANS_BITS;
 
 	Chip_IOCON_PinMuxSet(LPC_IOCON, IOCON_PIO3_1, IOCON_MODE_PULLUP);
@@ -43,32 +43,34 @@ WEIGAND_T * weigand_init(uint8_t dx_port, uint8_t d0_pin, uint8_t d1_pin)
 	return &instance[dx_port];
 }
 
-bool weigand_pending_frame(WEIGAND_T * instance)
+bool weigand_pending_frame(weigand_t * instance)
 {
 	return instance->frame_buffer_ptr == 0;
 }
 
-uint32_t weigand_get_frame(WEIGAND_T * instance)
+weigand26_frame_t weigand_get_frame(weigand_t * instance)
 {
 	return instance->frame_buffer;
 }
 
-uint32_t weigand_get_facility(uint32_t frame)
+uint32_t weigand_get_facility(weigand26_frame_t frame)
 {
-	return (frame & 0x1FE0000) >> 17;
+	return (frame.value & 0x1FE0000) >> 17;
 }
 
-uint32_t weigand_get_card(uint32_t frame)
+uint32_t weigand_get_card(weigand26_frame_t frame)
 {
-	return (frame & 0x1FFFE) >> 1;
+	return (frame.value & 0x1FFFE) >> 1;
 }
 
-bool weigand_parity_ok(uint32_t frame)
+bool weigand_parity_ok(weigand26_frame_t frame)
 {
-	return false;
+	uint8_t even_parity = __builtin_parity(frame.value & 0x1FFE000);
+	uint8_t odd_parity = __builtin_parity(frame.value & 0x1FFE) ^ 1;
+	return even_parity == ((frame.value >> 25) & 0x1) && odd_parity == (frame.value & 0x1);
 }
 
-void weigand_int_handler(WEIGAND_T * instance)
+void weigand_int_handler(weigand_t * instance)
 {
 	uint32_t int_states = Chip_GPIO_GetMaskedInts(LPC_GPIO, instance->port);
 	Chip_GPIO_ClearInts(LPC_GPIO, instance->port, (1 << instance->pin_d1));
@@ -79,7 +81,7 @@ void weigand_int_handler(WEIGAND_T * instance)
 		if (Chip_GPIO_ReadPortBit(LPC_GPIO, instance->port, instance->pin_d1) == 0)
 		{
 			instance->frame_buffer_ptr--;
-			instance->frame_buffer |= (1 << instance->frame_buffer_ptr);
+			instance->frame_buffer.value |= (1 << instance->frame_buffer_ptr);
 		}
 	}
 	else if (int_states & (1 << instance->pin_d0))
@@ -87,7 +89,7 @@ void weigand_int_handler(WEIGAND_T * instance)
 		if (Chip_GPIO_ReadPortBit(LPC_GPIO, instance->port, instance->pin_d0) == 0)
 		{
 			instance->frame_buffer_ptr--;
-			instance->frame_buffer &= ~(1 << instance->frame_buffer_ptr);
+			instance->frame_buffer.value &= ~(1 << instance->frame_buffer_ptr);
 		}
 	}
 	else
@@ -100,7 +102,7 @@ void weigand_int_handler(WEIGAND_T * instance)
 		//TODO check parity (not here)
 		weigand_callback(instance->port, instance->frame_buffer);
 		instance->frame_buffer_ptr = WEIGAND_TRANS_BITS;
-		instance->frame_buffer = 0;
+		instance->frame_buffer.value = 0;
 	}
 }
 

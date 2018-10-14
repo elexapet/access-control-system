@@ -14,28 +14,38 @@
 #include "chip.h"
 #include "board_config.h"
 
+typedef union{
+	struct{
+		uint32_t odd_parity: 1;
+		uint32_t card_number : 16;
+		uint32_t facility_code : 8;
+		uint32_t even_parity: 1;
+		uint32_t : 6;
+	};
+	uint32_t value;
+}weigand26_frame_t;
 
 typedef struct {
-	uint32_t frame_buffer;
+	weigand26_frame_t frame_buffer;
 	uint8_t frame_buffer_ptr;
 	uint8_t port;
 	uint8_t pin_d0;
 	uint8_t pin_d1;
-}WEIGAND_T;
+}weigand_t;
 
 
-WEIGAND_T * weigand_init(uint8_t dx_port, uint8_t d0_pin, uint8_t d1_pin);
+weigand_t * weigand_init(uint8_t dx_port, uint8_t d0_pin, uint8_t d1_pin);
 
-bool weigand_pending_frame(WEIGAND_T * instance);
+bool weigand_pending_frame(weigand_t * instance);
 
-uint32_t weigand_get_frame(WEIGAND_T * instance);
+weigand26_frame_t weigand_get_frame(weigand_t * instance);
 
-uint32_t weigand_get_facility(uint32_t frame);
+uint32_t weigand_get_facility(weigand26_frame_t frame);
 
-uint32_t weigand_get_card(uint32_t frame);
+uint32_t weigand_get_card(weigand26_frame_t frame);
 
-bool weigand_parity_ok(uint32_t frame);
+bool weigand_parity_ok(weigand26_frame_t frame);
 
-void weigand_callback(uint8_t port, uint32_t frame);
+void weigand_callback(uint8_t port, weigand26_frame_t frame);
 
 #endif /* BSP_WEIGAND_H_ */

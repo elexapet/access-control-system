@@ -10,7 +10,7 @@
 
 #include "board.h"
 //#include "canopen_driver.h"
-#include "weigand.h"
+#include "card_reader.h"
 /* Kernel includes. */
 #include "FreeRTOS.h"
 #include "task.h"
@@ -21,17 +21,6 @@
  * Private types/enumerations/variables
  ****************************************************************************/
 
-/* The configCHECK_FOR_STACK_OVERFLOW setting in FreeRTOSConifg can be used to
-check task stacks for overflows.  It does not however check the stack used by
-interrupts.  This demo has a simple addition that will also check the stack used
-by interrupts if mainCHECK_INTERRUPT_STACK is set to 1.  Note that this check is
-only performed from the tick hook function (which runs in an interrupt context).
-It is a good debugging aid - but won't catch interrupt stack problems until the
-tick interrupt next executes. */
-#define mainCHECK_INTERRUPT_STACK 0
-#if mainCHECK_INTERRUPT_STACK == 1
-	const unsigned char ucExpectedInterruptStackValues[] = { 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC };
-#endif
 
 /*****************************************************************************
  * Public types/enumerations/variables
@@ -57,7 +46,7 @@ static void setup_hardware(void)
     Board_LED_Set(1, false);
     Board_LED_Set(2, false);
 
-    weigand_init(CARD_READER1_PORT, CARD_READER1_D0_PIN, CARD_READER1_D1_PIN);
+    card_reader_init();
 
 	/* The size of the stack used by main and interrupts is not defined in
 	the linker, but just uses whatever RAM is left.  Calculate the amount of
@@ -93,8 +82,6 @@ int main(void)
 	setup_hardware();
 
 	xTaskCreate(alive_task, "alive_task",configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 1UL), NULL);
-
-    printf("started\n");
 
     NVIC_EnableIRQ(EINT3_IRQn);
     __enable_irq();

@@ -8,10 +8,9 @@
 ===============================================================================
 */
 
+#include <terminal.h>
 #include "board.h"
 //#include "canopen_driver.h"
-#include "card_reader.h"
-/* Kernel includes. */
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
@@ -33,21 +32,29 @@
 
 static void setup_hardware(void)
 {
-	extern unsigned long _vStackTop[], _pvHeapStart[];
-	unsigned long ulInterruptStackSize;
-
     // Read clock settings and update SystemCoreClock variable
     SystemCoreClockUpdate();
     // Set up and initialize all required blocks and
     // functions related to the board hardware
     Board_Init();
 
+    #ifdef DEVEL_BOARD
 	Board_LED_Set(0, false);
     Board_LED_Set(1, false);
     Board_LED_Set(2, false);
+	#endif
 
+    // Enable INTs for all GPIO ports
+    NVIC_EnableIRQ(EINT0_IRQn);
+    NVIC_EnableIRQ(EINT1_IRQn);
+    NVIC_EnableIRQ(EINT2_IRQn);
+    NVIC_EnableIRQ(EINT3_IRQn);
+
+    // Initialize card reading ability
     card_reader_init();
 
+    extern unsigned long _vStackTop[], _pvHeapStart[];
+    unsigned long ulInterruptStackSize;
 	/* The size of the stack used by main and interrupts is not defined in
 	the linker, but just uses whatever RAM is left.  Calculate the amount of
 	RAM available for the main/interrupt/system stack, and check it against
@@ -79,11 +86,12 @@ static void alive_task(void *pvParameters)
 
 int main(void)
 {
+	__disable_irq();
+
 	setup_hardware();
 
-	xTaskCreate(alive_task, "alive_task",configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 1UL), NULL);
+	xTaskCreate(alive_task, "alv_tsk",configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 1UL), NULL);
 
-    NVIC_EnableIRQ(EINT3_IRQn);
     __enable_irq();
 
     /* Start the kernel.  From here on, only tasks and interrupts will run. */

@@ -11,46 +11,60 @@
  */
 
 #include "weigand.h"
+#include "chip.h"
+#include "board_config.h"
+#include <limits.h>
+#include <assert.h>
 
 
-static weigand_t instance[4];
+static weigand26_t device[CARD_READERS_MAX_COUNT];
 
 
-weigand_t * weigand_init(uint8_t dx_port, uint8_t d0_pin, uint8_t d1_pin)
+StreamBufferHandle_t weigand_init(uint8_t dx_port, uint8_t d0_pin, uint8_t d1_pin)
 {
 	if (dx_port > 3) return NULL;
 
-	instance[dx_port].port = dx_port;
-	instance[dx_port].pin_d0 = d0_pin;
-	instance[dx_port].pin_d1 = d1_pin;
-	instance[dx_port].frame_buffer.value = 0;
-	instance[dx_port].frame_buffer_ptr = WEIGAND_TRANS_BITS;
+	//Save device information
+	device[dx_port].port = dx_port;
+	device[dx_port].pin_d0 = d0_pin;
+	device[dx_port].pin_d1 = d1_pin;
+	device[dx_port].frame_buffer.value = 0;
+	device[dx_port].frame_buffer_ptr = WEIGAND26_FRAME_SIZE;
 
+	//Enable pullups
 	Chip_IOCON_PinMuxSet(LPC_IOCON, IOCON_PIO3_1, IOCON_MODE_PULLUP);
 	Chip_IOCON_PinMuxSet(LPC_IOCON, IOCON_PIO3_2, IOCON_MODE_PULLUP);
 
+	//Input mode
 	Chip_GPIO_SetPinDIRInput(LPC_GPIO, dx_port, d0_pin);
 	Chip_GPIO_SetPinDIRInput(LPC_GPIO, dx_port, d1_pin);
 
+	//Trigger on falling edge
 	Chip_GPIO_SetupPinInt(LPC_GPIO, dx_port, d0_pin, GPIO_INT_FALLING_EDGE);
 	Chip_GPIO_SetupPinInt(LPC_GPIO, dx_port, d1_pin, GPIO_INT_FALLING_EDGE);
 
+	//Clear INTs
 	Chip_GPIO_ClearInts(LPC_GPIO, dx_port, (1 << d0_pin));
 	Chip_GPIO_ClearInts(LPC_GPIO, dx_port, (1 << d1_pin));
 
-	Chip_GPIO_EnableInt(LPC_GPIO, dx_port, (1 << d0_pin) | (1 << d1_pin));
+	//Create stream
+	device[dx_port].consumer_buffer = xStreamBufferCreate(sizeof(weigand26_frame_t), sizeof(weigand26_frame_t));
+	assert(device[dx_port].consumer_buffer);
 
-	return &instance[dx_port];
+	//Enable INT for both pins
+		Chip_GPIO_EnableInt(LPC_GPIO, dx_port, (1 << d0_pin) | (1 << d1_pin));
+
+	return device[dx_port].consumer_buffer;
 }
 
-bool weigand_pending_frame(weigand_t * instance)
+bool weigand_pending_frame(weigand26_t * device)
 {
-	return instance->frame_buffer_ptr == 0;
+	return device->frame_buffer_ptr == 0;
 }
 
-weigand26_frame_t weigand_get_frame(weigand_t * instance)
+weigand26_frame_t weigand_get_frame(weigand26_t * device)
 {
-	return instance->frame_buffer;
+	return device->frame_buffer;
 }
 
 uint32_t weigand_get_facility(weigand26_frame_t frame)
@@ -63,64 +77,88 @@ uint32_t weigand_get_card(weigand26_frame_t frame)
 	return (frame.value & 0x1FFFE) >> 1;
 }
 
-bool weigand_parity_ok(weigand26_frame_t frame)
+bool weigand_is_parity_ok(weigand26_frame_t frame)
 {
 	uint8_t even_parity = __builtin_parity(frame.value & 0x1FFE000);
 	uint8_t odd_parity = __builtin_parity(frame.value & 0x1FFE) ^ 1;
 	return even_parity == ((frame.value >> 25) & 0x1) && odd_parity == (frame.value & 0x1);
 }
 
-void weigand_int_handler(weigand_t * instance)
+void weigand_int_handler(weigand26_t * device)
 {
-	uint32_t int_states = Chip_GPIO_GetMaskedInts(LPC_GPIO, instance->port);
-	Chip_GPIO_ClearInts(LPC_GPIO, instance->port, (1 << instance->pin_d1));
-	Chip_GPIO_ClearInts(LPC_GPIO, instance->port, (1 << instance->pin_d0));
+	uint32_t int_states = Chip_GPIO_GetMaskedInts(LPC_GPIO, device->port);
+	//Clear int flag on each pin
+	Chip_GPIO_ClearInts(LPC_GPIO, device->port, (1 << device->pin_d1));
+	Chip_GPIO_ClearInts(LPC_GPIO, device->port, (1 << device->pin_d0));
 
-	if (int_states & (1 << instance->pin_d1))
+	//Resolve bit value
+	if (int_states & (1 << device->pin_d1))
 	{
-		if (Chip_GPIO_ReadPortBit(LPC_GPIO, instance->port, instance->pin_d1) == 0)
+		if (Chip_GPIO_ReadPortBit(LPC_GPIO, device->port, device->pin_d1) == 0)
 		{
-			instance->frame_buffer_ptr--;
-			instance->frame_buffer.value |= (1 << instance->frame_buffer_ptr);
+			device->frame_buffer_ptr--;
+			device->frame_buffer.value |= (1 << device->frame_buffer_ptr);
 		}
 	}
-	else if (int_states & (1 << instance->pin_d0))
+	else if (int_states & (1 << device->pin_d0))
 	{
-		if (Chip_GPIO_ReadPortBit(LPC_GPIO, instance->port, instance->pin_d0) == 0)
+		if (Chip_GPIO_ReadPortBit(LPC_GPIO, device->port, device->pin_d0) == 0)
 		{
-			instance->frame_buffer_ptr--;
-			instance->frame_buffer.value &= ~(1 << instance->frame_buffer_ptr);
+			device->frame_buffer_ptr--;
+			device->frame_buffer.value &= ~(1 << device->frame_buffer_ptr);
 		}
 	}
 	else
 	{
-		Chip_GPIO_ClearInts(LPC_GPIO, instance->port, 0xFFFFFFFF);
+		Chip_GPIO_ClearInts(LPC_GPIO, device->port, 0xFFFFFFFF);
 	}
-	if (instance->frame_buffer_ptr == 0)
+	//Whole frame received
+	if (device->frame_buffer_ptr == 0)
 	{
-		//TODO move from int handler
-		//TODO check parity (not here)
-		weigand_callback(instance->port, instance->frame_buffer);
-		instance->frame_buffer_ptr = WEIGAND_TRANS_BITS;
-		instance->frame_buffer.value = 0;
+		xStreamBufferReset(device->consumer_buffer);
+
+		BaseType_t pxHigherPriorityTaskWoken = pdFALSE;
+		size_t bytes_sent = xStreamBufferSendFromISR(
+				device->consumer_buffer,
+				&device->frame_buffer,
+				sizeof(weigand26_frame_t),
+				&pxHigherPriorityTaskWoken);
+
+		//Stream buffer should be empty because we reset it
+		assert(bytes_sent == sizeof(weigand26_frame_t));
+
+		device->frame_buffer_ptr = WEIGAND26_FRAME_SIZE;
+		device->frame_buffer.value = 0;
+
+		portYIELD_FROM_ISR(pxHigherPriorityTaskWoken);
 	}
 }
 
+//GPIO port 1 handler
+void PIOINT0_IRQHandler(void)
+{
+	NVIC_ClearPendingIRQ(EINT1_IRQn);
+	weigand_int_handler(&device[0]);
+}
+
+//GPIO port 1 handler
 void PIOINT1_IRQHandler(void)
 {
 	NVIC_ClearPendingIRQ(EINT1_IRQn);
-	weigand_int_handler(&instance[1]);
+	weigand_int_handler(&device[1]);
 }
 
+//GPIO port 2 handler
 void PIOINT2_IRQHandler(void)
 {
 	NVIC_ClearPendingIRQ(EINT2_IRQn);
-	weigand_int_handler(&instance[2]);
+	weigand_int_handler(&device[2]);
 }
 
+//GPIO port 3 handler
 void PIOINT3_IRQHandler(void)
 {
 	NVIC_ClearPendingIRQ(EINT3_IRQn);
-	weigand_int_handler(&instance[3]);
+	weigand_int_handler(&device[3]);
 }
 

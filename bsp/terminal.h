@@ -5,11 +5,9 @@
  *      Author: Petr
  */
 
-#ifndef BSP_CARD_READER_H_
-#define BSP_CARD_READER_H_
-
-#include "weigand.h"
+#ifndef BSP_TERMINAL_H_
+#define BSP_TERMINAL_H_
 
 void card_reader_init(void);
 
-#endif /* BSP_CARD_READER_H_ */
+#endif /* BSP_TERMINAL_H_ */

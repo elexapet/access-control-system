@@ -17,12 +17,12 @@
 #include <assert.h>
 
 
-static weigand26_t device[CARD_READERS_MAX_COUNT];
+static weigand26_t device[WEIGAND_DEVICE_LIMIT];
 
 
-StreamBufferHandle_t weigand_init(uint8_t dx_port, uint8_t d0_pin, uint8_t d1_pin)
+void weigand_init(StreamBufferHandle_t buffer, uint8_t dx_port, uint8_t d0_pin, uint8_t d1_pin)
 {
-	if (dx_port > 3) return NULL;
+	if (dx_port > 3) return;
 
 	//Save device information
 	device[dx_port].port = dx_port;
@@ -31,7 +31,7 @@ StreamBufferHandle_t weigand_init(uint8_t dx_port, uint8_t d0_pin, uint8_t d1_pi
 	device[dx_port].frame_buffer.value = 0;
 	device[dx_port].frame_buffer_ptr = WEIGAND26_FRAME_SIZE;
 
-	//Enable pullups
+	//Enable pull-ups
 	Chip_IOCON_PinMuxSet(LPC_IOCON, IOCON_PIO3_1, IOCON_MODE_PULLUP);
 	Chip_IOCON_PinMuxSet(LPC_IOCON, IOCON_PIO3_2, IOCON_MODE_PULLUP);
 
@@ -48,13 +48,15 @@ StreamBufferHandle_t weigand_init(uint8_t dx_port, uint8_t d0_pin, uint8_t d1_pi
 	Chip_GPIO_ClearInts(LPC_GPIO, dx_port, (1 << d1_pin));
 
 	//Create stream
-	device[dx_port].consumer_buffer = xStreamBufferCreate(sizeof(weigand26_frame_t), sizeof(weigand26_frame_t));
-	assert(device[dx_port].consumer_buffer);
+	device[dx_port].consumer_buffer = buffer;
 
 	//Enable INT for both pins
-		Chip_GPIO_EnableInt(LPC_GPIO, dx_port, (1 << d0_pin) | (1 << d1_pin));
+	Chip_GPIO_EnableInt(LPC_GPIO, dx_port, (1 << d0_pin) | (1 << d1_pin));
+}
 
-	return device[dx_port].consumer_buffer;
+void weigand_disable(uint8_t dx_port, uint8_t d0_pin, uint8_t d1_pin)
+{
+  Chip_GPIO_DisableInt(LPC_GPIO, dx_port, (1 << d0_pin) | (1 << d1_pin));
 }
 
 bool weigand_pending_frame(weigand26_t * device)

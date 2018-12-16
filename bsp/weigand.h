@@ -27,6 +27,8 @@ typedef union{
 	uint32_t value;
 }weigand26_frame_t;
 
+#define CONSUMER_BUFF_SIZE sizeof(weigand26_frame_t)
+
 typedef struct {
 	weigand26_frame_t frame_buffer;
 	uint8_t frame_buffer_ptr;
@@ -37,7 +39,9 @@ typedef struct {
 }weigand26_t;
 
 
-StreamBufferHandle_t weigand_init(uint8_t dx_port, uint8_t d0_pin, uint8_t d1_pin);
+void weigand_init(StreamBufferHandle_t buffer, uint8_t dx_port, uint8_t d0_pin, uint8_t d1_pin);
+
+void weigand_disable(uint8_t dx_port, uint8_t d0_pin, uint8_t d1_pin);
 
 bool weigand_pending_frame(weigand26_t * instance);
 

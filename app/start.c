@@ -9,6 +9,7 @@
 */
 
 #include <terminal.h>
+#include "board_config.h"
 #include "board.h"
 //#include "canopen_driver.h"
 #include "FreeRTOS.h"
@@ -24,7 +25,7 @@
 /*****************************************************************************
  * Public types/enumerations/variables
  ****************************************************************************/
-
+unsigned int TERMINAL_UID[4] = {0, 0, 0, 0};
 
 /*****************************************************************************
  * Private functions
@@ -32,29 +33,34 @@
 
 static void setup_hardware(void)
 {
-    // Read clock settings and update SystemCoreClock variable
-    SystemCoreClockUpdate();
-    // Set up and initialize all required blocks and
-    // functions related to the board hardware
-    Board_Init();
+  // Read clock settings and update SystemCoreClock variable
+  SystemCoreClockUpdate();
+  // Set up and initialize all required blocks and
+  // functions related to the board hardware
+  Board_Init();
 
-    #ifdef DEVEL_BOARD
-	Board_LED_Set(0, false);
+  #ifdef DEVEL_BOARD
+	  Board_LED_Set(0, false);
     Board_LED_Set(1, false);
     Board_LED_Set(2, false);
 	#endif
 
-    // Enable INTs for all GPIO ports
-    NVIC_EnableIRQ(EINT0_IRQn);
-    NVIC_EnableIRQ(EINT1_IRQn);
-    NVIC_EnableIRQ(EINT2_IRQn);
-    NVIC_EnableIRQ(EINT3_IRQn);
+  //Read UID
+  unsigned int cmd_param[5] = {IAP_READ_UID, 0, 0, 0, 0};
+  iap_entry(cmd_param, TERMINAL_UID);
 
-    // Initialize card reading ability
-    card_reader_init();
+  // Enable INTs for all GPIO ports
+  NVIC_EnableIRQ(EINT0_IRQn);
+  NVIC_EnableIRQ(EINT1_IRQn);
+  NVIC_EnableIRQ(EINT2_IRQn);
+  NVIC_EnableIRQ(EINT3_IRQn);
 
-    extern unsigned long _vStackTop[], _pvHeapStart[];
-    unsigned long ulInterruptStackSize;
+  // Initialize terminal ability
+  //can_driver_init();
+  terminal_init();
+
+  extern unsigned long _vStackTop[], _pvHeapStart[];
+  unsigned long ulInterruptStackSize;
 	/* The size of the stack used by main and interrupts is not defined in
 	the linker, but just uses whatever RAM is left.  Calculate the amount of
 	RAM available for the main/interrupt/system stack, and check it against
@@ -92,12 +98,12 @@ int main(void)
 
 	xTaskCreate(alive_task, "alv_tsk",configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 1UL), NULL);
 
-    __enable_irq();
+  __enable_irq();
 
-    /* Start the kernel.  From here on, only tasks and interrupts will run. */
-    vTaskStartScheduler();
+  /* Start the kernel.  From here on, only tasks and interrupts will run. */
+  vTaskStartScheduler();
 
-    return 1;
+  return 1;
 }
 
 void vApplicationMallocFailedHook(void)

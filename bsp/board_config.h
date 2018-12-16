@@ -10,41 +10,67 @@
 
 #include "chip.h"
 
+
 #define DEVEL_BOARD
 
-#define TERMINAL_ID 1
+//Use global UID from chip as terminal unique ID
+#define IAP_READ_UID 58
+extern unsigned int TERMINAL_UID[4];
 
-#define CARD_READER1 0
-#define CARD_READER1_ID 1
-#define CARD_READER1_PORT 1
-#define CARD_READER1_D0_PIN 1
-#define CARD_READER1_D1_PIN 2
-#define CARD_READER1_RELAY_PORT 0
-#define CARD_READER1_RELAY_PIN 0
+//---------------------------------------------------------------------------------------------------------------------
+//Default values for door 0
+//---------------------------------------------------------------------------------------------------------------------
+#define DOOR_0_ACC_PANEL_ON         false
 
-#define CARD_READER2 0
-#define CARD_READER2_ID 2
-#define CARD_READER2_PORT 2
-#define CARD_READER2_D0_PIN 0
-#define CARD_READER2_D1_PIN 0
-#define CARD_READER2_RELAY_PORT 0
-#define CARD_READER2_RELAY_PIN 0
+#define DOOR_0_ACC_PANEL_PORT       1
+#define DOOR_0_ACC_PANEL_D0_PIN     1
+#define DOOR_0_ACC_PANEL_D1_PIN     2
+#define DOOR_0_ACC_PANEL_BEEP_PORT  0
+#define DOOR_0_ACC_PANEL_BEEP_PIN   0
+#define DOOR_0_ACC_PANEL_GLED_PORT  0
+#define DOOR_0_ACC_PANEL_GLED_PIN   0
 
-#define CARD_READER3 1
-#define CARD_READER3_ID 3
-#define CARD_READER3_PORT 3
-#define CARD_READER3_D0_PIN 1
-#define CARD_READER3_D1_PIN 2
-#define CARD_READER3_RELAY_PORT 0
-#define CARD_READER3_RELAY_PIN 0
+#define DOOR_0_RELAY_PORT           0
+#define DOOR_0_RELAY_PIN            0
+#define DOOR_0_OPEN_TIME_SEC        10
 
-#define CARD_READER_BEEPER_PORT 0
-#define CARD_READER_BEEPER_PIN 0
+//---------------------------------------------------------------------------------------------------------------------
+//Default values for door 1
+//---------------------------------------------------------------------------------------------------------------------
+#define DOOR_1_ACC_PANEL_ON         false
 
-#define CARD_READER_LED_PORT 0
-#define CARD_READER_LED_PIN 0
+#define DOOR_1_ACC_PANEL_PORT       2
+#define DOOR_1_ACC_PANEL_D0_PIN     0
+#define DOOR_1_ACC_PANEL_D1_PIN     0
+#define DOOR_1_ACC_PANEL_BEEP_PORT  0
+#define DOOR_1_ACC_PANEL_BEEP_PIN   0
+#define DOOR_1_ACC_PANEL_GLED_PORT  0
+#define DOOR_1_ACC_PANEL_GLED_PIN   0
 
-#define CARD_READERS_MAX_COUNT 4
-//#define CARD_READERS_COUNT (CARD_READER1 + CARD_READER2 + CARD_READER3)
+#define DOOR_1_RELAY_PORT           0
+#define DOOR_1_RELAY_PIN            0
+#define DOOR_1_OPEN_TIME_SEC        10
+
+//---------------------------------------------------------------------------------------------------------------------
+//Default values for door 2
+//---------------------------------------------------------------------------------------------------------------------
+#define DOOR_2_ACC_PANEL_ON         true
+
+#define DOOR_2_ACC_PANEL_PORT       3
+#define DOOR_2_ACC_PANEL_D0_PIN     1
+#define DOOR_2_ACC_PANEL_D1_PIN     2
+#define DOOR_2_ACC_PANEL_BEEP_PORT  0
+#define DOOR_2_ACC_PANEL_BEEP_PIN   0
+#define DOOR_2_ACC_PANEL_GLED_PORT  0
+#define DOOR_2_ACC_PANEL_GLED_PIN   0
+
+#define DOOR_2_RELAY_PORT           0
+#define DOOR_2_RELAY_PIN            0
+#define DOOR_2_OPEN_TIME_SEC        10
+
+
+#define WEIGAND_DEVICE_LIMIT 3
+#define SERIAL_DEVICE_LIMIT 0
+#define DOOR_ACC_PANEL_MAX_COUNT (WEIGAND_DEVICE_LIMIT + SERIAL_DEVICE_LIMIT)
 
 #endif /* BSP_BOARD_CONFIG_H_ */

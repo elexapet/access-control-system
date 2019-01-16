@@ -76,9 +76,14 @@ extern "C" {
 /* Board name */
 #define BOARD_NXP_XPRESSO_11C24
 
+/* Translator for IOCON */
+extern const CHIP_IOCON_PIO_T CHIP_IOCON_PIO[][12];
+
 /**
  * @}
  */
+
+#include "board_config.h"
 
 #include "board_api.h"
 

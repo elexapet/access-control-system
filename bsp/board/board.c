@@ -43,6 +43,69 @@
 /* System oscillator rate and clock rate on the CLKIN pin */
 const uint32_t OscRateIn = 12000000;
 const uint32_t ExtRateIn = 0;
+/* Translator for IOCON */
+const CHIP_IOCON_PIO_T CHIP_IOCON_PIO[][12] =
+{
+  {
+    IOCON_PIO0_0,
+    IOCON_PIO0_1,
+    IOCON_PIO0_2,
+    IOCON_PIO0_3,
+    IOCON_PIO0_4,
+    IOCON_PIO0_5,
+    IOCON_PIO0_6,
+    IOCON_PIO0_7,
+    IOCON_PIO0_8,
+    IOCON_PIO0_9,
+    IOCON_PIO0_10,
+    IOCON_PIO0_11,
+  },
+  {
+    IOCON_PIO1_0,
+    IOCON_PIO1_1,
+    IOCON_PIO1_2,
+    IOCON_PIO1_3,
+    IOCON_PIO1_4,
+    IOCON_PIO1_5,
+    IOCON_PIO1_6,
+    IOCON_PIO1_7,
+    IOCON_PIO1_8,
+    IOCON_PIO1_9,
+    IOCON_PIO1_10,
+    IOCON_PIO1_11,
+  },
+  {
+    IOCON_PIO2_0,
+    IOCON_PIO2_1,
+    IOCON_PIO2_2,
+    IOCON_PIO2_3,
+    IOCON_PIO2_4,
+    IOCON_PIO2_5,
+    IOCON_PIO2_6,
+    IOCON_PIO2_7,
+    IOCON_PIO2_8,
+    IOCON_PIO2_9,
+    IOCON_PIO2_10,
+  #if !defined(CHIP_LPC1125)
+    IOCON_PIO2_11,
+  #else
+    0,
+  #endif
+  },
+  {
+    IOCON_PIO3_0,
+  #if !defined(CHIP_LPC1125)
+    IOCON_PIO3_1,
+  #else
+    0,
+  #endif
+    IOCON_PIO3_2,
+    IOCON_PIO3_3,
+    IOCON_PIO3_4,
+    IOCON_PIO3_5,
+    0,
+  }
+};
 
 /*****************************************************************************
  * Private functions

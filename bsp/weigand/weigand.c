@@ -11,8 +11,7 @@
  */
 
 #include "weigand.h"
-#include "chip.h"
-#include "board_config.h"
+#include "board.h"
 #include <limits.h>
 #include <assert.h>
 
@@ -32,8 +31,8 @@ void weigand_init(StreamBufferHandle_t buffer, uint8_t dx_port, uint8_t d0_pin, 
 	device[dx_port].frame_buffer_ptr = WEIGAND26_FRAME_SIZE;
 
 	//Enable pull-ups
-	Chip_IOCON_PinMuxSet(LPC_IOCON, IOCON_PIO3_1, IOCON_MODE_PULLUP);
-	Chip_IOCON_PinMuxSet(LPC_IOCON, IOCON_PIO3_2, IOCON_MODE_PULLUP);
+	Chip_IOCON_PinMux(LPC_IOCON, CHIP_IOCON_PIO[dx_port][d0_pin], IOCON_MODE_PULLUP, IOCON_FUNC0);
+	Chip_IOCON_PinMux(LPC_IOCON, CHIP_IOCON_PIO[dx_port][d1_pin], IOCON_MODE_PULLUP, IOCON_FUNC0);
 
 	//Input mode
 	Chip_GPIO_SetPinDIRInput(LPC_GPIO, dx_port, d0_pin);

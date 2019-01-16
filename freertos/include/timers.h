@@ -204,7 +204,7 @@ typedef void (*PendedFunction_t)( void *, uint32_t );
  *             // Start the timer.  No block time is specified, and even if one was
  *             // it would be ignored because the scheduler has not yet been
  *             // started.
- *             if( xTimerStart( xTimers[ x ], 0 ) != pdPASS )
+ *             if(  != pdPASS )
  *             {
  *                 // The timer could not be set into the Active state.
  *             }

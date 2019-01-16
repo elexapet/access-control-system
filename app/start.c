@@ -9,7 +9,6 @@
 */
 
 #include <terminal.h>
-#include "board_config.h"
 #include "board.h"
 //#include "canopen_driver.h"
 #include "FreeRTOS.h"

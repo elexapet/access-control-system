@@ -28,7 +28,6 @@ panel_conf_t acc_panel[DOOR_ACC_PANEL_MAX_COUNT] =
     .relay_port = DOOR_0_RELAY_PORT,
     .relay_pin = DOOR_0_RELAY_PIN,
     .open_time_sec = DOOR_0_OPEN_TIME_MS,
-    .card_stream = NULL,
     .timer = NULL,
   },
   {
@@ -43,7 +42,6 @@ panel_conf_t acc_panel[DOOR_ACC_PANEL_MAX_COUNT] =
     .relay_port = DOOR_1_RELAY_PORT,
     .relay_pin = DOOR_1_RELAY_PIN,
     .open_time_sec = DOOR_1_OPEN_TIME_MS,
-    .card_stream = NULL,
     .timer = NULL,
   },
   {
@@ -58,31 +56,41 @@ panel_conf_t acc_panel[DOOR_ACC_PANEL_MAX_COUNT] =
     .relay_port = DOOR_2_RELAY_PORT,
     .relay_pin = DOOR_2_RELAY_PIN,
     .open_time_sec = DOOR_2_OPEN_TIME_MS,
-    .card_stream = NULL,
     .timer = NULL,
   }
 };
 
 static void terminal_user_authorized(uint8_t panel_id)
 {
-  panel_unlock(panel_id);
+  // TODO
+  panel_unlock(panel_id, BEEP_ON_SUCCESS, OK_LED_ON_SUCCESS);
 }
 
 static void terminal_user_not_authorized(uint8_t panel_id)
 {
+  //TODO
   (void)panel_id;
 }
 
-static void terminal_process_card(uint8_t facility_code, uint16_t user_number, uint8_t panel_id)
+static bool terminal_is_user_auhorized(uint32_t user_id)
 {
-  #ifdef DEVEL_BOARD
-  //printf("Facility: %u Card: %u Parity: %u\n", facility_code, user_number);
-  Board_LED_Set(1, true);
-  vTaskDelay(1000 / portTICK_PERIOD_MS);
-  Board_LED_Set(1, false);
+#ifdef DEVEL_BOARD
+  if (user_id == 7632370) return true;
+#endif
+  return false;
+}
 
-  if (facility_code == 12 && user_number == 27762) terminal_user_authorized(panel_id);
-  #endif
+static void terminal_user_identified(uint32_t user_id, uint8_t panel_id)
+{
+  if (terminal_is_user_auhorized(user_id))
+  {
+    terminal_user_authorized(panel_id);
+  }
+  else
+  {
+    terminal_user_not_authorized(panel_id);
+  }
+
 }
 
 static void terminal_task(void *pvParameters)
@@ -91,32 +99,11 @@ static void terminal_task(void *pvParameters)
 
   while (true)
   {
-    weigand26_frame_t card_data;
-    size_t bytes_got;
-
-    if (acc_panel[ACC_PANEL_0].acc_panel_on)
+    uint32_t user_id;
+    uint8_t panel_id = panel_get_request_from_buffer(&user_id);
+    if (panel_id > 0)
     {
-      bytes_got = xStreamBufferReceive(acc_panel[ACC_PANEL_0].card_stream, &card_data, sizeof card_data, pdMS_TO_TICKS(0));
-      if (bytes_got == sizeof card_data && weigand_is_parity_ok(card_data))
-      {
-        terminal_process_card(card_data.facility_code, card_data.card_number, ACC_PANEL_0);
-      }
-    }
-    if (acc_panel[ACC_PANEL_1].acc_panel_on)
-    {
-      bytes_got = xStreamBufferReceive(acc_panel[ACC_PANEL_1].card_stream, &card_data, sizeof card_data, pdMS_TO_TICKS(0));
-      if (bytes_got == sizeof card_data && weigand_is_parity_ok(card_data))
-      {
-        terminal_process_card(card_data.facility_code, card_data.card_number, ACC_PANEL_1);
-      }
-    }
-    if (acc_panel[ACC_PANEL_2].acc_panel_on)
-    {
-      bytes_got = xStreamBufferReceive(acc_panel[ACC_PANEL_2].card_stream, &card_data, sizeof card_data, pdMS_TO_TICKS(0));
-      if (bytes_got == sizeof card_data && weigand_is_parity_ok(card_data))
-      {
-        terminal_process_card(card_data.facility_code, card_data.card_number, ACC_PANEL_2);
-      }
+      terminal_user_identified(user_id, panel_id);
     }
   }
 }
@@ -139,17 +126,23 @@ void terminal_reconfigure(panel_conf_t * panel_cfg, uint8_t panel_id)
 
   if (panel_cfg != NULL)
   {
-    memcpy(&acc_panel[panel_id], panel_cfg, sizeof(acc_panel[panel_id]));
+    memcpy(&acc_panel[panel_id], panel_cfg, sizeof(panel_conf_t));
 
-    //disable interface
-    panel_deinit(panel_id);
+    //reconfigure interface to card reader
+    if (acc_panel[panel_id].acc_panel_on)
+    {
+      panel_init(panel_id);
+    }
+    else
+    {
+      //disable interface
+      panel_deinit(panel_id);
+    }
   }
-
-  portEXIT_CRITICAL();
-
-  //reconfigure interface to card reader
-  if (acc_panel[panel_id].acc_panel_on)
+  else
   {
     panel_init(panel_id);
   }
+
+  portEXIT_CRITICAL();
 }

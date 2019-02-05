@@ -1,3 +1,7 @@
+/*
+ * This access panel implementation uses Weigand26 card reader protocol.
+ */
+
 #ifndef BSP_PANEL_H_
 #define BSP_PANEL_H_
 
@@ -26,7 +30,6 @@ typedef struct
   uint8_t relay_port : 4;
   uint8_t relay_pin : 4;
   uint16_t open_time_sec;
-  StreamBufferHandle_t card_stream;
   TimerHandle_t timer;
 } panel_conf_t; //TOTAL SIZE 6B
 #pragma pack(pop)
@@ -37,7 +40,9 @@ void panel_init(uint8_t id);
 
 void panel_deinit(uint8_t id);
 
-void panel_unlock(uint8_t id);
+int8_t panel_get_request_from_buffer(uint32_t * user_id);
+
+void panel_unlock(uint8_t id, bool with_beep, bool with_ok_led);
 
 
 #endif /* BSP_PANEL_H_ */

@@ -15,13 +15,23 @@
 #include <limits.h>
 #include <assert.h>
 
+typedef struct
+{
+  weigand26_frame_t frame_buffer;
+  uint8_t frame_buffer_ptr;
+  uint8_t port;
+  uint8_t pin_d0;
+  uint8_t pin_d1;
+  uint8_t id;
+  StreamBufferHandle_t consumer_buffer;
+} weigand26_t;
 
 static weigand26_t device[WEIGAND_DEVICE_LIMIT];
 
 
-void weigand_init(StreamBufferHandle_t buffer, uint8_t dx_port, uint8_t d0_pin, uint8_t d1_pin)
+void weigand_init(StreamBufferHandle_t buffer, uint8_t id, uint8_t dx_port, uint8_t d0_pin, uint8_t d1_pin)
 {
-	if (dx_port > 3) return;
+	configASSERT(dx_port < WEIGAND_DEVICE_LIMIT);
 
 	//Save device information
 	device[dx_port].port = dx_port;
@@ -29,6 +39,7 @@ void weigand_init(StreamBufferHandle_t buffer, uint8_t dx_port, uint8_t d0_pin, 
 	device[dx_port].pin_d1 = d1_pin;
 	device[dx_port].frame_buffer.value = 0;
 	device[dx_port].frame_buffer_ptr = WEIGAND26_FRAME_SIZE;
+	device[dx_port].id = id;
 
 	//Enable pull-ups
 	Chip_IOCON_PinMux(LPC_IOCON, CHIP_IOCON_PIO[dx_port][d0_pin], IOCON_MODE_PULLUP, IOCON_FUNC0);
@@ -93,7 +104,7 @@ void weigand_int_handler(weigand26_t * device)
 	Chip_GPIO_ClearInts(LPC_GPIO, device->port, (1 << device->pin_d0));
 
 	//Resolve bit value
-	if (int_states & (1 << device->pin_d1))
+	if (int_states & (1 << device->pin_d1)) // 0's
 	{
 		if (Chip_GPIO_ReadPortBit(LPC_GPIO, device->port, device->pin_d1) == 0)
 		{
@@ -101,7 +112,7 @@ void weigand_int_handler(weigand26_t * device)
 			device->frame_buffer.value |= (1 << device->frame_buffer_ptr);
 		}
 	}
-	else if (int_states & (1 << device->pin_d0))
+	else if (int_states & (1 << device->pin_d0)) // 1's
 	{
 		if (Chip_GPIO_ReadPortBit(LPC_GPIO, device->port, device->pin_d0) == 0)
 		{
@@ -109,33 +120,43 @@ void weigand_int_handler(weigand26_t * device)
 			device->frame_buffer.value &= ~(1 << device->frame_buffer_ptr);
 		}
 	}
-	else
+	else // Clear other int on same port (FIXME)
 	{
 		Chip_GPIO_ClearInts(LPC_GPIO, device->port, 0xFFFFFFFF);
 	}
 	//Whole frame received
-	if (device->frame_buffer_ptr == 0)
+	if (device->frame_buffer_ptr == 0 && device->consumer_buffer != NULL)
 	{
-		xStreamBufferReset(device->consumer_buffer);
+	  BaseType_t pxHigherPriorityTaskWoken = pdFALSE;
 
-		BaseType_t pxHigherPriorityTaskWoken = pdFALSE;
-		size_t bytes_sent = xStreamBufferSendFromISR(
-				device->consumer_buffer,
-				&device->frame_buffer,
-				sizeof(weigand26_frame_t),
-				&pxHigherPriorityTaskWoken);
+	  // Check if not full
+		if (xStreamBufferIsFull(device->consumer_buffer) == pdFALSE)
+		{
+		  weigand26_buff_item_t item_to_send = {
+		      device->id,
+		      device->frame_buffer
+		  };
 
-		//Stream buffer should be empty because we reset it
-		assert(bytes_sent == sizeof(weigand26_frame_t));
+		  // Send data
+      size_t bytes_sent = xStreamBufferSendFromISR(
+          device->consumer_buffer,
+          &item_to_send,
+          WEIGAND26_BUFF_ITEM_SIZE,
+          &pxHigherPriorityTaskWoken);
 
+      //Stream buffer should have had enough space
+      assert(bytes_sent == WEIGAND26_BUFF_ITEM_SIZE);
+		}
+		// Discard data
 		device->frame_buffer_ptr = WEIGAND26_FRAME_SIZE;
 		device->frame_buffer.value = 0;
 
+		// Wake potentially waiting task
 		portYIELD_FROM_ISR(pxHigherPriorityTaskWoken);
 	}
 }
 
-//GPIO port 1 handler
+//GPIO port 0 handler
 void PIOINT0_IRQHandler(void)
 {
 	NVIC_ClearPendingIRQ(EINT1_IRQn);

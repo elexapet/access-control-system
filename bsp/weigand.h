@@ -16,8 +16,10 @@
 
 #define WEIGAND26_FRAME_SIZE 26
 
-typedef union{
-	struct{
+typedef union
+{
+	struct
+	{
 		uint32_t odd_parity: 1;
 		uint32_t card_number : 16;
 		uint32_t facility_code : 8;
@@ -25,27 +27,20 @@ typedef union{
 		uint32_t : 6; //padding
 	};
 	uint32_t value;
-}weigand26_frame_t;
+} weigand26_frame_t;
 
-#define CONSUMER_BUFF_SIZE sizeof(weigand26_frame_t)
+// Buffer item type required from consumer of this driver to be used
+typedef struct
+{
+  uint8_t source;
+  weigand26_frame_t frame;
+} weigand26_buff_item_t;
 
-typedef struct {
-	weigand26_frame_t frame_buffer;
-	uint8_t frame_buffer_ptr;
-	uint8_t port;
-	uint8_t pin_d0;
-	uint8_t pin_d1;
-	StreamBufferHandle_t consumer_buffer;
-}weigand26_t;
+#define WEIGAND26_BUFF_ITEM_SIZE sizeof(weigand26_buff_item_t)
 
-
-void weigand_init(StreamBufferHandle_t buffer, uint8_t dx_port, uint8_t d0_pin, uint8_t d1_pin);
+void weigand_init(StreamBufferHandle_t buffer, uint8_t id, uint8_t dx_port, uint8_t d0_pin, uint8_t d1_pin);
 
 void weigand_disable(uint8_t dx_port, uint8_t d0_pin, uint8_t d1_pin);
-
-bool weigand_pending_frame(weigand26_t * instance);
-
-weigand26_frame_t weigand_get_frame(weigand26_t * instance);
 
 uint32_t weigand_get_facility(weigand26_frame_t frame);
 

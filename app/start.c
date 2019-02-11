@@ -1,20 +1,15 @@
 /*
-===============================================================================
- Name        : main.c
- Author      : $(author)
- Version     :
- Copyright   : $(copyright)
- Description : main definition
-===============================================================================
+  Main startup sequence
 */
 
-#include <terminal.h>
+#include "terminal.h"
 #include "board.h"
 //#include "canopen_driver.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
 #include "timers.h"
+#include "watchdog.h"
 
 /*****************************************************************************
  * Private types/enumerations/variables
@@ -24,11 +19,25 @@
 /*****************************************************************************
  * Public types/enumerations/variables
  ****************************************************************************/
-unsigned int TERMINAL_UID[4] = {0, 0, 0, 0};
+unsigned int TERMINAL_UID[5] = {0, 0, 0, 0, 0};
 
 /*****************************************************************************
  * Private functions
  ****************************************************************************/
+#ifdef DEVEL_BOARD
+static void alive_task(void *pvParameters)
+{
+  (void *) pvParameters;
+  Board_LED_Set(0, true);
+  while (1)
+  {
+    vTaskDelay(1500 / portTICK_PERIOD_MS);
+    Board_LED_Toggle(0);
+    DEBUGSTR("tick\n");
+  }
+}
+#endif //DEVEL_BOARD
+
 
 static void setup_hardware(void)
 {
@@ -39,9 +48,10 @@ static void setup_hardware(void)
   Board_Init();
 
   #ifdef DEVEL_BOARD
-	  Board_LED_Set(0, false);
-    Board_LED_Set(1, false);
-    Board_LED_Set(2, false);
+  Board_LED_Set(0, false);
+  Board_LED_Set(1, false);
+  Board_LED_Set(2, false);
+  xTaskCreate(alive_task, "alv_tsk",configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 1UL), NULL);
 	#endif
 
   //Read UID
@@ -54,9 +64,10 @@ static void setup_hardware(void)
   NVIC_EnableIRQ(EINT2_IRQn);
   NVIC_EnableIRQ(EINT3_IRQn);
 
-  // Initialize terminal ability
-  //can_driver_init();
+
+  // can_driver_init();
   terminal_init();
+  WDT_Init();
 
   extern unsigned long _vStackTop[], _pvHeapStart[];
   unsigned long ulInterruptStackSize;
@@ -75,16 +86,6 @@ static void setup_hardware(void)
 
 }
 
-static void alive_task(void *pvParameters)
-{
-	Board_LED_Set(0, true);
-	while (1)
-	{
-		vTaskDelay(1500 / portTICK_PERIOD_MS);
-		Board_LED_Toggle(0);
-	}
-}
-
 /*****************************************************************************
  * Public functions
  ****************************************************************************/
@@ -94,8 +95,6 @@ int main(void)
 	__disable_irq();
 
 	setup_hardware();
-
-	xTaskCreate(alive_task, "alv_tsk",configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 1UL), NULL);
 
   __enable_irq();
 
@@ -132,6 +131,8 @@ void vApplicationIdleHook(void)
 	important that vApplicationIdleHook() is permitted to return to its calling
 	function, because it is the responsibility of the idle task to clean up
 	memory allocated by the kernel to any task that has since been deleted. */
+
+  WDT_Feed(); // Feed HW watchdog
 }
 
 void vApplicationStackOverflowHook( TaskHandle_t pxTask, char *pcTaskName )

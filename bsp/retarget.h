@@ -224,7 +224,7 @@ _STD_END
 int WRITEFUNC(int iFileHandle, char *pcBuffer, int iLength)
 {
 #if defined(DEBUG_ENABLE)
-	unsigned int i;
+	int i;
 	for (i = 0; i < iLength; i++) {
 		Board_UARTPutChar(pcBuffer[i]);
 	}

@@ -26,7 +26,7 @@
 #define PERIPHERAL		CAN
 
 #if (PERIPHERAL == CAN)
-	#include "rom_driver_CAN.h"
+	#include <can/rom_driver_CAN.h>
 #endif /* (PERIPHERAL == CAN) */
 
 #if (PERIPHERAL == USB)

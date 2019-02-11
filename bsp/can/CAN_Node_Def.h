@@ -25,8 +25,8 @@
 #ifndef _CAN_NODE_DEF_H
 #define _CAN_NODE_DEF_H
 
+#include <can/canopen_driver.h>
 #include <stdint.h>
-#include "canopen_driver.h"
 
 #define CAN_MASTER_NODE			0x7D		/* 125 */
 #define CAN_SLAVE1_NODE			0x01		/* 1 */

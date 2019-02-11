@@ -22,8 +22,8 @@
  * use without further testing or modification.
  **********************************************************************/
 
-#include "canopen_driver.h"
-#include "CAN_Node_Def.h"
+#include <can/canopen_driver.h>
+#include <can/CAN_Node_Def.h>
 
 #if defined (  __GNUC__  )						/* only for LPCXpresso, for keil/IAR this is done by linker */
 #include "cr_section_macros.h"

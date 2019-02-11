@@ -25,7 +25,7 @@
 #ifndef CANOPEN_DRIVER_H_
 #define CANOPEN_DRIVER_H_
 
-#include "rom_drivers.h"
+#include <can/rom_drivers.h>
 
 /* Message buffers used by CANopen library:
 CANopen driver RX		1

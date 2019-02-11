@@ -1,5 +1,5 @@
 /*
- * board_config.h
+ * terminal_config.h
  *
  *  Created on: 24. 8. 2018
  *      Author: Petr
@@ -8,14 +8,11 @@
 #ifndef BSP_BOARD_CONFIG_H_
 #define BSP_BOARD_CONFIG_H_
 
-#include "chip.h"
-
-
 #define DEVEL_BOARD
 
 // Use global UID from chip as terminal unique ID
 #define IAP_READ_UID 58
-extern unsigned int TERMINAL_UID[4]; // 0 is least significant word
+extern unsigned int TERMINAL_UID[5]; // 0 - status code, 1 - least significant word
 
 //---------------------------------------------------------------------------------------------------------------------
 // Values for door 0

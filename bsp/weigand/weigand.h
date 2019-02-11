@@ -15,6 +15,7 @@
 #include "stream_buffer.h"
 
 #define WEIGAND26_FRAME_SIZE 26
+#define WEIGAND26_FRAME_TIME_LIMIT 100 //ms
 
 typedef union
 {
@@ -38,6 +39,7 @@ typedef struct
 
 #define WEIGAND26_BUFF_ITEM_SIZE sizeof(weigand26_buff_item_t)
 
+//One buffer for each receiving component is preferred
 void weigand_init(StreamBufferHandle_t buffer, uint8_t id, uint8_t dx_port, uint8_t d0_pin, uint8_t d1_pin);
 
 void weigand_disable(uint8_t dx_port, uint8_t d0_pin, uint8_t d1_pin);

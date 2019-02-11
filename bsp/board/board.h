@@ -51,17 +51,18 @@ extern "C" {
  * This board has options that configure its operation at build-time.<br>
  */
 
+#ifdef DEBUG
 /** Define DEBUG_ENABLE to enable IO via the DEBUGSTR, DEBUGOUT, and
     DEBUGIN macros. If not defined, DEBUG* functions will be optimized
 	out of the code at build time.
  */
-//#define DEBUG_ENABLE
+#define DEBUG_ENABLE
 
 /** Define DEBUG_SEMIHOSTING along with DEBUG_ENABLE to enable IO support
     via semihosting. You may need to use a C library that supports
 	semihosting with this option.
  */
-#define DEBUG_SEMIHOSTING
+#undef DEBUG_SEMIHOSTING
 
 /** Board UART used for debug output and input using the DEBUG* macros. This
     is also the port used for Board_UARTPutChar, Board_UARTGetChar, and
@@ -69,21 +70,16 @@ extern "C" {
  */
 #define DEBUG_UART LPC_USART
 
-/**
- * @}
- */
+#endif // DEBUG
 
 /* Board name */
 #define BOARD_NXP_XPRESSO_11C24
 
+
 /* Translator for IOCON */
 extern const CHIP_IOCON_PIO_T CHIP_IOCON_PIO[][12];
 
-/**
- * @}
- */
-
-#include "board_config.h"
+#include "terminal_config.h"
 
 #include "board_api.h"
 

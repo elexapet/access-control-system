@@ -22,7 +22,7 @@
  * use without further testing or modification.
  **********************************************************************/
 
-#include "CAN_Node_Def.h"
+#include <can/CAN_Node_Def.h>
 #include <stdint.h>
 
 /* Application variables used in variable OD */

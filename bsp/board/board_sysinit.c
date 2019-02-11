@@ -113,7 +113,7 @@ STATIC void SystemSetupClocking(void)
 /* Sets up system pin muxing */
 STATIC void SystemSetupMuxing(void)
 {
-	int i;
+	size_t i;
 
 	/* Enable IOCON clock */
 	Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_IOCON);

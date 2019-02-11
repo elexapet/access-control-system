@@ -35,9 +35,14 @@ void WDT_IRQHandler(void)
 {
 	uint32_t wdtStatus = Chip_WWDT_GetStatus(LPC_WWDT);
 
-	if (wdtStatus & WWDT_WDMOD_WDTOF) {
-		//DO smth
-		while(Chip_WWDT_GetStatus(LPC_WWDT) & WWDT_WDMOD_WDTOF) {
+	if (wdtStatus & WWDT_WDMOD_WDTOF)
+	{
+	  #ifdef DEBUG_ENABLE
+	  DEBUGSTR("WDT\n");
+    #endif //DEBUG_ENABLE
+		// Restart WDT
+		while(Chip_WWDT_GetStatus(LPC_WWDT) & WWDT_WDMOD_WDTOF)
+		{
 			Chip_WWDT_ClearStatusFlag(LPC_WWDT, WWDT_WDMOD_WDTOF);
 		}
 		Chip_WWDT_Start(LPC_WWDT);	/* Needs restart */
@@ -55,9 +60,9 @@ void WDT_Init(void)
 	Chip_WWDT_Init(LPC_WWDT);
 
 	/* Prior to initializing the watchdog driver, the clocking for the
-	   watchdog must be enabled. This example uses the watchdog oscillator
-	   set at a 50KHz (1Mhz / 20) clock rate. */
+	   watchdog must be enabled. */
 	Chip_SYSCTL_PowerUp(SYSCTL_POWERDOWN_WDTOSC_PD);
+	/* The watchdog oscillator will be set at a 50KHz (1Mhz / 20) clock rate. */
 	Chip_Clock_SetWDTOSC(WDTLFO_OSC_1_05, 20);
 
 	/* The WDT divides the input frequency into it by 4 */
@@ -77,6 +82,11 @@ void WDT_Init(void)
 	/* Clear and enable watchdog interrupt */
 	NVIC_ClearPendingIRQ(WDT_IRQn);
 	NVIC_EnableIRQ(WDT_IRQn);
+
+#ifdef RELEASE
+	/* Watchdog will cause reset on production version */
+	Chip_WWDT_SetOption(LPC_WWDT, WWDT_WDMOD_WDRESET);
+#endif
 
 	/* Start watchdog */
 	Chip_WWDT_Start(LPC_WWDT);

@@ -14,52 +14,6 @@
 #include <string.h>
 
 
-panel_conf_t acc_panel[DOOR_ACC_PANEL_MAX_COUNT] =
-{
-  {
-    .acc_panel_on = DOOR_0_ACC_PANEL_ON,
-    .acc_panel_port = DOOR_0_ACC_PANEL_PORT,
-    .acc_panel_d0_pin = DOOR_0_ACC_PANEL_D0_PIN,
-    .acc_panel_d1_pin = DOOR_0_ACC_PANEL_D1_PIN,
-    .acc_panel_beep_port = DOOR_0_ACC_PANEL_BEEP_PORT,
-    .acc_panel_beep_pin = DOOR_0_ACC_PANEL_BEEP_PIN,
-    .acc_panel_gled_port = DOOR_0_ACC_PANEL_GLED_PORT,
-    .acc_panel_gled_pin = DOOR_0_ACC_PANEL_GLED_PIN,
-    .relay_port = DOOR_0_RELAY_PORT,
-    .relay_pin = DOOR_0_RELAY_PIN,
-    .open_time_sec = DOOR_0_OPEN_TIME_MS,
-    .timer = NULL,
-  },
-  {
-    .acc_panel_on = DOOR_1_ACC_PANEL_ON,
-    .acc_panel_port = DOOR_1_ACC_PANEL_PORT,
-    .acc_panel_d0_pin = DOOR_1_ACC_PANEL_D0_PIN,
-    .acc_panel_d1_pin = DOOR_1_ACC_PANEL_D1_PIN,
-    .acc_panel_beep_port = DOOR_1_ACC_PANEL_BEEP_PORT,
-    .acc_panel_beep_pin = DOOR_1_ACC_PANEL_BEEP_PIN,
-    .acc_panel_gled_port = DOOR_1_ACC_PANEL_GLED_PORT,
-    .acc_panel_gled_pin = DOOR_1_ACC_PANEL_GLED_PIN,
-    .relay_port = DOOR_1_RELAY_PORT,
-    .relay_pin = DOOR_1_RELAY_PIN,
-    .open_time_sec = DOOR_1_OPEN_TIME_MS,
-    .timer = NULL,
-  },
-  {
-    .acc_panel_on = DOOR_2_ACC_PANEL_ON,
-    .acc_panel_port = DOOR_2_ACC_PANEL_PORT,
-    .acc_panel_d0_pin = DOOR_2_ACC_PANEL_D0_PIN,
-    .acc_panel_d1_pin = DOOR_2_ACC_PANEL_D1_PIN,
-    .acc_panel_beep_port = DOOR_2_ACC_PANEL_BEEP_PORT,
-    .acc_panel_beep_pin = DOOR_2_ACC_PANEL_BEEP_PIN,
-    .acc_panel_gled_port = DOOR_2_ACC_PANEL_GLED_PORT,
-    .acc_panel_gled_pin = DOOR_2_ACC_PANEL_GLED_PIN,
-    .relay_port = DOOR_2_RELAY_PORT,
-    .relay_pin = DOOR_2_RELAY_PIN,
-    .open_time_sec = DOOR_2_OPEN_TIME_MS,
-    .timer = NULL,
-  }
-};
-
 static void terminal_user_authorized(uint8_t panel_id)
 {
   // TODO

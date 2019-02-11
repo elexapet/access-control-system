@@ -43,6 +43,7 @@
 /* System oscillator rate and clock rate on the CLKIN pin */
 const uint32_t OscRateIn = 12000000;
 const uint32_t ExtRateIn = 0;
+
 /* Translator for IOCON */
 const CHIP_IOCON_PIO_T CHIP_IOCON_PIO[][12] =
 {
@@ -162,6 +163,8 @@ void Board_Debug_Init(void)
 #endif
 }
 
+#ifdef DEVEL_BOARD
+
 /* Initializes board LED(s) */
 static void Board_LED_Init(void)
 {
@@ -207,6 +210,8 @@ void Board_LED_Toggle(uint8_t LEDNumber)
 		Chip_GPIO_SetPinToggle(LPC_GPIO, 0, 9);
 }
 
+#endif // DEVEL_BOARD
+
 /* Set up and initialize all required blocks and functions related to the
    board hardware */
 void Board_Init(void)
@@ -217,6 +222,8 @@ void Board_Init(void)
 	/* Initialize GPIO */
 	Chip_GPIO_Init(LPC_GPIO);
 
+#ifdef DEVEL_BOARD
 	/* Initialize LEDs */
 	Board_LED_Init();
+#endif // DEVEL_BOARD
 }

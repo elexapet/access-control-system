@@ -4,7 +4,9 @@
  *  Created on: 24. 8. 2018
  *      Author: Petr
  *
- *  W26 frame | even parity (1b) | facility code (8b) | card number (16b) | odd parity (1b) | takes up-to ~52ms
+ *  W26 frame
+ *  | even parity (1b) | facility code (8b) | card number (16b) | odd parity (1b) |
+ *  transmission takes up-to ~52ms
  *
  *	data pulse 50us
  *	data interval 2ms
@@ -103,7 +105,7 @@ void weigand_int_handler(weigand26_t * device)
 	Chip_GPIO_ClearInts(LPC_GPIO, device->port, (1 << device->pin_d1));
 	Chip_GPIO_ClearInts(LPC_GPIO, device->port, (1 << device->pin_d0));
 
-	//Resolve bit value
+	//Resolve pin
 	if (int_states & (1 << device->pin_d1)) // 0's
 	{
 		if (Chip_GPIO_ReadPortBit(LPC_GPIO, device->port, device->pin_d1) == 0)
@@ -144,14 +146,14 @@ void weigand_int_handler(weigand26_t * device)
           WEIGAND26_BUFF_ITEM_SIZE,
           &pxHigherPriorityTaskWoken);
 
-      //Stream buffer should have had enough space
+      //Stream buffer should have had enough space (we checked)
       assert(bytes_sent == WEIGAND26_BUFF_ITEM_SIZE);
 		}
-		// Discard data
+		// Empty the frame buffer
 		device->frame_buffer_ptr = WEIGAND26_FRAME_SIZE;
 		device->frame_buffer.value = 0;
 
-		// Wake potentially waiting task
+		// Wake potentially blocked higher priority task
 		portYIELD_FROM_ISR(pxHigherPriorityTaskWoken);
 	}
 }
@@ -160,27 +162,39 @@ void weigand_int_handler(weigand26_t * device)
 void PIOINT0_IRQHandler(void)
 {
 	NVIC_ClearPendingIRQ(EINT1_IRQn);
-	weigand_int_handler(&device[0]);
+  if (device[0].consumer_buffer != NULL)
+  {
+    weigand_int_handler(&device[0]);
+  }
 }
 
 //GPIO port 1 handler
 void PIOINT1_IRQHandler(void)
 {
 	NVIC_ClearPendingIRQ(EINT1_IRQn);
-	weigand_int_handler(&device[1]);
+	if (device[1].consumer_buffer != NULL)
+	{
+	  weigand_int_handler(&device[1]);
+	}
 }
 
 //GPIO port 2 handler
 void PIOINT2_IRQHandler(void)
 {
 	NVIC_ClearPendingIRQ(EINT2_IRQn);
-	weigand_int_handler(&device[2]);
+  if (device[2].consumer_buffer != NULL)
+  {
+    weigand_int_handler(&device[2]);
+  }
 }
 
 //GPIO port 3 handler
 void PIOINT3_IRQHandler(void)
 {
 	NVIC_ClearPendingIRQ(EINT3_IRQn);
-	weigand_int_handler(&device[3]);
+  if (device[2].consumer_buffer != NULL)
+  {
+    weigand_int_handler(&device[2]);
+  }
 }
 

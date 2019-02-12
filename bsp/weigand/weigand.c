@@ -8,34 +8,55 @@
  *  | even parity (1b) | facility code (8b) | card number (16b) | odd parity (1b) |
  *  transmission takes up-to ~52ms
  *
+ *
  *	data pulse 50us
  *	data interval 2ms
  */
 
 #include "weigand.h"
 #include "board.h"
+#include "timers.h"
 #include <limits.h>
 #include <assert.h>
 
 typedef struct
 {
   weigand26_frame_t frame_buffer;
+  StreamBufferHandle_t consumer_buffer;
+  TimerHandle_t timer;
   uint8_t frame_buffer_ptr;
   uint8_t port;
   uint8_t pin_d0;
   uint8_t pin_d1;
   uint8_t id;
-  StreamBufferHandle_t consumer_buffer;
 } weigand26_t;
 
-static weigand26_t device[WEIGAND_DEVICE_LIMIT];
+static weigand26_t device[WEIGAND_DEVICE_LIMIT] = {0};
 
+static void weigand_frame_timeout(TimerHandle_t pxTimer)
+{
+  configASSERT(pxTimer);
+
+  // Which timer expired
+  uint32_t id = (int32_t) pvTimerGetTimerID(pxTimer);
+
+  portENTER_CRITICAL(); // Prevent weigand_int_handler from being invoked
+  if (device[id].frame_buffer_ptr != WEIGAND26_FRAME_SIZE)
+  {
+    // Empty the frame buffer
+    device[id].frame_buffer.value = 0;
+    device[id].frame_buffer_ptr = WEIGAND26_FRAME_SIZE;
+
+  }
+  portEXIT_CRITICAL();
+}
 
 void weigand_init(StreamBufferHandle_t buffer, uint8_t id, uint8_t dx_port, uint8_t d0_pin, uint8_t d1_pin)
 {
 	configASSERT(dx_port < WEIGAND_DEVICE_LIMIT);
 
 	//Save device information
+	device[dx_port].consumer_buffer = buffer;
 	device[dx_port].port = dx_port;
 	device[dx_port].pin_d0 = d0_pin;
 	device[dx_port].pin_d1 = d1_pin;
@@ -59,8 +80,12 @@ void weigand_init(StreamBufferHandle_t buffer, uint8_t id, uint8_t dx_port, uint
 	Chip_GPIO_ClearInts(LPC_GPIO, dx_port, (1 << d0_pin));
 	Chip_GPIO_ClearInts(LPC_GPIO, dx_port, (1 << d1_pin));
 
-	//Create stream
-	device[dx_port].consumer_buffer = buffer;
+	//Create timer
+	if (device[dx_port].timer == NULL)
+  {
+	  device[dx_port].timer = xTimerCreate("WG", (WEIGAND26_FRAME_TIME_LIMIT / portTICK_PERIOD_MS), pdFALSE, (void *)(uint32_t) dx_port, weigand_frame_timeout);
+  }
+  configASSERT(device[dx_port].timer);
 
 	//Enable INT for both pins
 	Chip_GPIO_EnableInt(LPC_GPIO, dx_port, (1 << d0_pin) | (1 << d1_pin));
@@ -98,6 +123,14 @@ bool weigand_is_parity_ok(weigand26_frame_t frame)
 	return even_parity == ((frame.value >> 25) & 0x1) && odd_parity == (frame.value & 0x1);
 }
 
+static inline void _wake_timer_on_frame_start(weigand26_t * device)
+{
+  if (device->frame_buffer_ptr == WEIGAND26_FRAME_SIZE)
+  {
+    assert(xTimerStart(device->timer, 0)); // Restarts timer if still running
+  }
+}
+
 void weigand_int_handler(weigand26_t * device)
 {
 	uint32_t int_states = Chip_GPIO_GetMaskedInts(LPC_GPIO, device->port);
@@ -110,6 +143,7 @@ void weigand_int_handler(weigand26_t * device)
 	{
 		if (Chip_GPIO_ReadPortBit(LPC_GPIO, device->port, device->pin_d1) == 0)
 		{
+		  _wake_timer_on_frame_start(device);
 			device->frame_buffer_ptr--;
 			device->frame_buffer.value |= (1 << device->frame_buffer_ptr);
 		}
@@ -118,6 +152,7 @@ void weigand_int_handler(weigand26_t * device)
 	{
 		if (Chip_GPIO_ReadPortBit(LPC_GPIO, device->port, device->pin_d0) == 0)
 		{
+		  _wake_timer_on_frame_start(device);
 			device->frame_buffer_ptr--;
 			device->frame_buffer.value &= ~(1 << device->frame_buffer_ptr);
 		}
@@ -125,9 +160,10 @@ void weigand_int_handler(weigand26_t * device)
 	else // Clear other int on same port (FIXME)
 	{
 		Chip_GPIO_ClearInts(LPC_GPIO, device->port, 0xFFFFFFFF);
+		return;
 	}
 	//Whole frame received
-	if (device->frame_buffer_ptr == 0 && device->consumer_buffer != NULL)
+	if (device->frame_buffer_ptr == 0)
 	{
 	  BaseType_t pxHigherPriorityTaskWoken = pdFALSE;
 
@@ -192,9 +228,9 @@ void PIOINT2_IRQHandler(void)
 void PIOINT3_IRQHandler(void)
 {
 	NVIC_ClearPendingIRQ(EINT3_IRQn);
-  if (device[2].consumer_buffer != NULL)
+  if (device[3].consumer_buffer != NULL)
   {
-    weigand_int_handler(&device[2]);
+    weigand_int_handler(&device[3]);
   }
 }
 

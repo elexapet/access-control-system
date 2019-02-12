@@ -7,12 +7,12 @@
 #include "terminal.h"
 #include "board.h"
 #include "weigand.h"
+#include "static_cache.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include "stream_buffer.h"
 #include <stdio.h>
 #include <string.h>
-
 
 static void terminal_user_authorized(uint8_t panel_id)
 {

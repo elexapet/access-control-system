@@ -15,7 +15,7 @@
 #include "stream_buffer.h"
 
 #define WEIGAND26_FRAME_SIZE 26
-#define WEIGAND26_FRAME_TIME_LIMIT 100 //ms
+#define WEIGAND26_FRAME_TIME_LIMIT 80 // frame takes up to 52ms
 
 typedef union
 {
@@ -28,7 +28,7 @@ typedef union
 		uint32_t : 6; //padding
 	};
 	uint32_t value;
-} weigand26_frame_t;
+} weigand26_frame_t; // 4B
 
 // Buffer item type required from consumer of this driver to be used
 typedef struct

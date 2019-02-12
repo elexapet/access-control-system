@@ -74,7 +74,7 @@ void panel_init(uint8_t id)
   //Init interface to reader
   weigand_init(_reader_buffer, id, acc_panel[id].acc_panel_port, acc_panel[id].acc_panel_d0_pin, acc_panel[id].acc_panel_d1_pin);
 
-  //Create timer
+  //Create timer only once
   if (acc_panel[id].timer == NULL)
   {
     acc_panel[id].timer = xTimerCreate("PNL", (acc_panel[id].open_time_sec / portTICK_PERIOD_MS), pdFALSE, (void *)(uint32_t) id, panel_timer_callback);
@@ -137,6 +137,6 @@ void panel_unlock(uint8_t id, bool with_beep, bool with_ok_led)
   }
   Chip_GPIO_SetPinState(LPC_GPIO, acc_panel[id].relay_port, acc_panel[id].relay_pin, LOG_LOW);
   //Start timer
-  xTimerStart(acc_panel[id].timer, 0);
+  configASSERT(xTimerStart(acc_panel[id].timer, 0));
 }
 

@@ -11,7 +11,6 @@
 #include <stdint.h>
 #include "panel.h"
 
-
 void terminal_init(void);
 
 void terminal_reconfigure(panel_conf_t * panel_cfg, uint8_t id);

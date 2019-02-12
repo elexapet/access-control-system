@@ -67,7 +67,6 @@ static void setup_hardware(void)
 
   // can_driver_init();
   terminal_init();
-  WDT_Init();
 
   extern unsigned long _vStackTop[], _pvHeapStart[];
   unsigned long ulInterruptStackSize;
@@ -97,6 +96,8 @@ int main(void)
 	setup_hardware();
 
   __enable_irq();
+
+  WDT_Init();
 
   /* Start the kernel.  From here on, only tasks and interrupts will run. */
   vTaskStartScheduler();

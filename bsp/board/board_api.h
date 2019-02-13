@@ -48,6 +48,19 @@ extern "C" {
  * @{
  */
 
+#ifndef NULL
+#define NULL    ((void *)0)
+#endif
+
+#ifndef FALSE
+#define FALSE   (0)
+#endif
+
+#ifndef TRUE
+#define TRUE    (1)
+#endif
+
+
 /**
  * @brief	Set up and initialize hardware prior to call to main()
  * @return	None

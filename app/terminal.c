@@ -14,6 +14,20 @@
 #include <stdio.h>
 #include <string.h>
 
+typedef union
+{
+  struct
+  {
+    uint32_t user_id : 24;
+    uint32_t panel0 : 1;
+    uint32_t panel1 : 1;
+    uint32_t panel2 : 1;
+    uint32_t is_valid : 1;
+    uint32_t : 4; // reserved for future
+  };
+  cache_item_t item;
+}term_cache_item_t; // 4B
+
 static void terminal_user_authorized(uint8_t panel_id)
 {
   // TODO
@@ -26,25 +40,29 @@ static void terminal_user_not_authorized(uint8_t panel_id)
   (void)panel_id;
 }
 
-static bool terminal_is_user_auhorized(uint32_t user_id)
-{
-#ifdef DEVEL_BOARD
-  if (user_id == 7632370) return true;
-#endif
-  return false;
-}
-
 static void terminal_user_identified(uint32_t user_id, uint8_t panel_id)
 {
-  if (terminal_is_user_auhorized(user_id))
+#ifdef DEVEL_BOARD
+  if (user_id == 7632370)
   {
     terminal_user_authorized(panel_id);
+    return;
   }
-  else
+#endif
+
+  term_cache_item_t user;
+  user.user_id = user_id;
+
+  if (static_cache_get(&user.item))
   {
-    terminal_user_not_authorized(panel_id);
+    if ((user.panel2 << 2 | user.panel1 << 1 | user.panel0) & (1 << panel_id))
+    {
+      terminal_user_authorized(panel_id);
+      return;
+    }
   }
 
+  terminal_user_not_authorized(panel_id);
 }
 
 static void terminal_task(void *pvParameters)

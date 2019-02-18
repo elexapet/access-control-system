@@ -119,163 +119,164 @@ void CAN_IRQHandler (void)
 *****************************************************************************/
 void CAN_RX(uint8_t msg_obj_num)
 {
-	uint32_t i;
-	CCAN_MSG_OBJ_T CANopen_Msg_Obj;
 
-	/* Determine which CAN message has been received */
-	CANopen_Msg_Obj.msgobj = msg_obj_num;
-
-	/* Now load up the CANopen_Msg_Obj structure with the CAN message */
-	LPC_CCAN_API->can_receive(&CANopen_Msg_Obj);
-
-	if(msg_obj_num == 3)
-	{
-		/* message object used for heartbeat / bootup */
-		for(i=0; i<WatchListLength; i++)
-		{
-			if((CANopen_Msg_Obj.mode_id & 0x7F) == WatchList[i].NodeID || (CANopen_Msg_Obj.mode_id & 0x7F) == ((WatchList[i].value>>16) & 0x007F))
-			{
-				/* Node ID of received message is listed in watchlist */
-				WatchList[i].counter = 0;
-				WatchList[i].status = CANopen_Msg_Obj.data[0];
-				if(CANopen_Msg_Obj.data[0] == 0x00)
-				{
-					/* received message is bootup */
-					WatchList[i].status = NMT_STATE_PRE_OPERATIONAL;			/* Received bootup, thus state is pre-op */
-					if(WatchList[i].heartbeatFail)
-						WatchList[i].BootupAfterHBF = 1;
-					CANopen_NMT_Consumer_Bootup_Received(CANopen_Msg_Obj.mode_id & 0x7F);
-				}
-			}
-		}
-	}
-
-	if (msg_obj_num == 5)
-	{
-		/* message object used for NMT */
-		if(CANopen_Msg_Obj.data[1] == CAN_NODE_ID || CANopen_Msg_Obj.data[1] == 0x00)
-			CANopen_NMT_Change_MyState(CANopen_Msg_Obj.data[0]);			/* change NMT state both on broadcast and on my ID */
-	}
-
-	if (msg_obj_num == 7)
-	{
-		/* message object used for SDO client */
-		if(CANopen_SDOC_State == CANopen_SDOC_Exp_Read_Busy)
-		{
-			/* Expedited read was initiated */
-			if((CANopen_Msg_Obj.data[0] & (7<<5)) == 0x40)
-			{
-				/* received data from server */
-				i = 4-((CANopen_Msg_Obj.data[0]>>2) & 0x03);				/* i now contains number of valid data bytes */
-				CANopen_SDOC_InBuff = 0;
-
-				while(i--)
-					CANopen_SDOC_Buff[i] = CANopen_Msg_Obj.data[CANopen_SDOC_InBuff++ + 4];	/* save valid databytes to memory */
-				CANopen_SDOC_State = CANopen_SDOC_Succes;					/* expedited read completed successfully */
-				if(CANopen_SDOC_Exp_ValidBytes)
-					*CANopen_SDOC_Exp_ValidBytes = CANopen_SDOC_InBuff;		/* save number of valid bytes */
-			}
-		}
-		else if(CANopen_SDOC_State == CANopen_SDOC_Exp_Write_Busy)
-		{
-			/* expedited write was initiated */
-			if(CANopen_Msg_Obj.data[0] == 0x60)
-				CANopen_SDOC_State = CANopen_SDOC_Succes;					/* received confirmation */
-		}
-		else if(CANopen_SDOC_State == CANopen_SDOC_Seg_Read_Busy)
-		{
-			/* segmented read was initiated */
-			if(((CANopen_Msg_Obj.data[0] & (7<<5)) == 0x40) && ((CANopen_Msg_Obj.data[0] & (1<<1)) == 0x00))
-			{
-				/* Received reply on initiate command, send first segment request */
-				CANopen_Msg_Obj.msgobj = 8;
-				CANopen_Msg_Obj.mode_id = 0x600 + CANopen_SDOC_Seg_ID;
-				CANopen_Msg_Obj.data[0] = 0x60;
-				CANopen_Msg_Obj.data[1] = 0x00;
-				CANopen_Msg_Obj.data[2] = 0x00;
-				CANopen_Msg_Obj.data[3] = 0x00;
-				CANopen_Msg_Obj.data[4] = 0x00;
-				CANopen_Msg_Obj.data[5] = 0x00;
-				CANopen_Msg_Obj.data[6] = 0x00;
-				CANopen_Msg_Obj.data[7] = 0x00;
-				LPC_CCAN_API->can_transmit(&CANopen_Msg_Obj);
-
-				CANopen_SDOC_InBuff = 0;
-			}
-			else if((CANopen_Msg_Obj.data[0] & (7<<5)) == 0x00)
-			{
-				/* Received response on request */
-				for(i=0; i < (7 - ((CANopen_Msg_Obj.data[0]>>1) & 0x07)); i++)
-				{
-					/* get all data from frame and save it to memory */
-					if(CANopen_SDOC_InBuff < CANopen_SDOC_Seg_BuffSize)
-						CANopen_SDOC_Buff[CANopen_SDOC_InBuff++] = CANopen_Msg_Obj.data[i+1];
-					else
-					{
-						/* SDO segment too big for buffer, abort */
-						CANopen_SDOC_State = CANopen_SDOC_Fail;
-					}
-				}
-
-				if(CANopen_Msg_Obj.data[0] & 0x01)
-				{
-					/* Last frame, change status to success */
-					CANopen_SDOC_State = CANopen_SDOC_Succes;
-				}
-				else
-				{
-					/* not last frame, send acknowledge */
-					CANopen_Msg_Obj.msgobj = 8;
-					CANopen_Msg_Obj.mode_id = 0x600 + CANopen_SDOC_Seg_ID;
-					CANopen_Msg_Obj.data[0] = 0x60 | ((CANopen_Msg_Obj.data[0] & (1<<4)) ^ (1<<4));		/* toggle */
-					CANopen_Msg_Obj.data[1] = 0x00;
-					CANopen_Msg_Obj.data[2] = 0x00;
-					CANopen_Msg_Obj.data[3] = 0x00;
-					CANopen_Msg_Obj.data[4] = 0x00;
-					CANopen_Msg_Obj.data[5] = 0x00;
-					CANopen_Msg_Obj.data[6] = 0x00;
-					CANopen_Msg_Obj.data[7] = 0x00;
-					LPC_CCAN_API->can_transmit(&CANopen_Msg_Obj);
-				}
-			}
-		}
-		else if(CANopen_SDOC_State == CANopen_SDOC_Seg_Write_Busy)
-		{
-			/* segmented write was initiated */
-			if((((CANopen_Msg_Obj.data[0] & (7<<5)) == 0x60) && ((CANopen_Msg_Obj.data[0] & (1<<1)) == 0x00)) || ((CANopen_Msg_Obj.data[0] & (7<<5)) == 0x20))
-			{
-				/* received acknowledge */
-				CANopen_Msg_Obj.msgobj = 8;
-				CANopen_Msg_Obj.mode_id = 0x600 + CANopen_SDOC_Seg_ID;
-				if((CANopen_Msg_Obj.data[0] & (7<<5)) == 0x60)
-				{
-					/* first frame */
-					CANopen_SDOC_InBuff = 0;			/* Clear buffer */
-					CANopen_Msg_Obj.data[0] = 1<<4;		/* initialize for toggle */
-				}
-				CANopen_Msg_Obj.data[0] = ((CANopen_Msg_Obj.data[0] & (1<<4)) ^ (1<<4));		/* toggle */
-
-				/* fill frame data */
-				for(i=0; i<7; i++)
-				{
-					if(CANopen_SDOC_InBuff < CANopen_SDOC_Seg_BuffSize)
-						CANopen_Msg_Obj.data[i+1] = CANopen_SDOC_Buff[CANopen_SDOC_InBuff++];
-					else
-						CANopen_Msg_Obj.data[i+1] = 0x00;
-				}
-
-				/* if end of buffer has been reached, then this is the last frame */
-				if(CANopen_SDOC_InBuff == CANopen_SDOC_Seg_BuffSize)
-				{
-					CANopen_Msg_Obj.data[0] |= ((7-(CANopen_SDOC_Seg_BuffSize%7))<<1) | 0x01;		/* save length */
-					CANopen_SDOC_State = CANopen_SDOC_Succes;										/* set state to succes */
-				}
-
-				LPC_CCAN_API->can_transmit(&CANopen_Msg_Obj);
-			}
-		}
-	}
-	return;
+//	uint32_t i;
+//	CCAN_MSG_OBJ_T CANopen_Msg_Obj;
+//
+//	/* Determine which CAN message has been received */
+//	CANopen_Msg_Obj.msgobj = msg_obj_num;
+//
+//	/* Now load up the CANopen_Msg_Obj structure with the CAN message */
+//	LPC_CCAN_API->can_receive(&CANopen_Msg_Obj);
+//
+//	if(msg_obj_num == 3)
+//	{
+//		/* message object used for heartbeat / bootup */
+//		for(i=0; i<WatchListLength; i++)
+//		{
+//			if((CANopen_Msg_Obj.mode_id & 0x7F) == WatchList[i].NodeID || (CANopen_Msg_Obj.mode_id & 0x7F) == ((WatchList[i].value>>16) & 0x007F))
+//			{
+//				/* Node ID of received message is listed in watchlist */
+//				WatchList[i].counter = 0;
+//				WatchList[i].status = CANopen_Msg_Obj.data[0];
+//				if(CANopen_Msg_Obj.data[0] == 0x00)
+//				{
+//					/* received message is bootup */
+//					WatchList[i].status = NMT_STATE_PRE_OPERATIONAL;			/* Received bootup, thus state is pre-op */
+//					if(WatchList[i].heartbeatFail)
+//						WatchList[i].BootupAfterHBF = 1;
+//					CANopen_NMT_Consumer_Bootup_Received(CANopen_Msg_Obj.mode_id & 0x7F);
+//				}
+//			}
+//		}
+//	}
+//
+//	if (msg_obj_num == 5)
+//	{
+//		/* message object used for NMT */
+//		if(CANopen_Msg_Obj.data[1] == CAN_NODE_ID || CANopen_Msg_Obj.data[1] == 0x00)
+//			CANopen_NMT_Change_MyState(CANopen_Msg_Obj.data[0]);			/* change NMT state both on broadcast and on my ID */
+//	}
+//
+//	if (msg_obj_num == 7)
+//	{
+//		/* message object used for SDO client */
+//		if(CANopen_SDOC_State == CANopen_SDOC_Exp_Read_Busy)
+//		{
+//			/* Expedited read was initiated */
+//			if((CANopen_Msg_Obj.data[0] & (7<<5)) == 0x40)
+//			{
+//				/* received data from server */
+//				i = 4-((CANopen_Msg_Obj.data[0]>>2) & 0x03);				/* i now contains number of valid data bytes */
+//				CANopen_SDOC_InBuff = 0;
+//
+//				while(i--)
+//					CANopen_SDOC_Buff[i] = CANopen_Msg_Obj.data[CANopen_SDOC_InBuff++ + 4];	/* save valid databytes to memory */
+//				CANopen_SDOC_State = CANopen_SDOC_Succes;					/* expedited read completed successfully */
+//				if(CANopen_SDOC_Exp_ValidBytes)
+//					*CANopen_SDOC_Exp_ValidBytes = CANopen_SDOC_InBuff;		/* save number of valid bytes */
+//			}
+//		}
+//		else if(CANopen_SDOC_State == CANopen_SDOC_Exp_Write_Busy)
+//		{
+//			/* expedited write was initiated */
+//			if(CANopen_Msg_Obj.data[0] == 0x60)
+//				CANopen_SDOC_State = CANopen_SDOC_Succes;					/* received confirmation */
+//		}
+//		else if(CANopen_SDOC_State == CANopen_SDOC_Seg_Read_Busy)
+//		{
+//			/* segmented read was initiated */
+//			if(((CANopen_Msg_Obj.data[0] & (7<<5)) == 0x40) && ((CANopen_Msg_Obj.data[0] & (1<<1)) == 0x00))
+//			{
+//				/* Received reply on initiate command, send first segment request */
+//				CANopen_Msg_Obj.msgobj = 8;
+//				CANopen_Msg_Obj.mode_id = 0x600 + CANopen_SDOC_Seg_ID;
+//				CANopen_Msg_Obj.data[0] = 0x60;
+//				CANopen_Msg_Obj.data[1] = 0x00;
+//				CANopen_Msg_Obj.data[2] = 0x00;
+//				CANopen_Msg_Obj.data[3] = 0x00;
+//				CANopen_Msg_Obj.data[4] = 0x00;
+//				CANopen_Msg_Obj.data[5] = 0x00;
+//				CANopen_Msg_Obj.data[6] = 0x00;
+//				CANopen_Msg_Obj.data[7] = 0x00;
+//				LPC_CCAN_API->can_transmit(&CANopen_Msg_Obj);
+//
+//				CANopen_SDOC_InBuff = 0;
+//			}
+//			else if((CANopen_Msg_Obj.data[0] & (7<<5)) == 0x00)
+//			{
+//				/* Received response on request */
+//				for(i=0; i < (7 - ((CANopen_Msg_Obj.data[0]>>1) & 0x07)); i++)
+//				{
+//					/* get all data from frame and save it to memory */
+//					if(CANopen_SDOC_InBuff < CANopen_SDOC_Seg_BuffSize)
+//						CANopen_SDOC_Buff[CANopen_SDOC_InBuff++] = CANopen_Msg_Obj.data[i+1];
+//					else
+//					{
+//						/* SDO segment too big for buffer, abort */
+//						CANopen_SDOC_State = CANopen_SDOC_Fail;
+//					}
+//				}
+//
+//				if(CANopen_Msg_Obj.data[0] & 0x01)
+//				{
+//					/* Last frame, change status to success */
+//					CANopen_SDOC_State = CANopen_SDOC_Succes;
+//				}
+//				else
+//				{
+//					/* not last frame, send acknowledge */
+//					CANopen_Msg_Obj.msgobj = 8;
+//					CANopen_Msg_Obj.mode_id = 0x600 + CANopen_SDOC_Seg_ID;
+//					CANopen_Msg_Obj.data[0] = 0x60 | ((CANopen_Msg_Obj.data[0] & (1<<4)) ^ (1<<4));		/* toggle */
+//					CANopen_Msg_Obj.data[1] = 0x00;
+//					CANopen_Msg_Obj.data[2] = 0x00;
+//					CANopen_Msg_Obj.data[3] = 0x00;
+//					CANopen_Msg_Obj.data[4] = 0x00;
+//					CANopen_Msg_Obj.data[5] = 0x00;
+//					CANopen_Msg_Obj.data[6] = 0x00;
+//					CANopen_Msg_Obj.data[7] = 0x00;
+//					LPC_CCAN_API->can_transmit(&CANopen_Msg_Obj);
+//				}
+//			}
+//		}
+//		else if(CANopen_SDOC_State == CANopen_SDOC_Seg_Write_Busy)
+//		{
+//			/* segmented write was initiated */
+//			if((((CANopen_Msg_Obj.data[0] & (7<<5)) == 0x60) && ((CANopen_Msg_Obj.data[0] & (1<<1)) == 0x00)) || ((CANopen_Msg_Obj.data[0] & (7<<5)) == 0x20))
+//			{
+//				/* received acknowledge */
+//				CANopen_Msg_Obj.msgobj = 8;
+//				CANopen_Msg_Obj.mode_id = 0x600 + CANopen_SDOC_Seg_ID;
+//				if((CANopen_Msg_Obj.data[0] & (7<<5)) == 0x60)
+//				{
+//					/* first frame */
+//					CANopen_SDOC_InBuff = 0;			/* Clear buffer */
+//					CANopen_Msg_Obj.data[0] = 1<<4;		/* initialize for toggle */
+//				}
+//				CANopen_Msg_Obj.data[0] = ((CANopen_Msg_Obj.data[0] & (1<<4)) ^ (1<<4));		/* toggle */
+//
+//				/* fill frame data */
+//				for(i=0; i<7; i++)
+//				{
+//					if(CANopen_SDOC_InBuff < CANopen_SDOC_Seg_BuffSize)
+//						CANopen_Msg_Obj.data[i+1] = CANopen_SDOC_Buff[CANopen_SDOC_InBuff++];
+//					else
+//						CANopen_Msg_Obj.data[i+1] = 0x00;
+//				}
+//
+//				/* if end of buffer has been reached, then this is the last frame */
+//				if(CANopen_SDOC_InBuff == CANopen_SDOC_Seg_BuffSize)
+//				{
+//					CANopen_Msg_Obj.data[0] |= ((7-(CANopen_SDOC_Seg_BuffSize%7))<<1) | 0x01;		/* save length */
+//					CANopen_SDOC_State = CANopen_SDOC_Succes;										/* set state to succes */
+//				}
+//
+//				LPC_CCAN_API->can_transmit(&CANopen_Msg_Obj);
+//			}
+//		}
+//	}
+//	return;
 }
 
 /*****************************************************************************

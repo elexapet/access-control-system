@@ -71,7 +71,7 @@ extern unsigned int TERMINAL_UID[5]; // 0 - status code, 1 - least significant w
 
 #define WEIGAND_DEVICE_LIMIT 4
 #define SERIAL_DEVICE_LIMIT 0
-#define DOOR_ACC_PANEL_MAX_COUNT (WEIGAND_DEVICE_LIMIT + SERIAL_DEVICE_LIMIT)
+#define DOOR_ACC_PANEL_MAX_COUNT 3
 
 // IO
 #define LOG_HIGH 1

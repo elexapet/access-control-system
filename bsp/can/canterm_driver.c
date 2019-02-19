@@ -1,41 +1,25 @@
 /***********************************************************************
- * $Id:: canopen_driver.c 1604 2012-04-24 11:34:47Z nxp31103     $
- *
- * Project: CANopen Application Example for LPC11Cxx
- *
- * Description:
- *   CANopen driver source file
- *
- * Copyright(C) 2012, NXP Semiconductor
- * All rights reserved.
- *
- ***********************************************************************
- * Software that is described herein is for illustrative purposes only
- * which provides customers with programming information regarding the
- * products. This software is supplied "AS IS" without any warranties.
- * NXP Semiconductors assumes no responsibility or liability for the
- * use of the software, conveys no license or title under any patent,
- * copyright, or mask work right to the product. NXP Semiconductors
- * reserves the right to make changes in the software without
- * notification. NXP Semiconductors also make no representation or
- * warranty that such application will be suitable for the specified
- * use without further testing or modification.
+ *  CCAN driver
  **********************************************************************/
 
 #include <can/canterm_driver.h>
 
-#if defined (  __GNUC__  )						/* only for LPCXpresso, for keil/IAR this is done by linker */
+/*****************************************************************************
+ * Private types/enumerations/variables
+ ****************************************************************************/
+
+#if defined (  __GNUC__  )
 #include "cr_section_macros.h"
 __BSS(RESERVED) char CAN_driver_memory[184]; 	/* reserve 184 bytes for CAN driver */
 #endif
 
 
 /* Publish CAN Callback Functions of onchip drivers */
-CCAN_CALLBACKS_T callbacks =
+CCAN_CALLBACKS_T _callbacks =
 {
-	CAN_RX,					/* callback for any message received CAN frame which ID matches with any of the message objects' masks */
-	CAN_TX,					/* callback for every transmitted CAN frame */
-	CAN_Error,			/* callback for CAN errors */
+	CAN_rx,					/* callback for any message received CAN frame which ID matches with any of the message objects' masks */
+	CAN_tx,					/* callback for every transmitted CAN frame */
+	CAN_error,			/* callback for CAN errors */
 	NULL,						/* callback for expedited read access (not used) */
 	NULL,						/* callback for expedited write access (not used) */
 	NULL,						/* callback for segmented read access (not used) */
@@ -44,7 +28,49 @@ CCAN_CALLBACKS_T callbacks =
 };
 
 /*****************************************************************************
-** Function name:		CANterm_init
+ * Public types/enumerations/variables
+ ****************************************************************************/
+
+/*****************************************************************************
+ * Private functions
+ ****************************************************************************/
+
+static void _timing_calculate(uint32_t baud_rate, uint32_t * can_api_timing_cfg)
+{
+  uint32_t pClk, div, quanta, segs, seg1, seg2, clk_per_bit, can_sjw;
+  pClk = Chip_Clock_GetMainClockRate();
+
+  clk_per_bit = pClk / baud_rate;
+
+  for (div = 0; div <= 15; div++)
+  {
+    for (quanta = 1; quanta <= 32; quanta++)
+    {
+      for (segs = 3; segs <= 17; segs++)
+      {
+        if (clk_per_bit == (segs * quanta * (div + 1)))
+        {
+          segs -= 3;
+          seg1 = segs / 2;
+          seg2 = segs - seg1;
+          can_sjw = seg1 > 3 ? 3 : seg1;
+          can_api_timing_cfg[0] = div;
+          can_api_timing_cfg[1] =
+            ((quanta - 1) & 0x3F) | (can_sjw & 0x03) << 6 | (seg1 & 0x0F) << 8 | (seg2 & 0x07) << 12;
+          return;
+        }
+      }
+    }
+  }
+}
+
+/*****************************************************************************
+ * Public functions
+ ****************************************************************************/
+
+
+/*****************************************************************************
+** Function name:		CAN_init
 **
 ** Description:			Initializes CAN
 ** 						Function should be executed before using the CAN bus.
@@ -54,7 +80,7 @@ CCAN_CALLBACKS_T callbacks =
 ** Parameters:			None
 ** Returned value:		None
 *****************************************************************************/
-void CANterm_init(void)
+void CAN_init(void)
 {
   // Power up CAN
   Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_CAN);
@@ -62,7 +88,6 @@ void CANterm_init(void)
   // Deassert reset
   Chip_SYSCTL_DeassertPeriphReset(RESET_CAN0);
 
-  CCAN_MSG_OBJ_T CANopen_Msg_Obj;
   /* Initialize CAN Controller structure*/
 	uint32_t ClkInitTable[2] =
 	{
@@ -78,16 +103,30 @@ void CANterm_init(void)
 	LPC_CCAN_API->init_can(&ClkInitTable[0], TRUE);
 
 	/* Configure the CAN callback functions */
-	LPC_CCAN_API->config_calb(&callbacks);
+	LPC_CCAN_API->config_calb(&_callbacks);
 
 	/* Enable the CAN Interrupt */
 	NVIC_EnableIRQ(CAN_IRQn);
 
-	/* Configure message object 3 to receive all 11-bit messages 0x700-0x77F */
-	CANopen_Msg_Obj.msgobj = 3;
-	CANopen_Msg_Obj.mode_id = 0x700;
-	CANopen_Msg_Obj.mask = 0x780;
-	LPC_CCAN_API->config_rxmsgobj(&CANopen_Msg_Obj);
+
+  CCAN_MSG_OBJ_T msg_obj;
+
+  /* Configure message object 1 to receive all 11-bit messages 0x400-0x4FF */
+  msg_obj.msgobj = 1;
+  msg_obj.mode_id = 0x400;
+  msg_obj.mask = 0x700;
+  LPC_CCAN_API->config_rxmsgobj(&msg_obj);
+
+  /* Send a simple one time CAN message */
+  msg_obj.msgobj  = 0;
+  msg_obj.mode_id = 0x345;
+  msg_obj.mask    = 0x0;
+  msg_obj.dlc     = 4;
+  msg_obj.data[0] = 'T';  // 0x54
+  msg_obj.data[1] = 'E';  // 0x45
+  msg_obj.data[2] = 'S';  // 0x53
+  msg_obj.data[3] = 'T';  // 0x54
+  LPC_CCAN_API->can_transmit(&msg_obj);
 }
 
 
@@ -117,166 +156,22 @@ void CAN_IRQHandler (void)
 ** 						that triggered the CAN receive callback.
 ** Returned value:		None
 *****************************************************************************/
-void CAN_RX(uint8_t msg_obj_num)
+void CAN_rx(uint8_t msg_obj_num)
 {
+  CCAN_MSG_OBJ_T msg_obj;
 
-//	uint32_t i;
-//	CCAN_MSG_OBJ_T CANopen_Msg_Obj;
-//
-//	/* Determine which CAN message has been received */
-//	CANopen_Msg_Obj.msgobj = msg_obj_num;
-//
-//	/* Now load up the CANopen_Msg_Obj structure with the CAN message */
-//	LPC_CCAN_API->can_receive(&CANopen_Msg_Obj);
-//
-//	if(msg_obj_num == 3)
-//	{
-//		/* message object used for heartbeat / bootup */
-//		for(i=0; i<WatchListLength; i++)
-//		{
-//			if((CANopen_Msg_Obj.mode_id & 0x7F) == WatchList[i].NodeID || (CANopen_Msg_Obj.mode_id & 0x7F) == ((WatchList[i].value>>16) & 0x007F))
-//			{
-//				/* Node ID of received message is listed in watchlist */
-//				WatchList[i].counter = 0;
-//				WatchList[i].status = CANopen_Msg_Obj.data[0];
-//				if(CANopen_Msg_Obj.data[0] == 0x00)
-//				{
-//					/* received message is bootup */
-//					WatchList[i].status = NMT_STATE_PRE_OPERATIONAL;			/* Received bootup, thus state is pre-op */
-//					if(WatchList[i].heartbeatFail)
-//						WatchList[i].BootupAfterHBF = 1;
-//					CANopen_NMT_Consumer_Bootup_Received(CANopen_Msg_Obj.mode_id & 0x7F);
-//				}
-//			}
-//		}
-//	}
-//
-//	if (msg_obj_num == 5)
-//	{
-//		/* message object used for NMT */
-//		if(CANopen_Msg_Obj.data[1] == CAN_NODE_ID || CANopen_Msg_Obj.data[1] == 0x00)
-//			CANopen_NMT_Change_MyState(CANopen_Msg_Obj.data[0]);			/* change NMT state both on broadcast and on my ID */
-//	}
-//
-//	if (msg_obj_num == 7)
-//	{
-//		/* message object used for SDO client */
-//		if(CANopen_SDOC_State == CANopen_SDOC_Exp_Read_Busy)
-//		{
-//			/* Expedited read was initiated */
-//			if((CANopen_Msg_Obj.data[0] & (7<<5)) == 0x40)
-//			{
-//				/* received data from server */
-//				i = 4-((CANopen_Msg_Obj.data[0]>>2) & 0x03);				/* i now contains number of valid data bytes */
-//				CANopen_SDOC_InBuff = 0;
-//
-//				while(i--)
-//					CANopen_SDOC_Buff[i] = CANopen_Msg_Obj.data[CANopen_SDOC_InBuff++ + 4];	/* save valid databytes to memory */
-//				CANopen_SDOC_State = CANopen_SDOC_Succes;					/* expedited read completed successfully */
-//				if(CANopen_SDOC_Exp_ValidBytes)
-//					*CANopen_SDOC_Exp_ValidBytes = CANopen_SDOC_InBuff;		/* save number of valid bytes */
-//			}
-//		}
-//		else if(CANopen_SDOC_State == CANopen_SDOC_Exp_Write_Busy)
-//		{
-//			/* expedited write was initiated */
-//			if(CANopen_Msg_Obj.data[0] == 0x60)
-//				CANopen_SDOC_State = CANopen_SDOC_Succes;					/* received confirmation */
-//		}
-//		else if(CANopen_SDOC_State == CANopen_SDOC_Seg_Read_Busy)
-//		{
-//			/* segmented read was initiated */
-//			if(((CANopen_Msg_Obj.data[0] & (7<<5)) == 0x40) && ((CANopen_Msg_Obj.data[0] & (1<<1)) == 0x00))
-//			{
-//				/* Received reply on initiate command, send first segment request */
-//				CANopen_Msg_Obj.msgobj = 8;
-//				CANopen_Msg_Obj.mode_id = 0x600 + CANopen_SDOC_Seg_ID;
-//				CANopen_Msg_Obj.data[0] = 0x60;
-//				CANopen_Msg_Obj.data[1] = 0x00;
-//				CANopen_Msg_Obj.data[2] = 0x00;
-//				CANopen_Msg_Obj.data[3] = 0x00;
-//				CANopen_Msg_Obj.data[4] = 0x00;
-//				CANopen_Msg_Obj.data[5] = 0x00;
-//				CANopen_Msg_Obj.data[6] = 0x00;
-//				CANopen_Msg_Obj.data[7] = 0x00;
-//				LPC_CCAN_API->can_transmit(&CANopen_Msg_Obj);
-//
-//				CANopen_SDOC_InBuff = 0;
-//			}
-//			else if((CANopen_Msg_Obj.data[0] & (7<<5)) == 0x00)
-//			{
-//				/* Received response on request */
-//				for(i=0; i < (7 - ((CANopen_Msg_Obj.data[0]>>1) & 0x07)); i++)
-//				{
-//					/* get all data from frame and save it to memory */
-//					if(CANopen_SDOC_InBuff < CANopen_SDOC_Seg_BuffSize)
-//						CANopen_SDOC_Buff[CANopen_SDOC_InBuff++] = CANopen_Msg_Obj.data[i+1];
-//					else
-//					{
-//						/* SDO segment too big for buffer, abort */
-//						CANopen_SDOC_State = CANopen_SDOC_Fail;
-//					}
-//				}
-//
-//				if(CANopen_Msg_Obj.data[0] & 0x01)
-//				{
-//					/* Last frame, change status to success */
-//					CANopen_SDOC_State = CANopen_SDOC_Succes;
-//				}
-//				else
-//				{
-//					/* not last frame, send acknowledge */
-//					CANopen_Msg_Obj.msgobj = 8;
-//					CANopen_Msg_Obj.mode_id = 0x600 + CANopen_SDOC_Seg_ID;
-//					CANopen_Msg_Obj.data[0] = 0x60 | ((CANopen_Msg_Obj.data[0] & (1<<4)) ^ (1<<4));		/* toggle */
-//					CANopen_Msg_Obj.data[1] = 0x00;
-//					CANopen_Msg_Obj.data[2] = 0x00;
-//					CANopen_Msg_Obj.data[3] = 0x00;
-//					CANopen_Msg_Obj.data[4] = 0x00;
-//					CANopen_Msg_Obj.data[5] = 0x00;
-//					CANopen_Msg_Obj.data[6] = 0x00;
-//					CANopen_Msg_Obj.data[7] = 0x00;
-//					LPC_CCAN_API->can_transmit(&CANopen_Msg_Obj);
-//				}
-//			}
-//		}
-//		else if(CANopen_SDOC_State == CANopen_SDOC_Seg_Write_Busy)
-//		{
-//			/* segmented write was initiated */
-//			if((((CANopen_Msg_Obj.data[0] & (7<<5)) == 0x60) && ((CANopen_Msg_Obj.data[0] & (1<<1)) == 0x00)) || ((CANopen_Msg_Obj.data[0] & (7<<5)) == 0x20))
-//			{
-//				/* received acknowledge */
-//				CANopen_Msg_Obj.msgobj = 8;
-//				CANopen_Msg_Obj.mode_id = 0x600 + CANopen_SDOC_Seg_ID;
-//				if((CANopen_Msg_Obj.data[0] & (7<<5)) == 0x60)
-//				{
-//					/* first frame */
-//					CANopen_SDOC_InBuff = 0;			/* Clear buffer */
-//					CANopen_Msg_Obj.data[0] = 1<<4;		/* initialize for toggle */
-//				}
-//				CANopen_Msg_Obj.data[0] = ((CANopen_Msg_Obj.data[0] & (1<<4)) ^ (1<<4));		/* toggle */
-//
-//				/* fill frame data */
-//				for(i=0; i<7; i++)
-//				{
-//					if(CANopen_SDOC_InBuff < CANopen_SDOC_Seg_BuffSize)
-//						CANopen_Msg_Obj.data[i+1] = CANopen_SDOC_Buff[CANopen_SDOC_InBuff++];
-//					else
-//						CANopen_Msg_Obj.data[i+1] = 0x00;
-//				}
-//
-//				/* if end of buffer has been reached, then this is the last frame */
-//				if(CANopen_SDOC_InBuff == CANopen_SDOC_Seg_BuffSize)
-//				{
-//					CANopen_Msg_Obj.data[0] |= ((7-(CANopen_SDOC_Seg_BuffSize%7))<<1) | 0x01;		/* save length */
-//					CANopen_SDOC_State = CANopen_SDOC_Succes;										/* set state to succes */
-//				}
-//
-//				LPC_CCAN_API->can_transmit(&CANopen_Msg_Obj);
-//			}
-//		}
-//	}
-//	return;
+  /* Determine which CAN message has been received */
+  msg_obj.msgobj = msg_obj_num;
+
+  /* Now load up the msg_obj structure with the CAN message */
+  LPC_CCAN_API->can_receive(&msg_obj);
+  if (msg_obj_num == 1)
+  {
+    /* Simply transmit CAN frame (echo) with with ID +0x100 via buffer 2 */
+    msg_obj.msgobj = 2;
+    msg_obj.mode_id += 0x100;
+    LPC_CCAN_API->can_transmit(&msg_obj);
+  }
 }
 
 /*****************************************************************************
@@ -290,7 +185,8 @@ void CAN_RX(uint8_t msg_obj_num)
 ** 						that triggered the CAN transmit callback.
 ** Returned value:		None
 *****************************************************************************/
-void CAN_TX(uint8_t msg_obj_num){
+void CAN_tx(uint8_t msg_obj_num)
+{
   return;
 }
 
@@ -305,7 +201,8 @@ void CAN_TX(uint8_t msg_obj_num){
 ** 						that triggered the CAN error callback.
 ** Returned value:		None
 *****************************************************************************/
-void CAN_Error(uint32_t error_info){
+void CAN_error(uint32_t error_info)
+{
   return;
 }
 

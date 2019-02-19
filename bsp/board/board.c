@@ -40,6 +40,8 @@
  * Public types/enumerations/variables
  ****************************************************************************/
 
+unsigned int TERMINAL_UID[5] = {0, 0, 0, 0, 0};
+
 /* System oscillator rate and clock rate on the CLKIN pin */
 const uint32_t OscRateIn = 12000000;
 const uint32_t ExtRateIn = 0;
@@ -216,6 +218,9 @@ void Board_LED_Toggle(uint8_t LEDNumber)
    board hardware */
 void Board_Init(void)
 {
+  // Read clock settings and update SystemCoreClock variable
+  SystemCoreClockUpdate();
+
 	/* Sets up DEBUG UART */
 	DEBUGINIT();
 
@@ -225,5 +230,18 @@ void Board_Init(void)
 #ifdef DEVEL_BOARD
 	/* Initialize LEDs */
 	Board_LED_Init();
+	Board_LED_Set(0, false);
+	Board_LED_Set(1, false);
+	Board_LED_Set(2, false);
 #endif // DEVEL_BOARD
+
+  // Enable INTs for all GPIO ports
+  NVIC_EnableIRQ(EINT0_IRQn);
+  NVIC_EnableIRQ(EINT1_IRQn);
+  NVIC_EnableIRQ(EINT2_IRQn);
+  NVIC_EnableIRQ(EINT3_IRQn);
+
+  //Read UID
+  unsigned int cmd_param[5] = {IAP_READ_UID, 0, 0, 0, 0};
+  iap_entry(cmd_param, TERMINAL_UID);
 }

@@ -42,7 +42,9 @@
  *----------------------------------------------------------*/
 
 #include <stdint.h>
+
 extern uint32_t SystemCoreClock;
+
 
 #define configUSE_PREEMPTION			1
 #define configUSE_IDLE_HOOK				1
@@ -52,20 +54,35 @@ extern uint32_t SystemCoreClock;
 #define configMAX_PRIORITIES			( 5 )
 #define configMINIMAL_STACK_SIZE		( ( unsigned short ) 64 )
 #define configTOTAL_HEAP_SIZE			( ( size_t ) ( 2048 + 1024 ) )
-#define configMAX_TASK_NAME_LEN			( 8 )
-#define configUSE_TRACE_FACILITY		1
+#define configMAX_TASK_NAME_LEN			( 5 )
 #define configUSE_16_BIT_TICKS			0
 #define configIDLE_SHOULD_YIELD			1
 #define configUSE_MUTEXES				    0
 #define configQUEUE_REGISTRY_SIZE		8
-#define configCHECK_FOR_STACK_OVERFLOW	2
 #define configUSE_RECURSIVE_MUTEXES		0
 #define configUSE_MALLOC_FAILED_HOOK	1
 #define configUSE_APPLICATION_TASK_TAG	0
 #define configUSE_COUNTING_SEMAPHORES	0
-#define configGENERATE_RUN_TIME_STATS	0
-#define configRECORD_STACK_HIGH_ADDRESS 1
+#define configRECORD_STACK_HIGH_ADDRESS 1 // for max stack usage
 #define configUSE_PORT_OPTIMISED_TASK_SELECTION 0
+#define configUSE_CUSTOM_TICK 0
+
+#ifdef RELEASE
+#define configCHECK_FOR_STACK_OVERFLOW  0
+#else
+#define configCHECK_FOR_STACK_OVERFLOW  2
+#endif
+
+/* Run time and task stats gathering related definitions. */
+extern void vConfigureTimerForRunTimeStats(void);
+//#define portCONFIGURE_TIMER_FOR_RUN_TIME_STATS() vConfigureTimerForRunTimeStats()
+//#define portGET_RUN_TIME_COUNTER_VALUE() Chip_TIMER_ReadCount(LPC_TIMER32_0)
+#define configGENERATE_RUN_TIME_STATS           0
+#define configUSE_TRACE_FACILITY                1
+#define configUSE_STATS_FORMATTING_FUNCTIONS    0
+
+/* heap implementation */
+#define configFRTOS_MEMORY_SCHEME 1 // scheme 1 - allocate only
 
 /* Co-routine definitions. */
 #define configUSE_CO_ROUTINES 			0
@@ -74,7 +91,7 @@ extern uint32_t SystemCoreClock;
 /* Software timer definitions. */
 #define configUSE_TIMERS				  1
 #define configTIMER_TASK_PRIORITY		( tskIDLE_PRIORITY + 2UL )
-#define configTIMER_QUEUE_LENGTH		3
+#define configTIMER_QUEUE_LENGTH		5
 #define configTIMER_TASK_STACK_DEPTH	( 80 )
 
 /* Set the following definitions to 1 to include the API function, or zero

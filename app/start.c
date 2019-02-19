@@ -19,7 +19,7 @@
 /*****************************************************************************
  * Public types/enumerations/variables
  ****************************************************************************/
-unsigned int TERMINAL_UID[5] = {0, 0, 0, 0, 0};
+
 
 /*****************************************************************************
  * Private functions
@@ -28,46 +28,17 @@ unsigned int TERMINAL_UID[5] = {0, 0, 0, 0, 0};
 static void alive_task(void *pvParameters)
 {
   (void *) pvParameters;
-  Board_LED_Set(0, true);
   while (1)
   {
-    vTaskDelay(1500 / portTICK_PERIOD_MS);
-    Board_LED_Toggle(0);
+    vTaskDelay(5000 / portTICK_PERIOD_MS);
     DEBUGSTR("tick\n");
   }
 }
 #endif //DEVEL_BOARD
 
 
-static void setup_hardware(void)
+static void check_system_stack_size(void)
 {
-  // Read clock settings and update SystemCoreClock variable
-  SystemCoreClockUpdate();
-  // Set up and initialize all required blocks and
-  // functions related to the board hardware
-  Board_Init();
-
-  #ifdef DEVEL_BOARD
-  Board_LED_Set(0, false);
-  Board_LED_Set(1, false);
-  Board_LED_Set(2, false);
-  xTaskCreate(alive_task, "alv_tsk",configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 1UL), NULL);
-	#endif
-
-  //Read UID
-  unsigned int cmd_param[5] = {IAP_READ_UID, 0, 0, 0, 0};
-  iap_entry(cmd_param, TERMINAL_UID);
-
-  // Enable INTs for all GPIO ports
-  NVIC_EnableIRQ(EINT0_IRQn);
-  NVIC_EnableIRQ(EINT1_IRQn);
-  NVIC_EnableIRQ(EINT2_IRQn);
-  NVIC_EnableIRQ(EINT3_IRQn);
-
-
-  // can_driver_init();
-  terminal_init();
-
   extern unsigned long _vStackTop[], _pvHeapStart[];
   unsigned long ulInterruptStackSize;
 	/* The size of the stack used by main and interrupts is not defined in
@@ -93,16 +64,46 @@ int main(void)
 {
 	__disable_irq();
 
-	setup_hardware();
+	// Set up and initialize all required blocks and
+  // functions related to the board hardware
+  Board_Init();
+
+  #ifdef DEVEL_BOARD
+  xTaskCreate(alive_task, "alv_tsk",configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 1UL), NULL);
+  #endif
+
+  //CAN_init();
+  terminal_init();
+  WDT_Init();
+
+  check_system_stack_size();
 
   __enable_irq();
 
-  WDT_Init();
+  WDT_Feed();
 
   /* Start the kernel.  From here on, only tasks and interrupts will run. */
   vTaskStartScheduler();
 
   return 1;
+}
+
+/* Used for run time statistics */
+void vConfigureTimerForRunTimeStats(void)
+{
+  /* Power up and feed the timer with a clock. */
+  Chip_TIMER_Init(LPC_TIMER32_0);
+  Chip_TIMER_TIMER_SetCountClockSrc(LPC_TIMER32_0, TIMER_CAPSRC_RISING_PCLK, 1);
+
+  /* Reset Timer 0 */
+  Chip_TIMER_Reset(LPC_TIMER32_0);
+
+  /* Prescale to a frequency that is good enough to get a decent resolution,
+  but not too fast so as to overflow all the time. */
+  Chip_TIMER_PrescaleSet(LPC_TIMER32_0, ( configCPU_CLOCK_HZ / 10000UL ) - 1UL);
+
+  /* Start the counter. */
+  Chip_TIMER_Enable(LPC_TIMER32_0);
 }
 
 void vApplicationMallocFailedHook(void)

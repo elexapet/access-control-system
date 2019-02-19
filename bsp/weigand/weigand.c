@@ -17,7 +17,6 @@
 #include "board.h"
 #include "timers.h"
 #include <limits.h>
-#include <assert.h>
 
 typedef struct
 {
@@ -67,6 +66,8 @@ void weigand_init(StreamBufferHandle_t buffer, uint8_t id, uint8_t dx_port, uint
 	//Enable pull-ups
 	Chip_IOCON_PinMux(LPC_IOCON, CHIP_IOCON_PIO[dx_port][d0_pin], IOCON_MODE_PULLUP, IOCON_FUNC0);
 	Chip_IOCON_PinMux(LPC_IOCON, CHIP_IOCON_PIO[dx_port][d1_pin], IOCON_MODE_PULLUP, IOCON_FUNC0);
+
+	// LPC_GPIO is initialized in board.c
 
 	//Input mode
 	Chip_GPIO_SetPinDIRInput(LPC_GPIO, dx_port, d0_pin);
@@ -127,7 +128,7 @@ static inline void _wake_timer_on_frame_start(weigand26_t * device)
 {
   if (device->frame_buffer_ptr == WEIGAND26_FRAME_SIZE)
   {
-    assert(xTimerStart(device->timer, 0)); // Restarts timer if still running
+    configASSERT(xTimerStart(device->timer, 0)); // Restarts timer if still running
   }
 }
 
@@ -157,7 +158,7 @@ void weigand_int_handler(weigand26_t * device)
 			device->frame_buffer.value &= ~(1 << device->frame_buffer_ptr);
 		}
 	}
-	else // Clear other int on same port (FIXME)
+	else // Clear other pin int (no other GPIO pins expected to cause int)
 	{
 		Chip_GPIO_ClearInts(LPC_GPIO, device->port, 0xFFFFFFFF);
 		return;
@@ -183,7 +184,7 @@ void weigand_int_handler(weigand26_t * device)
           &pxHigherPriorityTaskWoken);
 
       //Stream buffer should have had enough space (we checked)
-      assert(bytes_sent == WEIGAND26_BUFF_ITEM_SIZE);
+      configASSERT(bytes_sent == WEIGAND26_BUFF_ITEM_SIZE);
 		}
 		// Empty the frame buffer
 		device->frame_buffer_ptr = WEIGAND26_FRAME_SIZE;

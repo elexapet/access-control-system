@@ -59,11 +59,13 @@ bool static_cache_get(cache_item_t * ptr_kv)
   int idx;
   if (_binary_search(ptr_set, *ptr_kv, &idx))
   {
+    //found
     *ptr_kv = ptr_set->ptr_items[idx];
     return true;
   }
   else
   {
+    //not found
     return false;
   }
 }
@@ -87,6 +89,7 @@ void static_cache_insert(const cache_item_t kv)
     }
     else
     {
+      // move items and place new one
       for (int i = ptr_set->length - 1; i >= idx; --i)
       {
         ptr_set->ptr_items[i + 1] = ptr_set->ptr_items[i];
@@ -105,10 +108,17 @@ void static_cache_erase(const cache_item_t kv)
   int idx;
   if (_binary_search(ptr_set, kv, &idx))
   {
+    // found delete and move remaining
     for (int i = idx; i < ptr_set->length - 1; ++i)
     {
       ptr_set->ptr_items[i] = ptr_set->ptr_items[i + 1];
     }
     --ptr_set->length;
   }
+}
+
+cache_item_t static_cache_convert(uint32_t scalar)
+{
+  cache_item_t kv = {.scalar = scalar};
+  return kv;
 }

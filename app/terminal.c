@@ -16,21 +16,27 @@
 
 typedef union
 {
+#pragma pack(push,1)
   struct
   {
     uint32_t user_id : 24;
     uint32_t panel0 : 1;
     uint32_t panel1 : 1;
     uint32_t panel2 : 1;
-    uint32_t is_valid : 1;
-    uint32_t : 4; // reserved for future
+    uint32_t : 5; // reserved for future
   };
-  cache_item_t item;
+#pragma pack(pop)
+  cache_item_t as_cache_item;
+  uint32_t as_bitvalue;
 }term_cache_item_t; // 4B
+
+static bool _learn_mode_panel[3] = {false,false,false};
+static uint32_t _learn_enable_user_id = 7632370;
 
 static void terminal_user_authorized(uint8_t panel_id)
 {
   // TODO
+  DEBUGSTR("auth OK\n");
   panel_unlock(panel_id, BEEP_ON_SUCCESS, OK_LED_ON_SUCCESS);
 }
 
@@ -38,31 +44,37 @@ static void terminal_user_not_authorized(uint8_t panel_id)
 {
   //TODO
   (void)panel_id;
+  DEBUGSTR("auth FAIL\n");
 }
 
 static void terminal_user_identified(uint32_t user_id, uint8_t panel_id)
 {
-#ifdef DEVEL_BOARD
-  if (user_id == 7632370)
+  if (user_id == _learn_enable_user_id)
   {
-    terminal_user_authorized(panel_id);
+    _learn_mode_panel[panel_id] = !_learn_mode_panel[panel_id];
     return;
   }
-#endif
 
   term_cache_item_t user;
   user.user_id = user_id;
 
-  if (static_cache_get(&user.item))
+  if (_learn_mode_panel[panel_id])
   {
-    if ((user.panel2 << 2 | user.panel1 << 1 | user.panel0) & (1 << panel_id))
+    user.as_bitvalue |= _BIT(panel_id) << 24;
+    static_cache_insert(user.as_cache_item);
+  }
+  else if (static_cache_get(&user.as_cache_item))
+  {
+    if ((user.panel2 << 2 | user.panel1 << 1 | user.panel0) & _BIT(panel_id))
     {
       terminal_user_authorized(panel_id);
       return;
     }
   }
-
-  terminal_user_not_authorized(panel_id);
+  else
+  {
+    terminal_user_not_authorized(panel_id);
+  }
 }
 
 static void terminal_task(void *pvParameters)
@@ -88,6 +100,17 @@ void terminal_init(void)
   }
 
   xTaskCreate(terminal_task, "term_tsk", configMINIMAL_STACK_SIZE + 128, NULL, (tskIDLE_PRIORITY + 1UL), NULL);
+
+#ifdef DEVEL_BOARD
+  static_cache_insert(static_cache_convert(0x7 << 24 | 814204));
+  static_cache_insert(static_cache_convert(0x7 << 24 | 814199));
+  static_cache_insert(static_cache_convert(0x7 << 24 | 814185));
+  static_cache_insert(static_cache_convert(0x7 << 24 | 814190));
+  static_cache_insert(static_cache_convert(0x7 << 24 | 7577396));
+  static_cache_insert(static_cache_convert(0x7 << 24 | 7575678));
+  static_cache_insert(static_cache_convert(0x7 << 24 | 7573990));
+  static_cache_insert(static_cache_convert(0x7 << 24 | 7627526));
+#endif
 }
 
 void terminal_reconfigure(panel_conf_t * panel_cfg, uint8_t panel_id)

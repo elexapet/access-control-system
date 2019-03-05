@@ -2,9 +2,9 @@
   Main startup sequence
 */
 
+#include <can/can_term_driver.h>
 #include "terminal.h"
 #include "board.h"
-//#include "canopen_driver.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
@@ -72,7 +72,7 @@ int main(void)
   xTaskCreate(alive_task, "alv_tsk",configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 1UL), NULL);
   #endif
 
-  //CAN_init();
+  CAN_init();
   terminal_init();
   WDT_Init();
 

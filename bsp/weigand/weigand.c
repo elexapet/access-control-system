@@ -52,7 +52,7 @@ static void weigand_frame_timeout(TimerHandle_t pxTimer)
 
 void weigand_init(StreamBufferHandle_t buffer, uint8_t id, uint8_t dx_port, uint8_t d0_pin, uint8_t d1_pin)
 {
-	configASSERT(dx_port < WEIGAND_DEVICE_LIMIT);
+	configASSERT(dx_port == 2 || dx_port == 3);
 
 	//Save device information
 	device[dx_port].consumer_buffer = buffer;
@@ -63,9 +63,9 @@ void weigand_init(StreamBufferHandle_t buffer, uint8_t id, uint8_t dx_port, uint
 	device[dx_port].frame_buffer_ptr = WEIGAND26_FRAME_SIZE;
 	device[dx_port].id = id;
 
-	//Enable pull-ups
-	Chip_IOCON_PinMux(LPC_IOCON, CHIP_IOCON_PIO[dx_port][d0_pin], IOCON_MODE_PULLUP, IOCON_FUNC0);
-	Chip_IOCON_PinMux(LPC_IOCON, CHIP_IOCON_PIO[dx_port][d1_pin], IOCON_MODE_PULLUP, IOCON_FUNC0);
+	//Normal function
+	Chip_IOCON_PinMux(LPC_IOCON, CHIP_IOCON_PIO[dx_port][d0_pin], IOCON_MODE_INACT, IOCON_FUNC0);
+	Chip_IOCON_PinMux(LPC_IOCON, CHIP_IOCON_PIO[dx_port][d1_pin], IOCON_MODE_INACT, IOCON_FUNC0);
 
 	// LPC_GPIO is initialized in board.c
 
@@ -94,6 +94,8 @@ void weigand_init(StreamBufferHandle_t buffer, uint8_t id, uint8_t dx_port, uint
 
 void weigand_disable(uint8_t dx_port, uint8_t d0_pin, uint8_t d1_pin)
 {
+  configASSERT(dx_port == 2 || dx_port == 3);
+
   Chip_GPIO_DisableInt(LPC_GPIO, dx_port, (1 << d0_pin) | (1 << d1_pin));
 }
 
@@ -135,9 +137,8 @@ static inline void _wake_timer_on_frame_start(weigand26_t * device)
 void weigand_int_handler(weigand26_t * device)
 {
 	uint32_t int_states = Chip_GPIO_GetMaskedInts(LPC_GPIO, device->port);
-	//Clear int flag on each pin
-	Chip_GPIO_ClearInts(LPC_GPIO, device->port, (1 << device->pin_d1));
-	Chip_GPIO_ClearInts(LPC_GPIO, device->port, (1 << device->pin_d0));
+	//Clear int flag on all pins
+	Chip_GPIO_ClearInts(LPC_GPIO, device->port, 0xFFFFFFFF);
 
 	//Resolve pin
 	if (int_states & (1 << device->pin_d1)) // 0's
@@ -158,9 +159,8 @@ void weigand_int_handler(weigand26_t * device)
 			device->frame_buffer.value &= ~(1 << device->frame_buffer_ptr);
 		}
 	}
-	else // Clear other pin int (no other GPIO pins expected to cause int)
+	else
 	{
-		Chip_GPIO_ClearInts(LPC_GPIO, device->port, 0xFFFFFFFF);
 		return;
 	}
 	//Whole frame received
@@ -195,25 +195,7 @@ void weigand_int_handler(weigand26_t * device)
 	}
 }
 
-//GPIO port 0 handler
-void PIOINT0_IRQHandler(void)
-{
-	NVIC_ClearPendingIRQ(EINT1_IRQn);
-  if (device[0].consumer_buffer != NULL)
-  {
-    weigand_int_handler(&device[0]);
-  }
-}
 
-//GPIO port 1 handler
-void PIOINT1_IRQHandler(void)
-{
-	NVIC_ClearPendingIRQ(EINT1_IRQn);
-	if (device[1].consumer_buffer != NULL)
-	{
-	  weigand_int_handler(&device[1]);
-	}
-}
 
 //GPIO port 2 handler
 void PIOINT2_IRQHandler(void)

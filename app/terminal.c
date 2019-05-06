@@ -20,17 +20,16 @@ typedef union
   struct
   {
     uint32_t user_id : 24;
-    uint32_t panel0 : 1;
-    uint32_t panel1 : 1;
-    uint32_t panel2 : 1;
-    uint32_t : 5; // reserved for future
+    uint32_t panelA : 1;
+    uint32_t panelB : 1;
+    uint32_t : 6; // reserved for future
   };
 #pragma pack(pop)
   cache_item_t as_cache_item;
   uint32_t as_bitvalue;
 }term_cache_item_t; // 4B
 
-static bool _learn_mode_panel[3] = {false,false,false};
+
 static uint32_t _learn_enable_user_id = 7632370;
 
 static void terminal_user_authorized(uint8_t panel_id)
@@ -51,21 +50,21 @@ static void terminal_user_identified(uint32_t user_id, uint8_t panel_id)
 {
   if (user_id == _learn_enable_user_id)
   {
-    _learn_mode_panel[panel_id] = !_learn_mode_panel[panel_id];
+    panel_conf[panel_id].learn_mode = !panel_conf[panel_id].learn_mode;
     return;
   }
 
   term_cache_item_t user;
   user.user_id = user_id;
 
-  if (_learn_mode_panel[panel_id])
+  if (panel_conf[panel_id].learn_mode)
   {
     user.as_bitvalue |= _BIT(panel_id) << 24;
     static_cache_insert(user.as_cache_item);
   }
   else if (static_cache_get(&user.as_cache_item))
   {
-    if ((user.panel2 << 2 | user.panel1 << 1 | user.panel0) & _BIT(panel_id))
+    if ((user.panelB << 1 | user.panelA) & _BIT(panel_id))
     {
       terminal_user_authorized(panel_id);
       return;
@@ -85,7 +84,7 @@ static void terminal_task(void *pvParameters)
   {
     uint32_t user_id;
     uint8_t panel_id = panel_get_request_from_buffer(&user_id);
-    if (panel_id > 0)
+    if (panel_id < DOOR_ACC_PANEL_COUNT)
     {
       terminal_user_identified(user_id, panel_id);
     }
@@ -94,9 +93,9 @@ static void terminal_task(void *pvParameters)
 
 void terminal_init(void)
 {
-  for (size_t id = 0; id < DOOR_ACC_PANEL_MAX_COUNT; ++id)
+  for (size_t id = 0; id < DOOR_ACC_PANEL_COUNT; ++id)
   {
-    if (acc_panel[id].acc_panel_on) terminal_reconfigure(NULL, id);
+    if (panel_conf[id].acc_panel_on) terminal_reconfigure(NULL, id);
   }
 
   xTaskCreate(terminal_task, "term_tsk", configMINIMAL_STACK_SIZE + 128, NULL, (tskIDLE_PRIORITY + 1UL), NULL);
@@ -115,16 +114,16 @@ void terminal_init(void)
 
 void terminal_reconfigure(panel_conf_t * panel_cfg, uint8_t panel_id)
 {
-  if (panel_id >= DOOR_ACC_PANEL_MAX_COUNT) return;
+  if (panel_id >= DOOR_ACC_PANEL_COUNT) return;
 
   portENTER_CRITICAL();
 
   if (panel_cfg != NULL)
   {
-    memcpy(&acc_panel[panel_id], panel_cfg, sizeof(panel_conf_t));
+    memcpy(&panel_conf[panel_id], panel_cfg, sizeof(panel_conf_t));
 
     //reconfigure interface to card reader
-    if (acc_panel[panel_id].acc_panel_on)
+    if (panel_conf[panel_id].acc_panel_on)
     {
       panel_init(panel_id);
     }

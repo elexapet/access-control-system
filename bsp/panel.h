@@ -12,27 +12,35 @@
 #include "timers.h"
 #include "weigand.h"
 
-#define ACC_PANEL_0 0
-#define ACC_PANEL_1 1
-#define ACC_PANEL_2 2
+typedef struct
+{
+  TimerHandle_t timer_open;
+  TimerHandle_t timer_ok;
+  uint16_t open_time_sec;
+  uint16_t gled_time_sec;
+  uint8_t acc_panel_on : 1;
+  uint8_t learn_mode : 1;
+} panel_conf_t; //TOTAL SIZE 12B
 
 typedef struct
 {
-  TimerHandle_t timer;
-  uint16_t open_time_sec;
-  uint8_t acc_panel_port : 4;
-  uint8_t acc_panel_d0_pin : 4;
-  uint8_t acc_panel_d1_pin : 4;
-  uint8_t acc_panel_beep_port : 4;
-  uint8_t acc_panel_beep_pin : 4;
-  uint8_t acc_panel_gled_port : 4;
-  uint8_t acc_panel_gled_pin : 4;
-  uint8_t relay_port : 4;
-  uint8_t relay_pin : 4;
-  uint8_t acc_panel_on : 1;
-} panel_conf_t; //TOTAL SIZE 6B
+  uint8_t acc_panel_port;
+  uint8_t acc_panel_d0_pin;
+  uint8_t acc_panel_d1_pin;
+  uint8_t acc_panel_beep_port;
+  uint8_t acc_panel_beep_pin;
+  uint8_t acc_panel_gled_port;
+  uint8_t acc_panel_gled_pin;
+  uint8_t acc_panel_rled_port;
+  uint8_t acc_panel_rled_pin;
+  uint8_t relay_port;
+  uint8_t relay_pin;
+  uint8_t sensor_port;
+  uint8_t sensor_pin;
+} panel_wiring_t;
 
-extern panel_conf_t acc_panel[DOOR_ACC_PANEL_MAX_COUNT];
+
+extern panel_conf_t panel_conf[DOOR_ACC_PANEL_COUNT];
 
 void panel_init(uint8_t id);
 

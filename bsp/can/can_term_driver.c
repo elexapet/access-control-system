@@ -211,7 +211,7 @@ void CAN_rx(uint8_t msg_obj_num)
   LPC_CCAN_API->can_receive(&msg_obj);
   if (msg_obj_num == 1)
   {
-    CAN_frame_callback(msg_obj.mode_id & CAN_EXT_ID_BIT_MASK, msg_obj.data, msg_obj.dlc);
+    //CAN_frame_callback(msg_obj.mode_id & CAN_EXT_ID_BIT_MASK, msg_obj.data, msg_obj.dlc);
   }
 }
 

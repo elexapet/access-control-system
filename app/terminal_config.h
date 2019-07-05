@@ -10,10 +10,16 @@
 
 #define DEVEL_BOARD
 
-// Use global UID from chip as terminal unique ID
+#define CACHING_ENABLED
+
+// global UID from vendor (from chip)
 #define IAP_READ_UID 58
 extern unsigned int TERMINAL_UID[5]; // 0 - status code, 1 - least significant word
 
+// Panel address in ACS (from ROM)
+// TODO place on specific address in FLASH
+extern uint16_t ACC_PANEL_A_ADDR;
+extern uint16_t ACC_PANEL_B_ADDR;
 
 #define ACC_PANEL_A 0
 #define ACC_PANEL_B 1
@@ -23,16 +29,16 @@ extern unsigned int TERMINAL_UID[5]; // 0 - status code, 1 - least significant w
 //---------------------------------------------------------------------------------------------------------------------
 #define DOOR_1_ACC_PANEL_ON         true
 
-#define DOOR_1_ACC_PANEL_PORT       2 // Port must be unique for each access panel (reader)
+#define DOOR_1_ACC_PANEL_PORT       3 // Port must be unique for each access panel (reader)
                                       // Can be only 2 or 3.
-#define DOOR_1_ACC_PANEL_D0_PIN     0
-#define DOOR_1_ACC_PANEL_D1_PIN     6
+#define DOOR_1_ACC_PANEL_D0_PIN     2
+#define DOOR_1_ACC_PANEL_D1_PIN     1
 #define DOOR_1_ACC_PANEL_BEEP_PORT  2
 #define DOOR_1_ACC_PANEL_BEEP_PIN   7
 #define DOOR_1_ACC_PANEL_GLED_PORT  2
 #define DOOR_1_ACC_PANEL_GLED_PIN   1
 #define DOOR_1_ACC_PANEL_RLED_PORT  2
-#define DOOR_1_ACC_PANEL_RLED_PIN   8
+#define DOOR_1_ACC_PANEL_RLED_PIN   0
 #define DOOR_1_RELAY_PORT           1
 #define DOOR_1_RELAY_PIN            10
 #define DOOR_1_SENSOR_PORT          0
@@ -46,10 +52,10 @@ extern unsigned int TERMINAL_UID[5]; // 0 - status code, 1 - least significant w
 //---------------------------------------------------------------------------------------------------------------------
 #define DOOR_2_ACC_PANEL_ON         true
 
-#define DOOR_2_ACC_PANEL_PORT       3 // Port must be unique for each access panel (reader)
+#define DOOR_2_ACC_PANEL_PORT       2 // Port must be unique for each access panel (reader)
                                       // Can be only 2 or 3.
-#define DOOR_2_ACC_PANEL_D0_PIN     1
-#define DOOR_2_ACC_PANEL_D1_PIN     2
+#define DOOR_2_ACC_PANEL_D0_PIN     8
+#define DOOR_2_ACC_PANEL_D1_PIN     6
 #define DOOR_2_ACC_PANEL_BEEP_PORT  2
 #define DOOR_2_ACC_PANEL_BEEP_PIN   10
 #define DOOR_2_ACC_PANEL_GLED_PORT  2
@@ -70,6 +76,7 @@ extern unsigned int TERMINAL_UID[5]; // 0 - status code, 1 - least significant w
 
 #define WEIGAND_DEVICE_LIMIT 4
 #define SERIAL_DEVICE_LIMIT 0
+
 #define DOOR_ACC_PANEL_COUNT 2
 
 // IO

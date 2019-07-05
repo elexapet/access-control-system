@@ -42,6 +42,10 @@
 
 unsigned int TERMINAL_UID[5] = {0, 0, 0, 0, 0};
 
+uint16_t ACC_PANEL_A_ADDR = 2;
+uint16_t ACC_PANEL_B_ADDR = 3;
+
+
 /* System oscillator rate and clock rate on the CLKIN pin */
 const uint32_t OscRateIn = 12000000;
 const uint32_t ExtRateIn = 0;

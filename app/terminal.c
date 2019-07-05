@@ -11,26 +11,14 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "stream_buffer.h"
+#include "can/can_term_driver.h"
+#include "can/can_term_protocol.h"
 #include <stdio.h>
 #include <string.h>
 
-typedef union
-{
-#pragma pack(push,1)
-  struct
-  {
-    uint32_t user_id : 24;
-    uint32_t panelA : 1;
-    uint32_t panelB : 1;
-    uint32_t : 6; // reserved for future
-  };
-#pragma pack(pop)
-  cache_item_t as_cache_item;
-  uint32_t as_bitvalue;
-}term_cache_item_t; // 4B
 
+typedef cache_item_t term_cache_item_t; // 4B
 
-static uint32_t _learn_enable_user_id = 7632370;
 
 static void terminal_user_authorized(uint8_t panel_id)
 {
@@ -46,33 +34,54 @@ static void terminal_user_not_authorized(uint8_t panel_id)
   DEBUGSTR("auth FAIL\n");
 }
 
-static void terminal_user_identified(uint32_t user_id, uint8_t panel_id)
+// This is called from ISR - do stuff quickly
+void terminal_can_proto_handler(uint32_t msg_head, uint8_t * data, uint8_t dlc)
 {
-  if (user_id == _learn_enable_user_id)
-  {
-    panel_conf[panel_id].learn_mode = !panel_conf[panel_id].learn_mode;
-    return;
-  }
 
-  term_cache_item_t user;
-  user.user_id = user_id;
-
-  if (panel_conf[panel_id].learn_mode)
+  if (AUTH_OK)
   {
-    user.as_bitvalue |= _BIT(panel_id) << 24;
-    static_cache_insert(user.as_cache_item);
+    terminal_user_authorized(panel_id);
+    #ifdef CACHING_ENABLED
+      static_cache_insert(user);
+    #endif
   }
-  else if (static_cache_get(&user.as_cache_item))
-  {
-    if ((user.panelB << 1 | user.panelA) & _BIT(panel_id))
-    {
-      terminal_user_authorized(panel_id);
-      return;
-    }
-  }
-  else
+  else if (AUTH_FAIL)
   {
     terminal_user_not_authorized(panel_id);
+  }
+}
+
+static void terminal_register_user(uint32_t user_id, uint8_t panel_id)
+{
+  // TODO send request on CAN
+}
+
+static void terminal_request_auth(uint32_t user_id, uint8_t panel_id)
+{
+  // TODO send request on CAN
+}
+
+
+static void terminal_user_identified(uint32_t user_id, uint8_t panel_id)
+{
+  term_cache_item_t user;
+  user.key = user_id;
+
+  if (panel_id < DOOR_ACC_PANEL_COUNT)
+  {
+    if (panel_conf[panel_id].learn_mode)
+    {
+      user.value = panel_id;
+      terminal_register_user(user_id, panel_id);
+    }
+    else if (static_cache_get(&user) && user.panel == panel_id)
+    {
+      terminal_user_authorized(panel_id);
+    }
+    else
+    {
+      terminal_request_auth(user_id, panel_id);
+    }
   }
 }
 
@@ -87,12 +96,17 @@ static void terminal_task(void *pvParameters)
     if (panel_id < DOOR_ACC_PANEL_COUNT)
     {
       terminal_user_identified(user_id, panel_id);
+      DEBUGSTR("user identified\n");
     }
   }
 }
 
 void terminal_init(void)
 {
+  //register handler
+  CAN_frame_callback = terminal_can_proto_handler;
+  CAN_receive_all_frames();
+
   for (size_t id = 0; id < DOOR_ACC_PANEL_COUNT; ++id)
   {
     if (panel_conf[id].acc_panel_on) terminal_reconfigure(NULL, id);
@@ -101,14 +115,8 @@ void terminal_init(void)
   xTaskCreate(terminal_task, "term_tsk", configMINIMAL_STACK_SIZE + 128, NULL, (tskIDLE_PRIORITY + 1UL), NULL);
 
 #ifdef DEVEL_BOARD
-  static_cache_insert(static_cache_convert(0x7 << 24 | 814204));
-  static_cache_insert(static_cache_convert(0x7 << 24 | 814199));
-  static_cache_insert(static_cache_convert(0x7 << 24 | 814185));
-  static_cache_insert(static_cache_convert(0x7 << 24 | 814190));
-  static_cache_insert(static_cache_convert(0x7 << 24 | 7577396));
-  static_cache_insert(static_cache_convert(0x7 << 24 | 7575678));
-  static_cache_insert(static_cache_convert(0x7 << 24 | 7573990));
-  static_cache_insert(static_cache_convert(0x7 << 24 | 7627526));
+  static_cache_insert(static_cache_convert((814204 << 1) | 0));
+  static_cache_insert(static_cache_convert((814199 << 1) | 1));
 #endif
 }
 
@@ -126,11 +134,13 @@ void terminal_reconfigure(panel_conf_t * panel_cfg, uint8_t panel_id)
     if (panel_conf[panel_id].acc_panel_on)
     {
       panel_init(panel_id);
+      DEBUGSTR("panel enabled\n");
     }
     else
     {
       //disable interface
       panel_deinit(panel_id);
+      DEBUGSTR("panel disabled\n");
     }
   }
   else

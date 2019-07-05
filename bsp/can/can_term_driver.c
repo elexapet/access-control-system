@@ -109,6 +109,8 @@ inline static void _100kbaud(uint32_t * can_api_timing_cfg)
 *****************************************************************************/
 void CAN_init(void)
 {
+  CAN_frame_callback = NULL;
+
   // Power up CAN
   Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_CAN);
 
@@ -134,7 +136,7 @@ void CAN_receive_all_frames(void)
 {
   CCAN_MSG_OBJ_T msg_obj;
 
-  /* Configure message object 1 to receive all 29-bit messages 0x0-0x1FFFFFFF */
+  /* Configure message object 1 to receive all extended frames 0-0x1FFFFFFF */
   msg_obj.msgobj = 1;
   msg_obj.mode_id = CAN_MSGOBJ_EXT;
   msg_obj.mask = 0x0;
@@ -164,7 +166,7 @@ void CAN_send_test(void)
   CCAN_MSG_OBJ_T msg_obj;
   /* Send a simple one time CAN message */
   msg_obj.msgobj  = 0;
-  msg_obj.mode_id = CAN_MSGOBJ_EXT | 0x3456;
+  msg_obj.mode_id = CAN_MSGOBJ_EXT | 0x23456;
   msg_obj.mask    = 0x0;
   msg_obj.dlc     = 4;
   msg_obj.data[0] = 0;
@@ -209,9 +211,13 @@ void CAN_rx(uint8_t msg_obj_num)
 
   /* Now load up the msg_obj structure with the CAN message */
   LPC_CCAN_API->can_receive(&msg_obj);
+
   if (msg_obj_num == 1)
   {
-    //CAN_frame_callback(msg_obj.mode_id & CAN_EXT_ID_BIT_MASK, msg_obj.data, msg_obj.dlc);
+    if (CAN_frame_callback != NULL)
+    {
+      CAN_frame_callback(msg_obj.mode_id & CAN_EXT_ID_BIT_MASK, msg_obj.data, msg_obj.dlc);
+    }
   }
 }
 

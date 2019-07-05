@@ -5,6 +5,8 @@
 
 #include <static_cache.h>
 
+#ifdef CACHING_ENABLED
+
 typedef struct
 {
   cache_item_t * const ptr_items;
@@ -48,7 +50,7 @@ static bool _binary_search(const cache_set_t * ptr_set, const cache_item_t kv, i
 // O(1)
 static inline cache_set_t * _get_cache_set(const cache_item_t kv)
 {
-  return &_cache_sets[(kv.key & 0xC00000) >> 22];
+  return &_cache_sets[(kv.key & 0x3)];
 }
 
 // O(log (STATIC_CACHE_CAPACITY / STATIC_CACHE_SETS))
@@ -84,7 +86,7 @@ void static_cache_insert(const cache_item_t kv)
   {
     if ( 1 + ptr_set->length >= STATIC_CACHE_SET_CAP)
     {
-      //TODO cache set full
+      // cache set full - replace existing
       ptr_set->ptr_items[idx] = kv;
     }
     else
@@ -122,3 +124,5 @@ cache_item_t static_cache_convert(uint32_t scalar)
   cache_item_t kv = {.scalar = scalar};
   return kv;
 }
+
+#endif

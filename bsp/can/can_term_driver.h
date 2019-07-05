@@ -12,8 +12,9 @@
 void CAN_init(void);
 void CAN_receive_all_frames(void);
 void CAN_send_frame_once(uint32_t id, uint8_t * data, uint8_t size);
-void CAN_frame_callback(uint32_t id, uint8_t * data, uint8_t size);
 void CAN_send_test(void);
+
+void (*CAN_frame_callback)(uint32_t id, uint8_t * data, uint8_t size);
 
 /*
  * CCAN_MSG_OBJ_T cheat sheet:

@@ -2,7 +2,7 @@
   Main startup sequence
 */
 
-#include <can/can_term_driver.h>
+#include "can/can_term_driver.h"
 #include "terminal.h"
 #include "board.h"
 #include "FreeRTOS.h"
@@ -31,7 +31,8 @@ static void alive_task(void *pvParameters)
   while (1)
   {
     vTaskDelay(5000 / portTICK_PERIOD_MS);
-    DEBUGSTR("tick\n");
+    DEBUGSTR(".");
+    CAN_send_test();
   }
 }
 #endif //DEVEL_BOARD

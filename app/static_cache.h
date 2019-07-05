@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "terminal_config.h"
 
 #define STATIC_CACHE_SETS 4
 #define STATIC_CACHE_SET_CAP 128
@@ -15,8 +16,8 @@ typedef union
 {
   struct
   {
-    uint32_t key : 24;
-    uint32_t value : 8;
+    uint32_t key : 31;
+    uint32_t value : 1;
   };
   uint32_t scalar;
 } cache_item_t;

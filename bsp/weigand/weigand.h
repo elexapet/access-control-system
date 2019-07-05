@@ -15,7 +15,7 @@
 #include "stream_buffer.h"
 
 #define WEIGAND26_FRAME_SIZE 26
-#define WEIGAND26_FRAME_TIME_LIMIT 80 // frame takes up to 52ms
+#define WEIGAND26_FRAME_TIME_LIMIT 80 // frame time < 68ms
 
 typedef union
 {

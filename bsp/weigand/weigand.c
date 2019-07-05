@@ -4,13 +4,19 @@
  *  Created on: 24. 8. 2018
  *      Author: Petr
  *
- *  W26 frame
+ *  Wiegand interface
+ *
+ *  500 b/s transfer rate
+ *  data pulse 40-70us
+ *  data interval >2ms
+ *
+ *  Only Wiegand 26bit format
+ *  Frame:
  *  | even parity (1b) | facility code (8b) | card number (16b) | odd parity (1b) |
- *  transmission takes up-to ~52ms
+ *  transmission duration ~52ms
  *
  *
- *	data pulse 50us
- *	data interval 2ms
+ *
  */
 
 #include "weigand.h"

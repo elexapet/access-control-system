@@ -1,5 +1,5 @@
 /*
- *
+ *  Access control system panel
  *  Created on: 24. 8. 2018
  *      Author: Petr
  */
@@ -16,39 +16,160 @@
 #include <stdio.h>
 #include <string.h>
 
-
+// Cache entry mapping
 typedef cache_item_t term_cache_item_t; // 4B
+// value 0 - none
+// value 1 - door A
+// value 2 - door B
+// value 3 - all
 
 
-static void terminal_user_authorized(uint8_t panel_id)
+/* ROM CCAN driver callback functions prototypes */
+/*****************************************************************************
+**
+** Description:     CAN receive callback.
+**            Function is executed by the Callback handler after
+**            a CAN message has been received
+**
+** Parameters:      msg_obj_num. Contains the number of the message object
+**            that triggered the CAN receive callback.
+** Returned value:    None
+*****************************************************************************/
+void term_can_recv(uint8_t msg_obj_num);
+/*****************************************************************************
+**
+** Description:     CAN transmit callback.
+**            Function is executed by the Callback handler after
+**            a CAN message has been transmitted
+**
+** Parameters:      msg_obj_num. Contains the number of the message object
+**            that triggered the CAN transmit callback.
+** Returned value:    None
+*****************************************************************************/
+void term_can_send(uint8_t msg_obj_num);
+/*****************************************************************************
+**
+** Description:     CAN error callback.
+**            Function is executed by the Callback handler after
+**            an error has occured on the CAN bus
+**
+** Parameters:      error_info. Contains the error code
+**            that triggered the CAN error callback.
+** Returned value:    None
+*****************************************************************************/
+void term_can_error(uint32_t error_info);
+
+/* CAN Callback Functions of on-chip drivers */
+const CCAN_CALLBACKS_T _term_can_callbacks =
 {
-  // TODO
+  term_net_recv,    /* callback for any message received CAN frame which ID matches with any of the message objects' masks */
+  term_net_send,    /* callback for every transmitted CAN frame */
+  term_net_error,   /* callback for CAN errors */
+  NULL,           /* callback for expedited read access (not used) */
+  NULL,           /* callback for expedited write access (not used) */
+  NULL,           /* callback for segmented read access (not used) */
+  NULL,           /* callback for segmented write access (not used) */
+  NULL,           /* callback for fall-back SDO handler (not used) */
+};
+
+
+
+inline void terminal_user_authorized(uint8_t panel_id)
+{
   DEBUGSTR("auth OK\n");
   panel_unlock(panel_id, BEEP_ON_SUCCESS, OK_LED_ON_SUCCESS);
 }
 
-static void terminal_user_not_authorized(uint8_t panel_id)
+inline void terminal_user_not_authorized(uint8_t panel_id)
 {
-  //TODO
   (void)panel_id;
   DEBUGSTR("auth FAIL\n");
 }
 
-// This is called from ISR - do stuff quickly
-void terminal_can_proto_handler(uint32_t msg_head, uint8_t * data, uint8_t dlc)
+// This is called from ISR -> do not block
+void term_can_recv(uint32_t msg_head, uint8_t * data, uint8_t dlc)
 {
+  CCAN_MSG_OBJ_T msg_obj;
+  /* Determine which CAN message has been received */
+  msg_obj.msgobj = msg_obj_num;
+  /* Now load up the msg_obj structure with the CAN message */
+  LPC_CCAN_API->can_receive(&msg_obj);
 
-  if (AUTH_OK)
+  msg_head_t head = (msg_head_t)msg_obj.mode_id;
+
+  uint8_t panel_id;
+
+  // get target door if message is for us
+  if (msg_obj_num == ACS_MSGOBJ_RECV_DOOR_A) //TODO pouzit dva MSG OBJ
+  {
+    DEBUGSTR("got CAN msg");
+
+    if (head.dst == ACC_PANEL_A_ADDR)
+    {
+      panel_id = ACC_PANEL_A;
+      DEBUGSTR("for door A\n");
+    }
+    else if (head.dst == ACC_PANEL_B_ADDR)
+    {
+      panel_id = ACC_PANEL_B;
+      DEBUGSTR("for door B\n");
+    }
+    else return;
+  }
+  else return;
+
+  // continue deducing action and execute it
+  if (head.fc == FC_USER_AUTH_RESP_OK)
   {
     terminal_user_authorized(panel_id);
+
     #ifdef CACHING_ENABLED
+      term_cache_item_t user = {0, panel_id+1};
+      uint8_t len = msg_obj.dlc > sizeof(uint32_t) ? sizeof(uint32_t) : msg_obj.dlc;
+      memcpy(&user.key, msg_obj.data, len);
       static_cache_insert(user);
     #endif
   }
-  else if (AUTH_FAIL)
+  else if (head.fc == FC_USER_AUTH_RESP_FAIL)
   {
     terminal_user_not_authorized(panel_id);
+
+    #ifdef CACHING_ENABLED
+      term_cache_item_t user = {0, 0};
+      uint8_t len = msg_obj.dlc > sizeof(uint32_t) ? sizeof(uint32_t) : msg_obj.dlc;
+      memcpy(&user.key, msg_obj.data, len);
+      static_cache_insert(user);
+    #endif
   }
+  else if (head.fc == FC_PANEL_CTRL)
+  {
+    switch (msg_obj.data[0])
+    {
+      case PANEL_CTRL_DATA_DEF:
+        DEBUGSTR("mode DEF\n");
+        panel_conf_t[panel_id].mode = PANEL_MODE_DEF;
+        break;
+      case PANEL_CTRL_DATA_UNLCK:
+        DEBUGSTR("cmd UNLOCK\n");
+        terminal_user_authorized(panel_id);
+        break;
+      case PANEL_CTRL_DATA_LCK:
+        DEBUGSTR("mode LOCK\n");
+        panel_conf_t[panel_id].mode = PANEL_MODE_LOCKED;
+        break;
+      case PANEL_CTRL_DATA_LEARN:
+        DEBUGSTR("mode LEARN\n");
+        panel_conf_t[panel_id].mode = PANEL_MODE_LEARN;
+        break;
+      case PANEL_CTRL_DATA_CLR_CACHE:
+        DEBUGSTR("cmd CLR CACHE\n");
+        //TODO clear cache
+        break;
+      default:
+        break;
+    }
+  }
+  else return;
 }
 
 static void terminal_register_user(uint32_t user_id, uint8_t panel_id)
@@ -69,15 +190,21 @@ static void terminal_user_identified(uint32_t user_id, uint8_t panel_id)
 
   if (panel_id < DOOR_ACC_PANEL_COUNT)
   {
-    if (panel_conf[panel_id].learn_mode)
+    if (panel_conf[panel_id].mode == PANEL_MODE_LOCKED)
+    {
+      terminal_user_not_authorized(panel_id);
+    }
+    else if (panel_conf[panel_id].mode == PANEL_MODE_LEARN)
     {
       user.value = panel_id;
       terminal_register_user(user_id, panel_id);
     }
+#ifdef CACHING_ENABLED
     else if (static_cache_get(&user) && user.panel == panel_id)
     {
       terminal_user_authorized(panel_id);
     }
+#endif
     else
     {
       terminal_request_auth(user_id, panel_id);
@@ -103,13 +230,15 @@ static void terminal_task(void *pvParameters)
 
 void terminal_init(void)
 {
-  //register handler
-  CAN_frame_callback = terminal_can_proto_handler;
-  CAN_receive_all_frames();
+  //init CAN comm
+  CAN_init(_term_can_callbacks, CAN_BAUD_RATE);
+  CAN_recv_filter_set_eff(ACS_MSGOBJ_RECV_DOOR_A);
+  //CAN_recv_filter_set(ACS_MSGOBJ_RECV_DOOR_A, ACC_PANEL_A_ADDR << ACS_DST_ADDR_OFFSET, ACS_DST_ADDR_MASK);
+  //CAN_recv_filter_set(ACS_MSGOBJ_RECV_DOOR_B, ACC_PANEL_B_ADDR << ACS_DST_ADDR_OFFSET, ACS_DST_ADDR_MASK);
 
   for (size_t id = 0; id < DOOR_ACC_PANEL_COUNT; ++id)
   {
-    if (panel_conf[id].acc_panel_on) terminal_reconfigure(NULL, id);
+    if (panel_conf[id].enabled) terminal_reconfigure(NULL, id);
   }
 
   xTaskCreate(terminal_task, "term_tsk", configMINIMAL_STACK_SIZE + 128, NULL, (tskIDLE_PRIORITY + 1UL), NULL);
@@ -131,7 +260,7 @@ void terminal_reconfigure(panel_conf_t * panel_cfg, uint8_t panel_id)
     memcpy(&panel_conf[panel_id], panel_cfg, sizeof(panel_conf_t));
 
     //reconfigure interface to card reader
-    if (panel_conf[panel_id].acc_panel_on)
+    if (panel_conf[panel_id].enabled)
     {
       panel_init(panel_id);
       DEBUGSTR("panel enabled\n");

@@ -73,8 +73,8 @@ int main(void)
   xTaskCreate(alive_task, "alv_tsk",configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 1UL), NULL);
   #endif
 
-  CAN_init();
   terminal_init();
+
   WDT_Init();
 
   check_system_stack_size();

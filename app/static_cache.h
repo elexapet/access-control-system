@@ -16,8 +16,8 @@ typedef union
 {
   struct
   {
-    uint32_t key : 31;
-    uint32_t value : 1;
+    uint32_t key : 30;
+    uint32_t value : 2;
   };
   uint32_t scalar;
 } cache_item_t;

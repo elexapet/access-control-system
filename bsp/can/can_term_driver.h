@@ -1,5 +1,6 @@
 /***********************************************************************
  * CAN interface driver
+ * for only one user
  *
  **********************************************************************/
 
@@ -9,12 +10,16 @@
 #include "board.h"
 #include <stdint.h>
 
-void CAN_init(void);
-void CAN_receive_all_frames(void);
-void CAN_send_frame_once(uint32_t id, uint8_t * data, uint8_t size);
-void CAN_send_test(void);
+#define CCAN_MSG_OBJ_FIRST 0
+#define CCAN_MSG_OBJ_LAST  31
+#define CAN_EXT_ID_BIT_MASK 0x1FFFFFFFUL
+#define CAN_DLC_MAX 8
 
-void (*CAN_frame_callback)(uint32_t id, uint8_t * data, uint8_t size);
+void CAN_init(CCAN_CALLBACKS_T * ptr_callbacks, uint32_t baud_rate);
+void CAN_recv_filter_set(uint8_t msgobj_num, uint32_t id, uint32_t mask);
+void CAN_recv_filter_set_eff(uint8_t msgobj_num);
+void CAN_send_once(uint8_t msgobj_num, uint32_t id, uint8_t * data, uint8_t size);
+void CAN_send_test(void);
 
 /*
  * CCAN_MSG_OBJ_T cheat sheet:

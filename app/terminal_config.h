@@ -8,9 +8,14 @@
 #ifndef BSP_BOARD_CONFIG_H_
 #define BSP_BOARD_CONFIG_H_
 
-#define DEVEL_BOARD
+//-------------------------------------------------------------
+// General settings
 
+#define DEVEL_BOARD
 #define CACHING_ENABLED
+#define CAN_BAUD_RATE 125000
+
+//-------------------------------------------------------------
 
 // global UID from vendor (from chip)
 #define IAP_READ_UID 58
@@ -18,7 +23,7 @@ extern unsigned int TERMINAL_UID[5]; // 0 - status code, 1 - least significant w
 
 // Panel address in ACS (from ROM)
 // TODO place on specific address in FLASH
-extern uint16_t ACC_PANEL_A_ADDR;
+extern uint16_t ACC_PANEL_A_ADDR; //base address
 extern uint16_t ACC_PANEL_B_ADDR;
 
 #define ACC_PANEL_A 0

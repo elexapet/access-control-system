@@ -1,6 +1,10 @@
 #ifndef CAN_TERM_PROTOCOL_H_
 #define CAN_TERM_PROTOCOL_H_
 
+#define ACS_MSGOBJ_SEND_DOOR_A 0
+#define ACS_MSGOBJ_SEND_DOOR_B 1
+#define ACS_MSGOBJ_RECV_DOOR_A 2
+#define ACS_MSGOBJ_RECV_DOOR_B 3
 
 // HEAD partitions sizes
 #define ACS_PRIO_BITS   3
@@ -50,7 +54,7 @@
 
 #define PANEL_CTRL_DATA_DEF   0x00
 #define PANEL_CTRL_DATA_UNLCK 0x01
-#define PANEL_CTRL_DATA_LCK   0x02
+#define PANEL_CTRL_DATA_LOCK  0x02
 #define PANEL_CTRL_DATA_LEARN 0x03
 #define PANEL_CTRL_DATA_CLR_CACHE 0x04
 
@@ -63,6 +67,7 @@
 
 typedef struct
 {
+  uint32_t flags : 3;
   uint32_t prio : ACS_PRIO_BITS;
   uint32_t fc : ACS_FC_BITS;
   uint32_t dst : ACS_ADDR_BITS;
@@ -77,7 +82,7 @@ typedef struct
 typedef struct
 {
   uint32_t user_id;
-} masg_data_auth_resp_t;
+} msg_data_auth_resp_t;
 
 typedef struct
 {

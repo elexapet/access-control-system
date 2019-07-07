@@ -42,18 +42,18 @@ panel_conf_t panel_conf[DOOR_ACC_PANEL_COUNT] =
   {
     .timer_ok = NULL,
     .timer_open = NULL,
-    .acc_panel_on = DOOR_1_ACC_PANEL_ON,
     .open_time_sec = DOOR_1_OPEN_TIME_MS,
     .gled_time_sec = DOOR_1_OK_GLED_TIME_MS,
-    .learn_mode = false,
+    .mode = PANEL_MODE_DEF,
+    .enabled = DOOR_1_ACC_PANEL_ON,
   },
   {
     .timer_ok = NULL,
     .timer_open = NULL,
-    .acc_panel_on = DOOR_2_ACC_PANEL_ON,
     .open_time_sec = DOOR_2_OPEN_TIME_MS,
     .gled_time_sec = DOOR_2_OK_GLED_TIME_MS,
-    .learn_mode = false,
+    .mode = PANEL_MODE_DEF,
+    .enabled = DOOR_2_ACC_PANEL_ON,
   }
 };
 

@@ -12,15 +12,22 @@
 #include "timers.h"
 #include "weigand.h"
 
+typedef enum
+{
+  PANEL_MODE_DEF = 0,
+  PANEL_MODE_LOCKED,
+  PANEL_MODE_LEARN
+} panel_mode_t;
+
 typedef struct
 {
   TimerHandle_t timer_open;
   TimerHandle_t timer_ok;
   uint16_t open_time_sec;
   uint16_t gled_time_sec;
-  uint8_t acc_panel_on : 1;
-  uint8_t learn_mode : 1;
-} panel_conf_t; //TOTAL SIZE 12B
+  panel_mode_t mode;
+  uint8_t enabled;
+} panel_conf_t;
 
 typedef struct
 {

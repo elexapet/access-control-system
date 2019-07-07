@@ -15,33 +15,13 @@ __BSS(RESERVED) char CAN_driver_memory[184];  /* reserve 184 bytes for CAN drive
 #define CCAN_BCR_TSEG1(x) (((x) & 0x0F) << 8)
 #define CCAN_BCR_TSEG2(x) (((x) & 0x07) << 12)
 
-#define CAN_EXT_ID_BIT_MASK 0x1FFFFFFFUL
-#define CAN_DLC_MAX 8
 
 /*****************************************************************************
  * Private types/enumerations/variables
  ****************************************************************************/
 
-/* ROM CCAN driver callback functions prototypes */
-void CAN_rx(uint8_t msg_obj_num);
-void CAN_tx(uint8_t msg_obj_num);
-void CAN_error(uint32_t error_info);
-
 /* IRQ handler prototype */
 void CAN_IRQHandler(void);
-
-/* Publish CAN Callback Functions of on-chip drivers */
-CCAN_CALLBACKS_T _callbacks =
-{
-	CAN_rx,					/* callback for any message received CAN frame which ID matches with any of the message objects' masks */
-	CAN_tx,					/* callback for every transmitted CAN frame */
-	CAN_error,			/* callback for CAN errors */
-	NULL,						/* callback for expedited read access (not used) */
-	NULL,						/* callback for expedited write access (not used) */
-	NULL,						/* callback for segmented read access (not used) */
-	NULL,						/* callback for segmented write access (not used) */
-	NULL,						/* callback for fall-back SDO handler (not used) */
-};
 
 /*****************************************************************************
  * Public types/enumerations/variables
@@ -107,10 +87,8 @@ inline static void _100kbaud(uint32_t * can_api_timing_cfg)
 ** Parameters:      None
 ** Returned value:    None
 *****************************************************************************/
-void CAN_init(void)
+void CAN_init(CCAN_CALLBACKS_T * ptr_callbacks, uint32_t baud_rate)
 {
-  CAN_frame_callback = NULL;
-
   // Power up CAN
   Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_CAN);
 
@@ -120,43 +98,52 @@ void CAN_init(void)
   /* Initialize CAN Controller structure*/
   uint32_t ClkInitTable[2];
   //_100kbaud(&ClkInitTable[0]);
-  _timing_calculate(125000, &ClkInitTable[0]);
+  _timing_calculate(baud_rate, &ClkInitTable[0]);
 
   /* Initialize the CAN controller */
   LPC_CCAN_API->init_can(&ClkInitTable[0], TRUE);
 
   /* Configure the CAN callback functions */
-  LPC_CCAN_API->config_calb(&_callbacks);
+  LPC_CCAN_API->config_calb(ptr_callbacks);
 
   /* Enable the CAN Interrupt */
   NVIC_EnableIRQ(CAN_IRQn);
 }
 
-void CAN_receive_all_frames(void)
+void CAN_recv_filter_set(uint8_t msgobj_num, uint32_t id, uint32_t mask)
 {
-  CCAN_MSG_OBJ_T msg_obj;
+  CCAN_MSG_OBJ_T msg_obj = {0, };
 
-  /* Configure message object 1 to receive all extended frames 0-0x1FFFFFFF */
-  msg_obj.msgobj = 1;
+  /* Configure Message object 1 to receive all extended frames 0-0x1FFFFFFF */
+  msg_obj.msgobj = msgobj_num;
+  msg_obj.mode_id = id;
+  msg_obj.mask = mask;
+  LPC_CCAN_API->config_rxmsgobj(&msg_obj);
+}
+
+void CAN_recv_filter_set_eff(uint8_t msgobj_num)
+{
+  CCAN_MSG_OBJ_T msg_obj = {0, };
+
+  /* Configure Message object 1 to receive all extended frames 0-0x1FFFFFFF */
+  msg_obj.msgobj = msgobj_num;
   msg_obj.mode_id = CAN_MSGOBJ_EXT;
   msg_obj.mask = 0x0;
   LPC_CCAN_API->config_rxmsgobj(&msg_obj);
 }
 
-void CAN_send_frame_once(uint32_t id, uint8_t * data, uint8_t size)
+void CAN_send_once(uint8_t msgobj_num, uint32_t id, uint8_t * data, uint8_t size)
 {
   if (size > CAN_DLC_MAX) size = CAN_DLC_MAX;
 
   CCAN_MSG_OBJ_T msg_obj;
 
-  msg_obj.msgobj  = 0;
+  msg_obj.msgobj  = msgobj_num;
   msg_obj.mode_id = CAN_MSGOBJ_EXT | (id & CAN_EXT_ID_BIT_MASK);
   msg_obj.mask    = 0x0;
   msg_obj.dlc     = size;
-  for (int i = 0; i < size; ++i)
-  {
-    msg_obj.data[i] = data[i];
-  }
+
+  memcpy(msg_obj.data, data, size);
 
   LPC_CCAN_API->can_transmit(&msg_obj);
 }
@@ -165,8 +152,8 @@ void CAN_send_test(void)
 {
   CCAN_MSG_OBJ_T msg_obj;
   /* Send a simple one time CAN message */
-  msg_obj.msgobj  = 0;
-  msg_obj.mode_id = CAN_MSGOBJ_EXT | 0x23456;
+  msg_obj.msgobj  = CCAN_MSG_OBJ_LAST;
+  msg_obj.mode_id = CAN_MSGOBJ_EXT | 0x123456;
   msg_obj.mask    = 0x0;
   msg_obj.dlc     = 4;
   msg_obj.data[0] = 0;
@@ -191,64 +178,3 @@ void CAN_IRQHandler(void)
   LPC_CCAN_API->isr();
 }
 
-/*****************************************************************************
-** Function name:   CAN_RX
-**
-** Description:     CAN receive callback.
-**            Function is executed by the Callback handler after
-**            a CAN message has been received
-**
-** Parameters:      msg_obj_num. Contains the number of the message object
-**            that triggered the CAN receive callback.
-** Returned value:    None
-*****************************************************************************/
-void CAN_rx(uint8_t msg_obj_num)
-{
-  CCAN_MSG_OBJ_T msg_obj;
-
-  /* Determine which CAN message has been received */
-  msg_obj.msgobj = msg_obj_num;
-
-  /* Now load up the msg_obj structure with the CAN message */
-  LPC_CCAN_API->can_receive(&msg_obj);
-
-  if (msg_obj_num == 1)
-  {
-    if (CAN_frame_callback != NULL)
-    {
-      CAN_frame_callback(msg_obj.mode_id & CAN_EXT_ID_BIT_MASK, msg_obj.data, msg_obj.dlc);
-    }
-  }
-}
-
-/*****************************************************************************
-** Function name:   CAN_TX
-**
-** Description:     CAN transmit callback.
-**            Function is executed by the Callback handler after
-**            a CAN message has been transmitted
-**
-** Parameters:      msg_obj_num. Contains the number of the message object
-**            that triggered the CAN transmit callback.
-** Returned value:    None
-*****************************************************************************/
-void CAN_tx(uint8_t msg_obj_num)
-{
-  return;
-}
-
-/*****************************************************************************
-** Function name:   CAN_Error
-**
-** Description:     CAN error callback.
-**            Function is executed by the Callback handler after
-**            an error has occured on the CAN bus
-**
-** Parameters:      error_info. Contains the error code
-**            that triggered the CAN error callback.
-** Returned value:    None
-*****************************************************************************/
-void CAN_error(uint32_t error_info)
-{
-  return;
-}

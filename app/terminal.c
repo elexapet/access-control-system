@@ -96,7 +96,7 @@ void term_can_recv(uint8_t msg_obj_num)
   LPC_CCAN_API->can_receive(&msg_obj);
 
   msg_head_t head;
-  head.value = msg_obj.mode_id;
+  head.scalar = msg_obj.mode_id;
 
   uint8_t panel_id;
 
@@ -185,7 +185,7 @@ static void terminal_register_user(uint32_t user_id, uint8_t panel_id)
 {
   // Prepare msg head to send request on CAN
   msg_head_t head;
-  head.value = CAN_MSGOBJ_EXT;
+  head.scalar = CAN_MSGOBJ_EXT;
   head.prio = PRIO_NEW_USER;
   head.fc = FC_NEW_USER;
   head.dst = ACS_MSTR_FIRST_ADDR;
@@ -193,12 +193,12 @@ static void terminal_register_user(uint32_t user_id, uint8_t panel_id)
   if (panel_id == ACC_PANEL_A)
   {
     head.src = ACC_PANEL_A_ADDR;
-    CAN_send_once(ACS_MSGOBJ_SEND_DOOR_A, head.value, (void *)&user_id, sizeof(user_id));
+    CAN_send_once(ACS_MSGOBJ_SEND_DOOR_A, head.scalar, (void *)&user_id, sizeof(user_id));
   }
   else if (panel_id == ACC_PANEL_B)
   {
     head.src = ACC_PANEL_B_ADDR;
-    CAN_send_once(ACS_MSGOBJ_SEND_DOOR_B, head.value, (void *)&user_id, sizeof(user_id));
+    CAN_send_once(ACS_MSGOBJ_SEND_DOOR_B, head.scalar, (void *)&user_id, sizeof(user_id));
   }
 }
 
@@ -206,7 +206,7 @@ static void terminal_request_auth(uint32_t user_id, uint8_t panel_id)
 {
   // Prepare msg head to send request on CAN
   msg_head_t head;
-  head.value = CAN_MSGOBJ_EXT;
+  head.scalar = CAN_MSGOBJ_EXT;
   head.prio = PRIO_USER_AUTH_REQ;
   head.fc = FC_USER_AUTH_REQ;
   head.dst = ACS_MSTR_FIRST_ADDR;
@@ -214,12 +214,12 @@ static void terminal_request_auth(uint32_t user_id, uint8_t panel_id)
   if (panel_id == ACC_PANEL_A)
   {
     head.src = ACC_PANEL_A_ADDR;
-    CAN_send_once(ACS_MSGOBJ_SEND_DOOR_A, head.value, (void *)&user_id, sizeof(user_id));
+    CAN_send_once(ACS_MSGOBJ_SEND_DOOR_A, head.scalar, (void *)&user_id, sizeof(user_id));
   }
   else if (panel_id == ACC_PANEL_B)
   {
     head.src = ACC_PANEL_B_ADDR;
-    CAN_send_once(ACS_MSGOBJ_SEND_DOOR_B, head.value, (void *)&user_id, sizeof(user_id));
+    CAN_send_once(ACS_MSGOBJ_SEND_DOOR_B, head.scalar, (void *)&user_id, sizeof(user_id));
   }
 }
 
@@ -301,8 +301,7 @@ void terminal_init(void)
   xTaskCreate(terminal_task, "term_tsk", configMINIMAL_STACK_SIZE + 128, NULL, (tskIDLE_PRIORITY + 1UL), NULL);
 
 #ifdef DEVEL_BOARD
-  static_cache_insert(static_cache_convert((814204 << 1) | 0));
-  static_cache_insert(static_cache_convert((814199 << 1) | 1));
+  static_cache_insert(static_cache_convert(7632370, 3));
 #endif
 }
 

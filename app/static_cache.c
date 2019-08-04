@@ -60,7 +60,7 @@ bool static_cache_get(cache_item_t * ptr_kv)
 {
   const cache_set_t * ptr_set = _get_cache_set(*ptr_kv);
 
-  int idx;
+  int idx = 0;
   if (_binary_search(ptr_set, *ptr_kv, &idx))
   {
     //found
@@ -79,7 +79,7 @@ void static_cache_insert(const cache_item_t kv)
 {
   cache_set_t * ptr_set = _get_cache_set(kv);
 
-  int idx;
+  int idx = 0;
   if (_binary_search(ptr_set, kv, &idx))
   {
     ptr_set->ptr_items[idx] = kv; // update existing item
@@ -129,9 +129,9 @@ void static_cache_reset(void)
   }
 }
 
-cache_item_t static_cache_convert(uint32_t scalar)
+cache_item_t static_cache_convert(uint32_t key, uint32_t value)
 {
-  cache_item_t kv = {.scalar = scalar};
+  cache_item_t kv = {.key = key, .value = value};
   return kv;
 }
 

@@ -70,13 +70,13 @@ typedef union
 {
   struct
   {
-    uint32_t flags : 3;
-    uint32_t prio : ACS_PRIO_BITS;
-    uint32_t fc : ACS_FC_BITS;
-    uint32_t dst : ACS_ADDR_BITS;
     uint32_t src : ACS_ADDR_BITS;
+    uint32_t dst : ACS_ADDR_BITS;
+    uint32_t fc : ACS_FC_BITS;
+    uint32_t prio : ACS_PRIO_BITS;
+    uint32_t flags : 3;
   };
-  uint32_t value;
+  uint32_t scalar;
 } msg_head_t;
 
 typedef struct

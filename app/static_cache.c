@@ -1,7 +1,8 @@
-/* Similar to Set Associative Cache.
-*  Divide into sets. Each set is one line a sorted array.
-*
-*/
+/*
+ * Similar to Set Associative Cache.
+ *  Divide into sets by key. Each set is a sorted array.
+ *
+ */
 
 #include <static_cache.h>
 
@@ -116,6 +117,14 @@ void static_cache_erase(const cache_item_t kv)
       ptr_set->ptr_items[i] = ptr_set->ptr_items[i + 1];
     }
     --ptr_set->length;
+  }
+}
+
+void static_cache_reset(void)
+{
+  for (int i = 0; i < STATIC_CACHE_SETS; ++i)
+  {
+    memset(_cache_sets[i].ptr_items, 0, STATIC_CACHE_SET_CAP);
   }
 }
 

@@ -114,7 +114,7 @@ void CAN_recv_filter_set(uint8_t msgobj_num, uint32_t id, uint32_t mask)
 {
   CCAN_MSG_OBJ_T msg_obj = {0, };
 
-  /* Configure Message object 1 to receive all extended frames 0-0x1FFFFFFF */
+  /* Configure Message object filter */
   msg_obj.msgobj = msgobj_num;
   msg_obj.mode_id = id;
   msg_obj.mask = mask;
@@ -125,7 +125,7 @@ void CAN_recv_filter_set_eff(uint8_t msgobj_num)
 {
   CCAN_MSG_OBJ_T msg_obj = {0, };
 
-  /* Configure Message object 1 to receive all extended frames 0-0x1FFFFFFF */
+  /* Configure Message object to receive all extended frames 0-0x1FFFFFFF */
   msg_obj.msgobj = msgobj_num;
   msg_obj.mode_id = CAN_MSGOBJ_EXT;
   msg_obj.mask = 0x0;
@@ -139,7 +139,7 @@ void CAN_send_once(uint8_t msgobj_num, uint32_t id, uint8_t * data, uint8_t size
   CCAN_MSG_OBJ_T msg_obj;
 
   msg_obj.msgobj  = msgobj_num;
-  msg_obj.mode_id = CAN_MSGOBJ_EXT | (id & CAN_EXT_ID_BIT_MASK);
+  msg_obj.mode_id = id;
   msg_obj.mask    = 0x0;
   msg_obj.dlc     = size;
 

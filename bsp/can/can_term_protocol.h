@@ -1,6 +1,7 @@
 #ifndef CAN_TERM_PROTOCOL_H_
 #define CAN_TERM_PROTOCOL_H_
 
+// Used Message object numbers
 #define ACS_MSGOBJ_SEND_DOOR_A 0
 #define ACS_MSGOBJ_SEND_DOOR_B 1
 #define ACS_MSGOBJ_RECV_DOOR_A 2
@@ -36,8 +37,8 @@
 // ACS protocol function codes
 #define FC_RESERVED            0x0
 #define FC_USER_AUTH_REQ       0x1
-#define FC_USER_AUTH_RESP_FAIL 0x2
-#define FC_USER_AUTH_RESP_OK   0x3
+#define FC_USER_NOT_AUTH_RESP  0x2
+#define FC_USER_AUTH_RESP      0x3
 #define FC_PANEL_CTRL          0x4
 #define FC_NEW_USER            0x5
 #define FC_DOOR_STATUS         0x6

@@ -59,12 +59,13 @@ void term_can_send(uint8_t msg_obj_num);
 *****************************************************************************/
 void term_can_error(uint32_t error_info);
 
+
 /* CAN Callback Functions of on-chip drivers */
 const CCAN_CALLBACKS_T _term_can_callbacks =
 {
-  term_net_recv,    /* callback for any message received CAN frame which ID matches with any of the message objects' masks */
-  term_net_send,    /* callback for every transmitted CAN frame */
-  term_net_error,   /* callback for CAN errors */
+  term_can_recv,    /* callback for any message received CAN frame which ID matches with any of the message objects' masks */
+  term_can_send,    /* callback for every transmitted CAN frame */
+  term_can_error,   /* callback for CAN errors */
   NULL,           /* callback for expedited read access (not used) */
   NULL,           /* callback for expedited write access (not used) */
   NULL,           /* callback for segmented read access (not used) */
@@ -87,7 +88,7 @@ inline void terminal_user_not_authorized(uint8_t panel_id)
 }
 
 // This is called from ISR -> do not block
-void term_can_recv(uint32_t msg_head, uint8_t * data, uint8_t dlc)
+void term_can_recv(uint8_t msg_obj_num)
 {
   CCAN_MSG_OBJ_T msg_obj;
   /* Determine which CAN message has been received */
@@ -100,7 +101,7 @@ void term_can_recv(uint32_t msg_head, uint8_t * data, uint8_t dlc)
   uint8_t panel_id;
 
   // get target door if message is for us
-  if (msg_obj_num == ACS_MSGOBJ_RECV_DOOR_A) //TODO pouzit dva MSG OBJ
+  if (msg_obj.msgobj == ACS_MSGOBJ_RECV_DOOR_A) //TODO pouzit dva MSG OBJ pro A a B
   {
     DEBUGSTR("got CAN msg");
 
@@ -119,24 +120,24 @@ void term_can_recv(uint32_t msg_head, uint8_t * data, uint8_t dlc)
   else return;
 
   // continue deducing action and execute it
-  if (head.fc == FC_USER_AUTH_RESP_OK)
+  if (head.fc == FC_USER_AUTH_RESP)
   {
     terminal_user_authorized(panel_id);
 
     #ifdef CACHING_ENABLED
-      term_cache_item_t user = {0, panel_id+1};
-      uint8_t len = msg_obj.dlc > sizeof(uint32_t) ? sizeof(uint32_t) : msg_obj.dlc;
+      term_cache_item_t user = {0, panel_id + 1};
+      uint8_t len = msg_obj.dlc > sizeof(user) ? sizeof(user) : msg_obj.dlc;
       memcpy(&user.key, msg_obj.data, len);
       static_cache_insert(user);
     #endif
   }
-  else if (head.fc == FC_USER_AUTH_RESP_FAIL)
+  else if (head.fc == FC_USER_NOT_AUTH_RESP)
   {
     terminal_user_not_authorized(panel_id);
 
     #ifdef CACHING_ENABLED
       term_cache_item_t user = {0, 0};
-      uint8_t len = msg_obj.dlc > sizeof(uint32_t) ? sizeof(uint32_t) : msg_obj.dlc;
+      uint8_t len = msg_obj.dlc >= sizeof(user) ? sizeof(user) : msg_obj.dlc;
       memcpy(&user.key, msg_obj.data, len);
       static_cache_insert(user);
     #endif
@@ -163,7 +164,9 @@ void term_can_recv(uint32_t msg_head, uint8_t * data, uint8_t dlc)
         break;
       case PANEL_CTRL_DATA_CLR_CACHE:
         DEBUGSTR("cmd CLR CACHE\n");
-        //TODO clear cache
+#ifdef CACHING_ENABLED
+        static_cache_reset();
+#endif
         break;
       default:
         break;
@@ -174,12 +177,44 @@ void term_can_recv(uint32_t msg_head, uint8_t * data, uint8_t dlc)
 
 static void terminal_register_user(uint32_t user_id, uint8_t panel_id)
 {
-  // TODO send request on CAN
+  // Prepare msg head to send request on CAN
+  msg_head_t head;
+  head.flags = CAN_MSGOBJ_EXT;
+  head.prio = PRIO_NEW_USER;
+  head.fc = FC_NEW_USER;
+  head.dst = ACS_MSTR_FIRST_ADDR;
+
+  if (panel_id == ACC_PANEL_A)
+  {
+    head.src = ACC_PANEL_A_ADDR;
+    CAN_send_once(ACS_MSGOBJ_SEND_DOOR_A, head, &user_id, sizeof(user_id));
+  }
+  else if (panel_id == ACC_PANEL_B)
+  {
+    head.src = ACC_PANEL_B_ADDR;
+    CAN_send_once(ACS_MSGOBJ_SEND_DOOR_B, head, &user_id, sizeof(user_id));
+  }
 }
 
 static void terminal_request_auth(uint32_t user_id, uint8_t panel_id)
 {
-  // TODO send request on CAN
+  // Prepare msg head to send request on CAN
+  msg_head_t head;
+  head.flags = CAN_MSGOBJ_EXT;
+  head.prio = PRIO_USER_AUTH_REQ;
+  head.fc = FC_USER_AUTH_REQ;
+  head.dst = ACS_MSTR_FIRST_ADDR;
+
+  if (panel_id == ACC_PANEL_A)
+  {
+    head.src = ACC_PANEL_A_ADDR;
+    CAN_send_once(ACS_MSGOBJ_SEND_DOOR_A, head, &user_id, sizeof(user_id));
+  }
+  else if (panel_id == ACC_PANEL_B)
+  {
+    head.src = ACC_PANEL_B_ADDR;
+    CAN_send_once(ACS_MSGOBJ_SEND_DOOR_B, head, &user_id, sizeof(user_id));
+  }
 }
 
 

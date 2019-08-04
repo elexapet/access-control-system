@@ -1,0 +1,12 @@
+[Unit]
+Description=Access control system server
+Requires=redis_6379.service
+After=multi-user.target redis_6379.service
+
+[Service]
+User=acs-srvc
+ExecStart=/usr/local/bin/acs-server -l /var/log/acs-server can0 0 localhost 6379
+TimeoutSec=30s
+
+[Install]
+WantedBy=multi-user.target

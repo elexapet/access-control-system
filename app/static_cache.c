@@ -4,7 +4,8 @@
  *
  */
 
-#include <static_cache.h>
+#include "static_cache.h"
+#include <string.h>
 
 #ifdef CACHING_ENABLED
 

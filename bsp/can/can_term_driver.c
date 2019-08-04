@@ -2,8 +2,9 @@
  *  CCAN driver
  **********************************************************************/
 
-#include <can/can_term_driver.h>
-#include <can/can_term_protocol.h>
+#include "can/can_term_driver.h"
+#include "can/can_term_protocol.h"
+#include <string.h>
 
 #if defined (  __GNUC__  )
 #include "cr_section_macros.h"

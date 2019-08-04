@@ -18,11 +18,32 @@
 
 // Cache entry mapping
 typedef cache_item_t term_cache_item_t; // 4B
-// value 0 - none
-// value 1 - door A
-// value 2 - door B
-// value 3 - all
 
+enum term_cache_panel
+{
+  cache_panel_none = 0,
+  cache_panel_door_A = 1,
+  cache_panel_door_B = 2,
+  cache_panel_all = 3
+};
+
+
+static inline uint8_t map_panel_id_to_cache(uint8_t panel_id)
+{
+  return (panel_id == ACC_PANEL_A ? cache_panel_door_A : cache_panel_door_B);
+}
+
+static inline void terminal_user_authorized(uint8_t panel_id)
+{
+  DEBUGSTR("auth OK\n");
+  panel_unlock(panel_id, BEEP_ON_SUCCESS, OK_LED_ON_SUCCESS);
+}
+
+static inline void terminal_user_not_authorized(uint8_t panel_id)
+{
+  (void)panel_id;
+  DEBUGSTR("auth FAIL\n");
+}
 
 /* ROM CCAN driver callback functions prototypes */
 /*****************************************************************************
@@ -46,7 +67,10 @@ void term_can_recv(uint8_t msg_obj_num);
 **            that triggered the CAN transmit callback.
 ** Returned value:    None
 *****************************************************************************/
-void term_can_send(uint8_t msg_obj_num);
+void term_can_send(uint8_t msg_obj_num)
+{
+  (void)msg_obj_num;
+}
 /*****************************************************************************
 **
 ** Description:     CAN error callback.
@@ -57,34 +81,9 @@ void term_can_send(uint8_t msg_obj_num);
 **            that triggered the CAN error callback.
 ** Returned value:    None
 *****************************************************************************/
-void term_can_error(uint32_t error_info);
-
-
-/* CAN Callback Functions of on-chip drivers */
-const CCAN_CALLBACKS_T _term_can_callbacks =
+void term_can_error(uint32_t error_info)
 {
-  term_can_recv,    /* callback for any message received CAN frame which ID matches with any of the message objects' masks */
-  term_can_send,    /* callback for every transmitted CAN frame */
-  term_can_error,   /* callback for CAN errors */
-  NULL,           /* callback for expedited read access (not used) */
-  NULL,           /* callback for expedited write access (not used) */
-  NULL,           /* callback for segmented read access (not used) */
-  NULL,           /* callback for segmented write access (not used) */
-  NULL,           /* callback for fall-back SDO handler (not used) */
-};
-
-
-
-inline void terminal_user_authorized(uint8_t panel_id)
-{
-  DEBUGSTR("auth OK\n");
-  panel_unlock(panel_id, BEEP_ON_SUCCESS, OK_LED_ON_SUCCESS);
-}
-
-inline void terminal_user_not_authorized(uint8_t panel_id)
-{
-  (void)panel_id;
-  DEBUGSTR("auth FAIL\n");
+  (void)error_info;
 }
 
 // This is called from ISR -> do not block
@@ -96,7 +95,8 @@ void term_can_recv(uint8_t msg_obj_num)
   /* Now load up the msg_obj structure with the CAN message */
   LPC_CCAN_API->can_receive(&msg_obj);
 
-  msg_head_t head = (msg_head_t)msg_obj.mode_id;
+  msg_head_t head;
+  head.value = msg_obj.mode_id;
 
   uint8_t panel_id;
 
@@ -125,9 +125,12 @@ void term_can_recv(uint8_t msg_obj_num)
     terminal_user_authorized(panel_id);
 
     #ifdef CACHING_ENABLED
-      term_cache_item_t user = {0, panel_id + 1};
-      uint8_t len = msg_obj.dlc > sizeof(user) ? sizeof(user) : msg_obj.dlc;
-      memcpy(&user.key, msg_obj.data, len);
+      uint32_t user_id;
+      uint8_t len = msg_obj.dlc > sizeof(user_id) ? sizeof(user_id) : msg_obj.dlc;
+      memcpy(&user_id, msg_obj.data, len);
+      term_cache_item_t user;
+      user.key = user_id;
+      user.value = map_panel_id_to_cache(panel_id);
       static_cache_insert(user);
     #endif
   }
@@ -136,9 +139,12 @@ void term_can_recv(uint8_t msg_obj_num)
     terminal_user_not_authorized(panel_id);
 
     #ifdef CACHING_ENABLED
-      term_cache_item_t user = {0, 0};
-      uint8_t len = msg_obj.dlc >= sizeof(user) ? sizeof(user) : msg_obj.dlc;
-      memcpy(&user.key, msg_obj.data, len);
+      uint32_t user_id;
+      uint8_t len = msg_obj.dlc >= sizeof(user_id) ? sizeof(user_id) : msg_obj.dlc;
+      memcpy(&user_id, msg_obj.data, len);
+      term_cache_item_t user;
+      user.key = user_id;
+      user.value = cache_panel_none;
       static_cache_insert(user);
     #endif
   }
@@ -148,19 +154,19 @@ void term_can_recv(uint8_t msg_obj_num)
     {
       case PANEL_CTRL_DATA_DEF:
         DEBUGSTR("mode DEF\n");
-        panel_conf_t[panel_id].mode = PANEL_MODE_DEF;
+        panel_conf[panel_id].mode = PANEL_MODE_DEF;
         break;
       case PANEL_CTRL_DATA_UNLCK:
         DEBUGSTR("cmd UNLOCK\n");
         terminal_user_authorized(panel_id);
         break;
-      case PANEL_CTRL_DATA_LCK:
+      case PANEL_CTRL_DATA_LOCK:
         DEBUGSTR("mode LOCK\n");
-        panel_conf_t[panel_id].mode = PANEL_MODE_LOCKED;
+        panel_conf[panel_id].mode = PANEL_MODE_LOCKED;
         break;
       case PANEL_CTRL_DATA_LEARN:
         DEBUGSTR("mode LEARN\n");
-        panel_conf_t[panel_id].mode = PANEL_MODE_LEARN;
+        panel_conf[panel_id].mode = PANEL_MODE_LEARN;
         break;
       case PANEL_CTRL_DATA_CLR_CACHE:
         DEBUGSTR("cmd CLR CACHE\n");
@@ -179,7 +185,7 @@ static void terminal_register_user(uint32_t user_id, uint8_t panel_id)
 {
   // Prepare msg head to send request on CAN
   msg_head_t head;
-  head.flags = CAN_MSGOBJ_EXT;
+  head.value = CAN_MSGOBJ_EXT;
   head.prio = PRIO_NEW_USER;
   head.fc = FC_NEW_USER;
   head.dst = ACS_MSTR_FIRST_ADDR;
@@ -187,12 +193,12 @@ static void terminal_register_user(uint32_t user_id, uint8_t panel_id)
   if (panel_id == ACC_PANEL_A)
   {
     head.src = ACC_PANEL_A_ADDR;
-    CAN_send_once(ACS_MSGOBJ_SEND_DOOR_A, head, &user_id, sizeof(user_id));
+    CAN_send_once(ACS_MSGOBJ_SEND_DOOR_A, head.value, (void *)&user_id, sizeof(user_id));
   }
   else if (panel_id == ACC_PANEL_B)
   {
     head.src = ACC_PANEL_B_ADDR;
-    CAN_send_once(ACS_MSGOBJ_SEND_DOOR_B, head, &user_id, sizeof(user_id));
+    CAN_send_once(ACS_MSGOBJ_SEND_DOOR_B, head.value, (void *)&user_id, sizeof(user_id));
   }
 }
 
@@ -200,7 +206,7 @@ static void terminal_request_auth(uint32_t user_id, uint8_t panel_id)
 {
   // Prepare msg head to send request on CAN
   msg_head_t head;
-  head.flags = CAN_MSGOBJ_EXT;
+  head.value = CAN_MSGOBJ_EXT;
   head.prio = PRIO_USER_AUTH_REQ;
   head.fc = FC_USER_AUTH_REQ;
   head.dst = ACS_MSTR_FIRST_ADDR;
@@ -208,12 +214,12 @@ static void terminal_request_auth(uint32_t user_id, uint8_t panel_id)
   if (panel_id == ACC_PANEL_A)
   {
     head.src = ACC_PANEL_A_ADDR;
-    CAN_send_once(ACS_MSGOBJ_SEND_DOOR_A, head, &user_id, sizeof(user_id));
+    CAN_send_once(ACS_MSGOBJ_SEND_DOOR_A, head.value, (void *)&user_id, sizeof(user_id));
   }
   else if (panel_id == ACC_PANEL_B)
   {
     head.src = ACC_PANEL_B_ADDR;
-    CAN_send_once(ACS_MSGOBJ_SEND_DOOR_B, head, &user_id, sizeof(user_id));
+    CAN_send_once(ACS_MSGOBJ_SEND_DOOR_B, head.value, (void *)&user_id, sizeof(user_id));
   }
 }
 
@@ -235,9 +241,12 @@ static void terminal_user_identified(uint32_t user_id, uint8_t panel_id)
       terminal_register_user(user_id, panel_id);
     }
 #ifdef CACHING_ENABLED
-    else if (static_cache_get(&user) && user.panel == panel_id)
+    else if (static_cache_get(&user))
     {
-      terminal_user_authorized(panel_id);
+      if (map_panel_id_to_cache(panel_id) & user.value)
+      {
+        terminal_user_authorized(panel_id);
+      }
     }
 #endif
     else
@@ -266,7 +275,20 @@ static void terminal_task(void *pvParameters)
 void terminal_init(void)
 {
   //init CAN comm
-  CAN_init(_term_can_callbacks, CAN_BAUD_RATE);
+  /* CAN Callback Functions of on-chip drivers */
+  CCAN_CALLBACKS_T term_can_callbacks =
+  {
+    term_can_recv,    /* callback for any message received CAN frame which ID matches with any of the message objects' masks */
+    term_can_send,    /* callback for every transmitted CAN frame */
+    term_can_error,   /* callback for CAN errors */
+    NULL,           /* callback for expedited read access (not used) */
+    NULL,           /* callback for expedited write access (not used) */
+    NULL,           /* callback for segmented read access (not used) */
+    NULL,           /* callback for segmented write access (not used) */
+    NULL,           /* callback for fall-back SDO handler (not used) */
+  };
+
+  CAN_init(&term_can_callbacks, CAN_BAUD_RATE);
   CAN_recv_filter_set_eff(ACS_MSGOBJ_RECV_DOOR_A);
   //CAN_recv_filter_set(ACS_MSGOBJ_RECV_DOOR_A, ACC_PANEL_A_ADDR << ACS_DST_ADDR_OFFSET, ACS_DST_ADDR_MASK);
   //CAN_recv_filter_set(ACS_MSGOBJ_RECV_DOOR_B, ACC_PANEL_B_ADDR << ACS_DST_ADDR_OFFSET, ACS_DST_ADDR_MASK);

@@ -22,9 +22,9 @@
 extern unsigned int TERMINAL_UID[5]; // 0 - status code, 1 - least significant word
 
 // Panel address in ACS (from ROM)
-// TODO place on specific address in FLASH
-extern uint16_t ACC_PANEL_A_ADDR; //base address
-extern uint16_t ACC_PANEL_B_ADDR;
+// TODO place on fixed address in FLASH
+extern const uint16_t ACC_PANEL_A_ADDR; //base address
+extern const uint16_t ACC_PANEL_B_ADDR;
 
 #define ACC_PANEL_A 0
 #define ACC_PANEL_B 1

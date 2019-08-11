@@ -62,3 +62,4 @@ Redis server setup on port 6379 (for Debian):
         sudo update-rc.d redis_6379 defaults
     * Reboot
     * log files will be in /var/redis/6379
+    * allow connection to redis in firewall settings

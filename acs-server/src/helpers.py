@@ -3,7 +3,8 @@ import sys
 import errno
 
 def format_data(data) -> str:
-    return "".join([hex(byte)[2:] for byte in data])
+    # return "".join([hex(byte)[2:] for byte in data])
+    return "".join('%02x'%byte for byte in data)
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Access control system server')

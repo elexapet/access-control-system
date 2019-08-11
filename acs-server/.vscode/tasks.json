@@ -1,0 +1,70 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Python: Remote Console",
+            "type": "shell",
+            "isBackground": true,
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "windows": {
+                "command": "ssh -i %userprofile%\\.ssh\\id_rsa pi@acs-rpi.local"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Remote launch",
+            "type": "shell",
+            "dependsOn": "Push",
+            "isBackground": false,
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "windows": {
+                "command": "ssh -i %userprofile%\\.ssh\\id_rsa pi@acs-rpi.local \"~/projects/acs-server/start.sh\""
+            },
+            "problemMatcher": [],
+        },
+        {
+            "label": "Push",
+            "type": "shell",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "windows": {
+                "command": "scp -i %userprofile%\\.ssh\\id_rsa -r ${cwd}\\ pi@acs-rpi.local:~/projects/"
+            },
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "Remote launch PTVSD",
+            "type": "shell",
+            "dependsOn": "Push",
+            "isBackground": true,
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "windows": {
+                "command": "ssh -i %userprofile%\\.ssh\\id_rsa pi@acs-rpi.local \"python3 -m ptvsd --host acs-rpi.local --port 5678 --wait ~/projects/acs-server/src/acs_server.py -v can0 0 lcoalhost 6379\""
+            },
+            "problemMatcher": []
+        }
+    ]
+}

@@ -14,9 +14,10 @@
 
 // Address space
 #define ACS_BROADCAST_ADDR  ((1 << ACS_ADDR_BITS) - 1)
-#define ACS_MSTR_FIRST_ADDR 0
-#define ACS_MSTR_LAST_ADDR  1
-#define ACS_PNL_FIRST_ADDR  2
+#define ACS_RESERVED_ADDR   0
+#define ACS_MSTR_FIRST_ADDR 1
+#define ACS_MSTR_LAST_ADDR  3
+#define ACS_PNL_FIRST_ADDR  4
 #define ACS_PNL_LAST_ADDR   (ACS_BROADCAST_ADDR - 1)
 
 // message head offsets
@@ -42,15 +43,17 @@
 #define FC_PANEL_CTRL          0x4
 #define FC_NEW_USER            0x5
 #define FC_DOOR_STATUS         0x6
+#define FC_ALIVE               0x7
 
-// priorities
+// priorities for each function code (0-7)
 #define PRIO_RESERVED            0x0
 #define PRIO_USER_AUTH_REQ       0x2
 #define PRIO_USER_AUTH_RESP_FAIL 0x2
 #define PRIO_USER_AUTH_RESP_OK   0x2
-#define PRIO_PANEL_CTRL          0x4
-#define PRIO_NEW_USER            0x4
-#define PRIO_DOOR_STATUS         0x3
+#define PRIO_PANEL_CTRL          0x3
+#define PRIO_NEW_USER            0x3
+#define PRIO_DOOR_STATUS         0x4
+#define PRIO_ALIVE               0x4
 
 
 #define PANEL_CTRL_DATA_DEF   0x00
@@ -61,6 +64,9 @@
 
 #define DOOR_STATUS_DATA_CLOSED 0x0
 #define DOOR_STATUS_DATA_OPEN 0x1
+
+#define MASTER_ALIVE_PERIOD  5000   // ms
+#define MASTER_ALIVE_TIMEOUT 10000  // ms
 
 // data types
 

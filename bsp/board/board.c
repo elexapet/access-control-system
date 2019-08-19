@@ -44,10 +44,10 @@ unsigned int TERMINAL_UID[5] = {0, 0, 0, 0, 0};
 
 // panel addresses reserved in flash
 __attribute__ ((used,section(".panel_addr")))
-const uint16_t ACC_PANEL_A_ADDR = 2;
+const uint16_t ACC_PANEL_A_ADDR = 4;
 
 __attribute__ ((used,section(".panel_addr")))
-const uint16_t ACC_PANEL_B_ADDR = 3;
+const uint16_t ACC_PANEL_B_ADDR = 5;
 
 
 /* System oscillator rate and clock rate on the CLKIN pin */

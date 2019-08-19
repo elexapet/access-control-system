@@ -49,9 +49,18 @@ class acs_server(object):
     # can responses
     def add_new_user(self, panel_addr, user_id):
         logging.debug("add_new_user: panel = {}, user id = {}".format(panel_addr, user_id))
+        # do not add existing users
+        if self.db.get_user_group(user_id) is not None:
+            return self.proto.NO_MESSAGE
+        # create special group
         group = self.db.create_group_for_panel(panel_addr)
-        self.db.add_user(user_id, group)
-        return self.proto.msg_new_user(panel_addr, user_id)
+        if group is not None:
+            if self.db.add_user(user_id, group):
+                return self.proto.msg_new_user(panel_addr, user_id)
+            else:
+                self.db.remove_user_or_group(group)
+                return self.proto.NO_MESSAGE
+        return self.proto.NO_MESSAGE
 
     def resp_to_auth_req(self, panel_addr, user_id):
         logging.debug("resp_to_auth_req: panel = {}, user id = {}".format(panel_addr, user_id))

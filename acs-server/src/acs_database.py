@@ -9,8 +9,8 @@ import redis
 # user can be part of only one group
 #
 class acs_database(object):
-    __ALL_GRP = "_all"
-    __EMPTY_GRP = "_void"
+    __ALL_GRP = b"_all"
+    __EMPTY_GRP = b"_void"
     __NONAME_GRP_PREFIX = "_nng_"
     __RESERVED_ID = 0
     __DEFAULT_HOST = "localhost"
@@ -24,21 +24,18 @@ class acs_database(object):
         self.add_panels_to_group(self.__ALL_GRP, self.__RESERVED_ID)
         self.add_panels_to_group(self.__EMPTY_GRP, self.__RESERVED_ID)
 
-    # return: group's name or None if user_id do not exist
+    # return: group's name for user or None otherwise
     def get_user_group(self, user_id:int) -> str:
         group = self.__rclient.get(user_id)
         return group
 
     # Return: True if user was added
     def add_user(self, user_id:int, group:str=__ALL_GRP, expire_secs:int=0) -> bool:
-        if not self.__rclient.exists(group):
-            group = self.__EMPTY_GRP
-
         if expire_secs > 0:
             status = self.__rclient.set(user_id, group, ex=expire_secs)
         else:
             status = self.__rclient.set(user_id, group)
-        return True if (status == 'OK') else False
+        return status
 
     # Return: True if user/group was removed
     def remove_user_or_group(self, user_or_group) -> bool:
@@ -54,8 +51,10 @@ class acs_database(object):
     # return created group's name
     def create_group_for_panel(self, panel_id:int) -> str:
         group = "{}{}".format(self.__NONAME_GRP_PREFIX, panel_id)
-        self.__rclient.sadd(group, panel_id)
-        return group
+        if self.add_panels_to_group(group, panel_id):
+            return group
+        else:
+            return None
 
     # return: the number of elements that were added to the set,
     #   not including all the elements already present into the set.
@@ -73,7 +72,7 @@ class acs_database(object):
 
     def is_user_authorized(self, user_id:int, panel:int) -> bool:
         group = self.get_user_group(user_id)
-        if group is None or user_id == self.__RESERVED_ID:
+        if group is None or user_id == self.__RESERVED_ID or group == self.__EMPTY_GRP:
             return False
         elif group == self.__ALL_GRP:
             return True

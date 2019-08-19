@@ -5,7 +5,6 @@ import struct
 import errno
 import select
 import logging
-import ptvsd
 
 class can_raw_sock(object):
     __CAN_MTU = 16
@@ -44,7 +43,6 @@ class can_raw_sock(object):
     def send(self, can_id:int, dlc, data, flags=0):
         can_id = can_id | flags
         data = data.ljust(8, b'\x00')
-        ptvsd.break_into_debugger()
 
         can_pkt = struct.pack(self.__FORMAT, can_id, dlc, data)
         return self.__cansock.send(can_pkt)
@@ -71,8 +69,8 @@ class can_raw_sock(object):
         return (can_id, length, data[:length])
 
     def try_select_recv_for(self, timeout_secs):
-        rtr, rtw, ie = select.select([], [self.__cansock], [], timeout_secs)
-        return True if len(rtw) > 0 else False
+        rtr, rtw, ie = select.select([self.__cansock], [], [], timeout_secs)
+        return True if len(rtr) > 0 else False
 
     def close(self):
         self.__cansock.close()

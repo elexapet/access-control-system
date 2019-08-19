@@ -124,7 +124,7 @@ void term_can_recv(uint8_t msg_obj_num)
   {
     terminal_user_authorized(panel_id);
 
-    #ifdef CACHING_ENABLED
+    #if CACHING_ENABLED
       uint32_t user_id;
       uint8_t len = msg_obj.dlc > sizeof(user_id) ? sizeof(user_id) : msg_obj.dlc;
       memcpy(&user_id, msg_obj.data, len);
@@ -138,7 +138,7 @@ void term_can_recv(uint8_t msg_obj_num)
   {
     terminal_user_not_authorized(panel_id);
 
-    #ifdef CACHING_ENABLED
+    #if CACHING_ENABLED
       uint32_t user_id;
       uint8_t len = msg_obj.dlc >= sizeof(user_id) ? sizeof(user_id) : msg_obj.dlc;
       memcpy(&user_id, msg_obj.data, len);
@@ -170,7 +170,7 @@ void term_can_recv(uint8_t msg_obj_num)
         break;
       case PANEL_CTRL_DATA_CLR_CACHE:
         DEBUGSTR("cmd CLR CACHE\n");
-#ifdef CACHING_ENABLED
+#if CACHING_ENABLED
         static_cache_reset();
 #endif
         break;
@@ -226,8 +226,9 @@ static void terminal_request_auth(uint32_t user_id, uint8_t panel_id)
 
 static void terminal_user_identified(uint32_t user_id, uint8_t panel_id)
 {
-  term_cache_item_t user;
-  user.key = user_id;
+#if CACHING_ENABLED
+  term_cache_item_t user = {.key = user_id};
+#endif
 
   if (panel_id < DOOR_ACC_PANEL_COUNT)
   {
@@ -237,10 +238,9 @@ static void terminal_user_identified(uint32_t user_id, uint8_t panel_id)
     }
     else if (panel_conf[panel_id].mode == PANEL_MODE_LEARN)
     {
-      user.value = panel_id;
       terminal_register_user(user_id, panel_id);
     }
-#ifdef CACHING_ENABLED
+#if CACHING_ENABLED
     else if (static_cache_get(&user))
     {
       if (map_panel_id_to_cache(panel_id) & user.value)

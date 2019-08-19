@@ -7,7 +7,7 @@
 #include "static_cache.h"
 #include <string.h>
 
-#ifdef CACHING_ENABLED
+#if CACHING_ENABLED
 
 typedef struct
 {

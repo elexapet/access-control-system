@@ -1,9 +1,10 @@
+FLUSHALL
 SADD _all 0
 SADD _void 0
-SADD door_A 2
-SADD door_B 3
-SADD door_C 4
-SADD door_D 5
+SADD door_A 4
+SADD door_B 5
+SADD door_C 6
+SADD door_D 7
 SET 7632370 _all
 SET 7573990 door_A
 SET 7627526 door_A

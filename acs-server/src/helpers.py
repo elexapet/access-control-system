@@ -10,7 +10,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Access control system server')
 
     parser.add_argument('interface', type=str, default='can0', help='CAN interface name (can0, vcan1, ...)')
-    parser.add_argument('id', type=int, default='0', help='ACS server(master) address (0 or 1)')
+    parser.add_argument('id', type=int, default='1', help='ACS server(master) address (1 or 2)')
     parser.add_argument('redis_hostname', type=str, default='localhost', help='Redis server hostname')
     parser.add_argument('redis_port', type=int, default='6379', help='Redis server port')
     parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")

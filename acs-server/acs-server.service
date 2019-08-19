@@ -5,7 +5,7 @@ After=multi-user.target redis_6379.service
 
 [Service]
 User=acs-srvc
-ExecStart=/usr/local/bin/acs-server -l /var/log/acs-server can0 0 localhost 6379
+ExecStart=/usr/local/bin/acs-server -l /var/log/acs-server can0 1 localhost 6379
 TimeoutSec=30s
 
 [Install]

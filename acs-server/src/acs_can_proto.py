@@ -96,15 +96,20 @@ class acs_can_proto(object):
     FC_PANEL_CTRL = 4
     FC_NEW_USER = 5
     FC_DOOR_STATUS = 6
+    FC_ALIVE = 7
 
     # priorities
     PRIO_RESERVED = 0
     PRIO_USER_AUTH_REQ = 2
     PRIO_USER_AUTH_RESP_FAIL = 2
     PRIO_USER_AUTH_RESP_OK = 2
-    PRIO_PANEL_CTRL = 4
-    PRIO_NEW_USER = 4
-    PRIO_DOOR_STATUS = 3
+    PRIO_PANEL_CTRL = 3
+    PRIO_NEW_USER = 3
+    PRIO_DOOR_STATUS = 4
+    PRIO_ALIVE = 4
+
+    MASTER_ALIVE_PERIOD = 5  # seconds
+    MASTER_ALIVE_TIMEOUT = 12
 
     # ACS data for FC's
     PANEL_CTRL_DATA_DEF = b'\x00'
@@ -121,9 +126,10 @@ class acs_can_proto(object):
 
     # Address space
     ACS_BROADCAST_ADDR = (1 << ACS_ADDR_BITS) - 1
-    ACS_MSTR_FIRST_ADDR = 0
-    ACS_MSTR_LAST_ADDR = 1
-    ACS_PNL_FIRST_ADDR = 2
+    ACS_RESERVED_ADDR = 0
+    ACS_MSTR_FIRST_ADDR = 1
+    ACS_MSTR_LAST_ADDR = 3
+    ACS_PNL_FIRST_ADDR = 4
     ACS_PNL_LAST_ADDR = ACS_BROADCAST_ADDR - 1
 
     # msg head offsets
@@ -176,7 +182,7 @@ class acs_can_proto(object):
         return (self.__msg(self.PRIO_PANEL_CTRL, self.FC_PANEL_CTRL, panel_addr),
                 1, self.PANEL_CTRL_DATA_DEF)
 
-    def msg_panel_unlock(self, panel_addr):
+    def msg_panel_unlock_once(self, panel_addr):
         return (self.__msg(self.PRIO_PANEL_CTRL, self.FC_PANEL_CTRL, panel_addr),
                 1, self.PANEL_CTRL_DATA_UNLCK)
 
@@ -195,6 +201,10 @@ class acs_can_proto(object):
     def msg_new_user(self, panel_addr, user_id:int):
         return (self.__msg(self.PRIO_NEW_USER, self.FC_NEW_USER, panel_addr),
                 4, user_id.to_bytes(4, "little", signed=True))
+
+    def msg_im_alive(self):
+        return (self.__msg(self.PRIO_ALIVE, self.FC_ALIVE, self.ACS_BROADCAST_ADDR),
+                0, b'\x00')
 
     def __parse_msg_head(self, msg_head):
         prio = (msg_head & self.ACS_PRIO_MASK) >> self.ACS_PRIO_OFFSET
@@ -217,6 +227,9 @@ class acs_can_proto(object):
             elif fc == self.FC_NEW_USER:
                 if self.cb_new_user is not None:
                     return self.cb_new_user(src, int.from_bytes(msg_data[:4], "little", signed=True))
+            elif fc == self.FC_DOOR_STATUS:
+                # TODO
+                return self.NO_MESSAGE
             else:
                 logging.debug("Unknown msg: {} | {} | {} | {}".format(prio, fc, dst, src))
                 return self.NO_MESSAGE

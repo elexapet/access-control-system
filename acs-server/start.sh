@@ -1,6 +1,6 @@
 #!/bin/sh
 CAN_IF=can0
-CAN_ADDR=0
+CAN_ADDR=1
 REDIS_HOST=localhost
 REDIS_PORT=6379
 

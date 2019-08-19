@@ -72,10 +72,18 @@ class acs_server(object):
         logging.info("ACS server has started")
         logging.info("Listening on {} with address {}".format(self.can_if, self.addr))
 
+        last_alive = time.monotonic()
+
         while self.__running:
             try:
-                if self.can_sock.try_select_recv_for(5):
+                # alive msg
+                this_alive = time.monotonic()
+                if (this_alive - last_alive) >= self.proto.MASTER_ALIVE_PERIOD:
+                    last_alive = this_alive
+                    can_id, dlc, data = self.proto.msg_im_alive()
+                    self.can_sock.send(can_id, dlc, data)
 
+                if self.can_sock.try_select_recv_for(5):
                     can_id, dlc, data = self.can_sock.recv()
 
                     if can_id == 0:

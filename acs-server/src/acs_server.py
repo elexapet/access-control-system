@@ -6,7 +6,8 @@ import signal
 import sys
 import os
 import logging
-import ptvsd
+import time
+# import ptvsd
 
 
 from helpers import parse_args, format_data
@@ -103,7 +104,7 @@ class acs_server(object):
                     can_id, dlc, data = self.proto.process_msg(can_id, dlc, data)
 
                     if can_id == 0:
-                        logging.debug("msg invalid or not supported")
+                        logging.debug("msg no response")
                     else:
                         logging.debug("%s:send: 0x%03x#0x%s" % (self.can_if, can_id, format_data(data)))
                         self.can_sock.send(can_id, dlc, data)
@@ -131,7 +132,7 @@ def setup_logging(logname, verbose):
                             format='%(asctime)s [%(levelname)s] %(message)s', datefmt='%d/%m/%Y %H:%M:%S')
 
 def main():
-    ptvsd.enable_attach()
+    # ptvsd.enable_attach()
     pargs = parse_args()
     logname = pargs.log_dir
     if pargs.log_dir:

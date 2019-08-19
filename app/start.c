@@ -24,19 +24,6 @@
 /*****************************************************************************
  * Private functions
  ****************************************************************************/
-#ifdef DEVEL_BOARD
-static void alive_task(void *pvParameters)
-{
-  (void *) pvParameters;
-  while (1)
-  {
-    vTaskDelay(5000 / portTICK_PERIOD_MS);
-    DEBUGSTR(".");
-    CAN_send_test();
-  }
-}
-#endif //DEVEL_BOARD
-
 
 static void check_system_stack_size(void)
 {
@@ -68,10 +55,6 @@ int main(void)
 	// Set up and initialize all required blocks and
   // functions related to the board hardware
   Board_Init();
-
-  #ifdef DEVEL_BOARD
-  xTaskCreate(alive_task, "alv_tsk",configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 1UL), NULL);
-  #endif
 
   terminal_init();
 

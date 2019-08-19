@@ -28,6 +28,13 @@ enum term_cache_panel
 };
 
 
+uint16_t _act_master = ACS_RESERVED_ADDR;
+bool _master_timeout = true;
+
+TimerHandle_t _act_timer = NULL;
+const uint32_t _act_timer_id = ACC_TERM_ID;
+
+
 static inline uint8_t map_panel_id_to_cache(uint8_t panel_id)
 {
   return (panel_id == ACC_PANEL_A ? cache_panel_door_A : cache_panel_door_B);
@@ -43,6 +50,26 @@ static inline void terminal_user_not_authorized(uint8_t panel_id)
 {
   (void)panel_id;
   DEBUGSTR("auth FAIL\n");
+}
+
+static void _timer_callback(TimerHandle_t pxTimer)
+{
+  configASSERT(pxTimer);
+
+  // Which timer expired
+  uint32_t id = (uint32_t) pvTimerGetTimerID(pxTimer);
+
+  if (id == _act_timer_id)
+  {
+    // Reset active master if timeout
+    portENTER_CRITICAL();
+    if (_master_timeout == true)
+    {
+      _act_master = ACS_RESERVED_ADDR;
+    }
+    _master_timeout = true;
+    portEXIT_CRITICAL();
+  }
 }
 
 /* ROM CCAN driver callback functions prototypes */
@@ -103,8 +130,6 @@ void term_can_recv(uint8_t msg_obj_num)
   // get target door if message is for us
   if (msg_obj.msgobj == ACS_MSGOBJ_RECV_DOOR_A) //TODO pouzit dva MSG OBJ pro A a B
   {
-    DEBUGSTR("got CAN msg");
-
     if (head.dst == ACC_PANEL_A_ADDR)
     {
       panel_id = ACC_PANEL_A;
@@ -114,6 +139,21 @@ void term_can_recv(uint8_t msg_obj_num)
     {
       panel_id = ACC_PANEL_B;
       DEBUGSTR("for door B\n");
+    }
+    else if (head.dst == ACS_BROADCAST_ADDR)
+    {
+      if (head.fc == FC_ALIVE &&
+          head.src >= ACS_MSTR_FIRST_ADDR &&
+          head.src <= ACS_MSTR_LAST_ADDR)
+      {
+        // update master address if timeout occurred
+        portENTER_CRITICAL();
+        if (_master_timeout == true) _act_master = head.src;
+        _master_timeout = false;
+        portEXIT_CRITICAL();
+        DEBUGSTR("master alive\n");
+      }
+      return;
     }
     else return;
   }
@@ -183,12 +223,19 @@ void term_can_recv(uint8_t msg_obj_num)
 
 static void terminal_register_user(uint32_t user_id, uint8_t panel_id)
 {
+  //check if master online
+  if (_act_master == ACS_RESERVED_ADDR)
+  {
+    DEBUGSTR("master offline\n");
+    return;
+  }
+
   // Prepare msg head to send request on CAN
   msg_head_t head;
   head.scalar = CAN_MSGOBJ_EXT;
   head.prio = PRIO_NEW_USER;
   head.fc = FC_NEW_USER;
-  head.dst = ACS_MSTR_FIRST_ADDR;
+  head.dst = _act_master;
 
   if (panel_id == ACC_PANEL_A)
   {
@@ -204,12 +251,19 @@ static void terminal_register_user(uint32_t user_id, uint8_t panel_id)
 
 static void terminal_request_auth(uint32_t user_id, uint8_t panel_id)
 {
+  //check if master online
+  if (_act_master == ACS_RESERVED_ADDR)
+  {
+    DEBUGSTR("master offline\n");
+    return;
+  }
+
   // Prepare msg head to send request on CAN
   msg_head_t head;
   head.scalar = CAN_MSGOBJ_EXT;
   head.prio = PRIO_USER_AUTH_REQ;
   head.fc = FC_USER_AUTH_REQ;
-  head.dst = ACS_MSTR_FIRST_ADDR;
+  head.dst = _act_master;
 
   if (panel_id == ACC_PANEL_A)
   {
@@ -260,14 +314,16 @@ static void terminal_task(void *pvParameters)
 {
   (void)pvParameters;
 
+  configASSERT(xTimerStart(_act_timer, 0));
+
   while (true)
   {
     uint32_t user_id;
     uint8_t panel_id = panel_get_request_from_buffer(&user_id);
     if (panel_id < DOOR_ACC_PANEL_COUNT)
     {
-      terminal_user_identified(user_id, panel_id);
       DEBUGSTR("user identified\n");
+      terminal_user_identified(user_id, panel_id);
     }
   }
 }
@@ -298,11 +354,11 @@ void terminal_init(void)
     if (panel_conf[id].enabled) terminal_reconfigure(NULL, id);
   }
 
-  xTaskCreate(terminal_task, "term_tsk", configMINIMAL_STACK_SIZE + 128, NULL, (tskIDLE_PRIORITY + 1UL), NULL);
+  _act_timer = xTimerCreate("MAT", (MASTER_ALIVE_TIMEOUT / portTICK_PERIOD_MS),
+               pdTRUE, (void *)_act_timer_id, _timer_callback);
+  configASSERT(_act_timer);
 
-#ifdef DEVEL_BOARD
-  static_cache_insert(static_cache_convert(7632370, 3));
-#endif
+  xTaskCreate(terminal_task, "term_tsk", configMINIMAL_STACK_SIZE + 128, NULL, (tskIDLE_PRIORITY + 1UL), NULL);
 }
 
 void terminal_reconfigure(panel_conf_t * panel_cfg, uint8_t panel_id)

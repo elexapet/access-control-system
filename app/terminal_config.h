@@ -12,7 +12,7 @@
 // General settings
 
 #define DEVEL_BOARD
-#define CACHING_ENABLED
+#define CACHING_ENABLED 0
 #define CAN_BAUD_RATE 125000
 
 //-------------------------------------------------------------
@@ -28,6 +28,7 @@ extern const uint16_t ACC_PANEL_B_ADDR;
 
 #define ACC_PANEL_A 0
 #define ACC_PANEL_B 1
+#define ACC_TERM_ID 15
 
 //---------------------------------------------------------------------------------------------------------------------
 // Settings for panel A

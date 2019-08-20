@@ -32,7 +32,7 @@ void CAN_IRQHandler(void);
  * Private functions
  ****************************************************************************/
 
-
+/* timing calculation from CAN example for integrated CCAN */
 static void _timing_calculate(uint32_t baud_rate, uint32_t * can_api_timing_cfg)
 {
   uint32_t pClk, div, quanta, segs, seg1, seg2, clk_per_bit, can_sjw;
@@ -62,14 +62,24 @@ static void _timing_calculate(uint32_t baud_rate, uint32_t * can_api_timing_cfg)
   }
 }
 
-inline static void _100kbaud(uint32_t * can_api_timing_cfg)
+inline static void _100_kbaud_75sp(uint32_t * can_api_timing_cfg)
 {
-  /* CANCLKDIV: CAN_CLK=48MHz */
-  can_api_timing_cfg[0] = 0x00000000UL;
+  /* 100kb 75% sampling point, CAN_CLK tolerance X% */
   /* Propagation time for UTP copper cable (0.64c) with maximum distance of 100 meter is 0.55us */
-  /* CANBT register: TSEG1=4, TSEG2=5, SJW=4, BRP=48 (actual value written is -1) */
-  /* Equals to 100KBit/s and CAN_CLK tolerance 1.58% */
-  can_api_timing_cfg[1] = 0x000034EFUL;
+  /* CANCLKDIV: CAN_CLK=48MHz */
+  /* CANBT register: TSEG1=14, TSEG2=5, SJW=4, BRP=X (actual value written is -1) */
+  //can_api_timing_cfg[0] = X;
+  //can_api_timing_cfg[1] = X;
+}
+
+inline static void _125_kbaud_75sp(uint32_t * can_api_timing_cfg)
+{
+  /* 125kb 75%, CAN_CLK tolerance X% */
+  /* Propagation time for UTP copper cable (0.64c) with maximum distance of 100 meter is 0.55us */
+  /* CANCLKDIV: CAN_CLK=48MHz */
+  /* CANBT register: TSEG1=11, TSEG2=4, SJW=4, BRP=X (actual value written is -1) */
+  //can_api_timing_cfg[0] = X;
+  //can_api_timing_cfg[1] = X;
 }
 
 /*****************************************************************************
@@ -98,7 +108,6 @@ void CAN_init(CCAN_CALLBACKS_T * ptr_callbacks, uint32_t baud_rate)
 
   /* Initialize CAN Controller structure*/
   uint32_t ClkInitTable[2];
-  //_100kbaud(&ClkInitTable[0]);
   _timing_calculate(baud_rate, &ClkInitTable[0]);
 
   /* Initialize the CAN controller */

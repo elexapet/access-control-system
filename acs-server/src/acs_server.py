@@ -18,7 +18,7 @@ from acs_can_proto import acs_can_proto, can_raw_sock
 class acs_server(object):
     __running = True
 
-    def __init__(self, can_if, addr, r_host, r_port):
+    def __init__(self, can_if, addr, r_host, r_port, debug):
         self.can_if = can_if
         self.addr = addr
         try:
@@ -39,6 +39,8 @@ class acs_server(object):
         signal.signal(signal.SIGTERM, self.sigterm)
         signal.signal(signal.SIGHUP, self.sigterm)
 
+        self.debug = debug
+
     def sigterm(self, signum, frame):
         if self.__running:
             self.__running = False
@@ -49,7 +51,8 @@ class acs_server(object):
 
     # can responses
     def add_new_user(self, panel_addr, user_id):
-        logging.debug("add_new_user: panel = {}, user id = {}".format(panel_addr, user_id))
+        if self.debug:
+            logging.debug("add_new_user: panel = {}, user id = {}".format(panel_addr, user_id))
         # do not add existing users
         if self.db.get_user_group(user_id) is not None:
             return self.proto.NO_MESSAGE
@@ -64,7 +67,8 @@ class acs_server(object):
         return self.proto.NO_MESSAGE
 
     def resp_to_auth_req(self, panel_addr, user_id):
-        logging.debug("resp_to_auth_req: panel = {}, user id = {}".format(panel_addr, user_id))
+        if self.debug:
+            logging.debug("resp_to_auth_req: panel = {}, user id = {}".format(panel_addr, user_id))
         if self.db.is_user_authorized(user_id, panel_addr):
             return self.proto.msg_auth_ok(panel_addr, user_id)
         else:
@@ -72,10 +76,10 @@ class acs_server(object):
 
     # external commands
     def switch_panel_to_learn(self, panel_addr):
+        if self.debug:
+            logging.debug("switch_panel_to_learn: panel = {}".format(panel_addr))
         can_id, dlc, data = self.proto.msg_panel_learn(panel_addr)
         self.can_sock.send(can_id, dlc, data)
-        logging.info("switch_panel_to_learn: panel = {}".format(panel_addr))
-        logging.debug("%s:send: 0x%03x#0x%s" % (self.can_if, can_id, format_data(data)))
 
     # main processing loop
     def run(self):
@@ -93,21 +97,25 @@ class acs_server(object):
                     can_id, dlc, data = self.proto.msg_im_alive()
                     self.can_sock.send(can_id, dlc, data)
 
+                # try recv
                 if self.can_sock.try_select_recv_for(5):
                     can_id, dlc, data = self.can_sock.recv()
 
                     if can_id == 0:
                         continue
+                    if self.debug:
+                        logging.debug("%s:recv: 0x%03x#0x%s" % (self.can_if, can_id, format_data(data)))
 
-                    logging.debug("%s:recv: 0x%03x#0x%s" % (self.can_if, can_id, format_data(data)))
-
+                    # process
                     can_id, dlc, data = self.proto.process_msg(can_id, dlc, data)
 
-                    if can_id == 0:
-                        logging.debug("msg no response")
-                    else:
-                        logging.debug("%s:send: 0x%03x#0x%s" % (self.can_if, can_id, format_data(data)))
+                    if can_id != 0:
+                        # response
                         self.can_sock.send(can_id, dlc, data)
+                        if self.debug:
+                            logging.debug("%s:send: 0x%03x#0x%s" % (self.can_if, can_id, format_data(data)))
+                    elif self.debug:
+                        logging.debug("msg no response")
 
             except OSError as eos:
                 logging.error("{}\n".format(os.strerror(eos.errno)))
@@ -122,7 +130,7 @@ def setup_logging(logname, verbose):
     if verbose:
         level = logging.DEBUG
     else:
-        level = logging.WARNING
+        level = logging.INFO
 
     if logname:
         logging.basicConfig(filename=logname, level=level,
@@ -138,7 +146,7 @@ def main():
     if pargs.log_dir:
         logname = "{}/{}_{}.log".format(pargs.log_dir, pargs.interface, pargs.id)
     setup_logging(logname, pargs.verbose)
-    acs_server(pargs.interface, pargs.id, pargs.redis_hostname, pargs.redis_port).run()
+    acs_server(pargs.interface, pargs.id, pargs.redis_hostname, pargs.redis_port, pargs.verbose).run()
 
 if __name__ == "__main__":
     main()

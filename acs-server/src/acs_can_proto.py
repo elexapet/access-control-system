@@ -229,7 +229,6 @@ class acs_can_proto(object):
                 # TODO
                 return self.NO_MESSAGE
             else:
-                logging.debug("Unknown msg: {} | {} | {} | {}".format(prio, fc, dst, src))
                 return self.NO_MESSAGE
 
         return self.NO_MESSAGE

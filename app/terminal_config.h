@@ -8,6 +8,8 @@
 #ifndef BSP_BOARD_CONFIG_H_
 #define BSP_BOARD_CONFIG_H_
 
+#include <stdint.h>
+
 //-------------------------------------------------------------
 // General settings
 

@@ -56,6 +56,8 @@ int main(void)
   // functions related to the board hardware
   Board_Init();
 
+  Board_Print_Reset_Reason();
+
   terminal_init();
 
   WDT_Init(PANEL_WATCHDOG_TIMEOUT);

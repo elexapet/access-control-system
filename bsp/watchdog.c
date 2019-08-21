@@ -8,6 +8,7 @@
 ===============================================================================
 */
 
+#include "watchdog.h"
 #include "board.h"
 
 /*****************************************************************************
@@ -27,9 +28,9 @@
  ****************************************************************************/
 
 /**
- * @brief	Watchdog Timer Interrupt Handler
+ * @brief	Watchdog Timer Interrupt Handler for debugging
  * @return	Nothing
- * @note	Handles watchdog timer warning and timeout events
+ * @note	Handles watchdog timer timeout events
  */
 void WDT_IRQHandler(void)
 {
@@ -38,7 +39,7 @@ void WDT_IRQHandler(void)
 	if (wdtStatus & WWDT_WDMOD_WDTOF)
 	{
 	  #ifdef DEBUG_ENABLE
-	  DEBUGSTR("WDT\n");
+	  DEBUGSTR("WDT timeout\n");
     #endif //DEBUG_ENABLE
 		// Restart WDT
 		while(Chip_WWDT_GetStatus(LPC_WWDT) & WWDT_WDMOD_WDTOF)
@@ -52,7 +53,7 @@ void WDT_IRQHandler(void)
 /**
  * @brief	Init
  */
-void WDT_Init(void)
+void WDT_Init(uint8_t timeout)
 {
 	uint32_t wdtFreq;
 
@@ -71,10 +72,8 @@ void WDT_Init(void)
 	/* Select watchdog oscillator for WDT clock source */
 	Chip_Clock_SetWDTClockSource(SYSCTL_WDTCLKSRC_WDTOSC, 1);
 
-	/* Set watchdog feed time constant to approximately 2s
-	   Set watchdog warning time to 512 ticks after feed time constant
-	   Set watchdog window time to 3s */
-	Chip_WWDT_SetTimeOut(LPC_WWDT, wdtFreq * 2);
+	/* Set watchdog feed time constant to approximately x secs */
+	Chip_WWDT_SetTimeOut(LPC_WWDT, wdtFreq * timeout);
 
 	/* Clear watchdog warning and timeout interrupts */
 	Chip_WWDT_ClearStatusFlag(LPC_WWDT, WWDT_WDMOD_WDTOF);

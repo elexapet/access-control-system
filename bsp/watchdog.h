@@ -8,9 +8,11 @@
 #ifndef BSP_WATCHDOG_H_
 #define BSP_WATCHDOG_H_
 
+#include <stdint.h>
+
 void WDT_IRQHandler(void);
 
-void WDT_Init(void);
+void WDT_Init(uint8_t timeout);
 void WDT_Feed(void);
 
 #endif /* BSP_WATCHDOG_H_ */

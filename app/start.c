@@ -58,7 +58,7 @@ int main(void)
 
   terminal_init();
 
-  WDT_Init();
+  WDT_Init(PANEL_WATCHDOG_TIMEOUT);
 
   check_system_stack_size();
 

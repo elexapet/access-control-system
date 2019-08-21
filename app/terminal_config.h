@@ -86,6 +86,7 @@ extern const uint16_t ACC_PANEL_B_ADDR;
 #define SERIAL_DEVICE_LIMIT 0
 
 #define DOOR_ACC_PANEL_COUNT 2
+#define PANEL_WATCHDOG_TIMEOUT 2 // in seconds
 
 // IO
 #define LOG_HIGH 1

@@ -3,7 +3,7 @@
 
 static StreamBufferHandle_t _reader_buffer;
 
-static const panel_wiring_t _panel_wiring[DOOR_ACC_PANEL_COUNT] =
+static const panel_wiring_t _panel_wiring[DOOR_ACC_PANEL_MAXCOUNT] =
 {
   {
     .acc_panel_port = DOOR_1_ACC_PANEL_PORT,
@@ -37,7 +37,7 @@ static const panel_wiring_t _panel_wiring[DOOR_ACC_PANEL_COUNT] =
   }
 };
 
-panel_conf_t panel_conf[DOOR_ACC_PANEL_COUNT] =
+panel_conf_t panel_conf[DOOR_ACC_PANEL_MAXCOUNT] =
 {
   {
     .timer_ok = NULL,

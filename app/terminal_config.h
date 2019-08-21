@@ -32,6 +32,9 @@ extern const uint16_t ACC_PANEL_B_ADDR;
 #define ACC_PANEL_B 1
 #define ACC_TERM_ID 15
 
+#define DOOR_ACC_PANEL_COUNT 2
+#define DOOR_ACC_PANEL_MAXCOUNT 2
+
 //---------------------------------------------------------------------------------------------------------------------
 // Settings for panel A
 //---------------------------------------------------------------------------------------------------------------------
@@ -85,7 +88,6 @@ extern const uint16_t ACC_PANEL_B_ADDR;
 #define WEIGAND_DEVICE_LIMIT 4
 #define SERIAL_DEVICE_LIMIT 0
 
-#define DOOR_ACC_PANEL_COUNT 2
 #define PANEL_WATCHDOG_TIMEOUT 2 // in seconds
 
 // IO

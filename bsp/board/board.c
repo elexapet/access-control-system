@@ -119,21 +119,32 @@ const CHIP_IOCON_PIO_T CHIP_IOCON_PIO[][12] =
  * Public functions
  ****************************************************************************/
 
+void Board_Print_Reset_Reason(void)
+{
+  uint32_t status = Chip_SYSCTL_GetSystemRSTStatus();
+  if (status & SYSCTL_RST_SYSRST) Board_UARTPutSTR("SW RST");
+  else if (status & SYSCTL_RST_BOD) Board_UARTPutSTR("BOD RST");
+  else if (status & SYSCTL_RST_WDT) Board_UARTPutSTR("WTG RST");
+  else if (status & SYSCTL_RST_EXTRST) Board_UARTPutSTR("EXT RST");
+  else if (status & SYSCTL_RST_POR) Board_UARTPutSTR("PWR-ON RST");
+  Board_UARTPutChar('\n');
+}
+
 /* Sends a character on the UART */
 void Board_UARTPutChar(char ch)
 {
-#if defined(DEBUG_UART)
-	Chip_UART_SendBlocking(DEBUG_UART, &ch, 1);
+#if defined(CONSOLE_UART)
+	Chip_UART_SendBlocking(CONSOLE_UART, &ch, 1);
 #endif
 }
 
 /* Gets a character from the UART, returns EOF if no character is ready */
 int Board_UARTGetChar(void)
 {
-#if defined(DEBUG_UART)
+#if defined(CONSOLE_UART)
 	uint8_t data;
 
-	if (Chip_UART_Read(DEBUG_UART, &data, 1) == 1) {
+	if (Chip_UART_Read(CONSOLE_UART, &data, 1) == 1) {
 		return (int) data;
 	}
 #endif
@@ -143,7 +154,7 @@ int Board_UARTGetChar(void)
 /* Outputs a string on the debug UART */
 void Board_UARTPutSTR(char *str)
 {
-#if defined(DEBUG_UART)
+#if defined(CONSOLE_UART)
 	while (*str != '\0') {
 		Board_UARTPutChar(*str++);
 	}
@@ -151,9 +162,9 @@ void Board_UARTPutSTR(char *str)
 }
 
 /* Initialize debug output via UART for board */
-void Board_Debug_Init(void)
+void Board_Console_Init(void)
 {
-#if defined(DEBUG_UART)
+#if defined(CONSOLE_UART)
 	Chip_IOCON_PinMuxSet(LPC_IOCON, IOCON_PIO1_6, (IOCON_FUNC1 | IOCON_MODE_INACT)); /* RXD */
 	Chip_IOCON_PinMuxSet(LPC_IOCON, IOCON_PIO1_7, (IOCON_FUNC1 | IOCON_MODE_INACT)); /* TXD */
 

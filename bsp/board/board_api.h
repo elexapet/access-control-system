@@ -80,7 +80,10 @@ void Board_Init(void);
  * @brief	Initializes board UART for output, required for printf redirection
  * @return	None
  */
-void Board_Debug_Init(void);
+void Board_Console_Init(void);
+
+
+void Board_Print_Reset_Reason(void);
 
 /**
  * @brief	Sends a single character on the UART, required for printf redirection
@@ -152,14 +155,14 @@ typedef void (*p_msDelay_func_t)(uint32_t);
 #define DEBUGIN() (int) EOF
 
 #else
-#define DEBUGINIT() Board_Debug_Init()
+#define DEBUGINIT() Board_Console_Init()
 #define DEBUGOUT(...) printf(__VA_ARGS__)
 #define DEBUGSTR(str) Board_UARTPutSTR(str)
 #define DEBUGIN() Board_UARTGetChar()
 #endif /* defined(DEBUG_SEMIHOSTING) */
 
 #else
-#define DEBUGINIT()
+#define DEBUGINIT() Board_Console_Init()
 #define DEBUGOUT(...)
 #define DEBUGSTR(str)
 #define DEBUGIN() (int) EOF

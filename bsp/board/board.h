@@ -64,13 +64,14 @@ extern "C" {
  */
 #undef DEBUG_SEMIHOSTING
 
-/** Board UART used for debug output and input using the DEBUG* macros. This
-    is also the port used for Board_UARTPutChar, Board_UARTGetChar, and
-	Board_UARTPutSTR functions.
- */
-#define DEBUG_UART LPC_USART
 
 #endif // DEBUG
+
+/** Board UART used for debug output and input using the DEBUG* macros. This
+    is also the port used for Board_UARTPutChar, Board_UARTGetChar, and
+    Board_UARTPutSTR functions.
+ */
+#define CONSOLE_UART LPC_USART
 
 /* Board name */
 #define BOARD_NXP_XPRESSO_11C24

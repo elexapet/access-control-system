@@ -10,6 +10,7 @@
 #include "queue.h"
 #include "timers.h"
 #include "watchdog.h"
+#include "brownout.h"
 
 /*****************************************************************************
  * Private types/enumerations/variables
@@ -51,6 +52,8 @@ static void check_system_stack_size(void)
 int main(void)
 {
 	__disable_irq();
+
+	BOD_Init();
 
 	// Set up and initialize all required blocks and
   // functions related to the board hardware

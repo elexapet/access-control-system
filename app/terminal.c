@@ -159,6 +159,9 @@ void term_can_recv(uint8_t msg_obj_num)
   }
   else return;
 
+  // stop processing if card reader not configured
+  if (panel_id >= DOOR_ACC_PANEL_COUNT) return;
+
   // continue deducing action and execute it
   if (head.fc == FC_USER_AUTH_RESP)
   {

@@ -32,7 +32,7 @@ uint16_t _act_master = ACS_RESERVED_ADDR;
 bool _master_timeout = true;
 
 TimerHandle_t _act_timer = NULL;
-const uint32_t _act_timer_id = ACC_TERM_ID;
+const uint32_t _act_timer_id = TERMINAL_TIMER_ID;
 
 
 static inline uint8_t map_panel_id_to_cache(uint8_t panel_id)

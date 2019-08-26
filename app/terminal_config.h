@@ -14,7 +14,12 @@
 // General settings
 
 #define DEVEL_BOARD
+
+// enable caching for operation when communication is lost
+// cache expiration is to be handled by master
 #define CACHING_ENABLED 0
+
+// CAN bus speed b/s
 #define CAN_BAUD_RATE 125000
 
 //-------------------------------------------------------------
@@ -24,16 +29,23 @@
 extern unsigned int TERMINAL_UID[5]; // 0 - status code, 1 - least significant word
 
 // Panel address in ACS (from ROM)
-// TODO place on fixed address in FLASH
+// TODO place in EEPROM at 0x00 a 0x01
 extern const uint16_t ACC_PANEL_A_ADDR; //base address
 extern const uint16_t ACC_PANEL_B_ADDR;
 
+// internal number of card readers
 #define ACC_PANEL_A 0
 #define ACC_PANEL_B 1
-#define ACC_TERM_ID 15
 
+// card reader count 1/2
 #define DOOR_ACC_PANEL_COUNT 2
-#define DOOR_ACC_PANEL_MAXCOUNT 2
+
+#define BEEP_ON_SUCCESS false
+#define OK_LED_ON_SUCCESS true
+
+// communication status led
+#define ACS_PANEL_STATUS_LED_PORT  0
+#define ACS_PANEL_STATUS_LED_PIN   6
 
 //---------------------------------------------------------------------------------------------------------------------
 // Settings for panel A
@@ -56,7 +68,7 @@ extern const uint16_t ACC_PANEL_B_ADDR;
 #define DOOR_1_SENSOR_PIN           6
 
 #define DOOR_1_OPEN_TIME_MS         8000
-#define DOOR_1_OK_GLED_TIME_MS      2000
+#define DOOR_1_OK_GLED_TIME_MS      3000
 
 //---------------------------------------------------------------------------------------------------------------------
 // Settings for panel B
@@ -79,16 +91,25 @@ extern const uint16_t ACC_PANEL_B_ADDR;
 #define DOOR_2_SENSOR_PIN           7
 
 #define DOOR_2_OPEN_TIME_MS         8000
-#define DOOR_2_OK_GLED_TIME_MS      2000
+#define DOOR_2_OK_GLED_TIME_MS      3000
 //---------------------------------------------------------------------------------------------------------------------
 
-#define BEEP_ON_SUCCESS false
-#define OK_LED_ON_SUCCESS true
+// if following is changed it will need code modification
 
 #define WEIGAND_DEVICE_LIMIT 4
 #define SERIAL_DEVICE_LIMIT 0
+#define DOOR_ACC_PANEL_MAXCOUNT 2
+#define TERMINAL_TIMER_ID 15
+
+#if DOOR_ACC_PANEL_COUNT > DOOR_ACC_PANEL_MAXCOUNT
+#error "reader max count limit"
+#endif
+
+//---------------------------------------------------------------------------------------------------------------------
 
 #define PANEL_WATCHDOG_TIMEOUT 2 // in seconds
+
+//---------------------------------------------------------------------------------------------------------------------
 
 // IO
 #define LOG_HIGH 1

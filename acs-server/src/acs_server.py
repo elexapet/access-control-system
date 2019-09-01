@@ -22,17 +22,16 @@ class acs_server(object):
         self.can_if = can_if
         self.addr = addr
         try:
-            self.can_sock = can_raw_sock()
-            self.can_sock.bind(can_if)
             self.proto = acs_can_proto(addr, cb_user_auth_req=self.resp_to_auth_req, cb_new_user=self.add_new_user)
+            self.proto.can_sock.bind(can_if)
         except Exception as e:
-            logging.critical("Unable to start the server: %s", e)
+            logging.exception("Unable to start the server: %s", e)
             sys.exit(1)
 
         try:
             self.db = acs_database(r_host, r_port)
         except Exception as e:
-            logging.critical("Unable to connect to Redis server: %s", e)
+            logging.exception("Unable to connect to Redis server: %s", e)
             sys.exit(1)
 
         signal.signal(signal.SIGINT, self.sigterm)
@@ -79,7 +78,7 @@ class acs_server(object):
         if self.debug:
             logging.debug("switch_panel_to_learn: panel = {}".format(panel_addr))
         can_id, dlc, data = self.proto.msg_panel_learn(panel_addr)
-        self.can_sock.send(can_id, dlc, data)
+        self.proto.can_sock.send(can_id, dlc, data)
 
     # main processing loop
     def run(self):
@@ -95,11 +94,11 @@ class acs_server(object):
                 if (this_alive - last_alive) >= self.proto.MASTER_ALIVE_PERIOD:
                     last_alive = this_alive
                     can_id, dlc, data = self.proto.msg_im_alive()
-                    self.can_sock.send(can_id, dlc, data)
+                    self.proto.can_sock.send(can_id, dlc, data)
 
                 # try recv
-                if self.can_sock.try_select_recv_for(5):
-                    can_id, dlc, data = self.can_sock.recv()
+                if self.proto.can_sock.try_select_recv_for(5):
+                    can_id, dlc, data = self.proto.can_sock.recv()
 
                     if can_id == 0:
                         continue
@@ -111,7 +110,7 @@ class acs_server(object):
 
                     if can_id != 0:
                         # response
-                        self.can_sock.send(can_id, dlc, data)
+                        self.proto.can_sock.send(can_id, dlc, data)
                         if self.debug:
                             logging.debug("%s:send: 0x%03x#0x%s" % (self.can_if, can_id, format_data(data)))
                     elif self.debug:
@@ -122,7 +121,7 @@ class acs_server(object):
             except Exception as e:
                 logging.exception("Exception occurred: %s", e)
 
-        self.can_sock.close()
+        self.proto.can_sock.close()
 
         logging.info("ACS server has shutdown")
 

@@ -5,6 +5,16 @@ import struct
 import errno
 import select
 import logging
+import ctypes
+import mmap
+
+class can_filter(ctypes.Structure):
+    _pack_ = 1
+    _fields_ = [
+                ('id', ctypes.c_uint32),
+                ('mask', ctypes.c_uint32),
+                ]
+
 
 class can_raw_sock(object):
     __CAN_MTU = 16
@@ -23,13 +33,24 @@ class can_raw_sock(object):
             # - No CAN FD
             self.__cansock = socket.socket(socket.PF_CAN, socket.SOCK_RAW, socket.CAN_RAW)
 
-            # Receive only these error frames
+            # Receive following error frames
             err_mask = self.CAN_ERR_TX_TIMEOUT | self.CAN_ERR_BUSOFF | self.CAN_ERR_RESTARTED
             self.__cansock.setsockopt(socket.SOL_CAN_RAW, socket.CAN_RAW_ERR_FILTER, err_mask)
 
         except OSError as e:
             logging.critical("{}\n".format(os.strerror(e.errno)))
             sys.exit(e.errno)
+
+    # matches when <recieved_id> & mask == id & mask
+    def set_recv_filter(self, can_filters):
+        # convert list of structures to c-style array of structures
+        FilterArray = can_filter * len(can_filters)
+        mm_file = mmap.mmap(-1, ctypes.sizeof(FilterArray), access=mmap.ACCESS_WRITE)
+        rfilters = FilterArray.from_buffer(mm_file)
+        for i in range(len(rfilters)):
+            rfilters[i] = can_filters[i]
+        # all filters must be set by one call
+        self.__cansock.setsockopt(socket.SOL_CAN_RAW, socket.CAN_RAW_FILTER, rfilters)
 
     def bind(self, on_interface:str):
         try:
@@ -88,12 +109,19 @@ class can_raw_sock(object):
 class acs_can_proto(object):
     # ACS protocol function codes
     FC_RESERVED = 0
+    # s->m
     FC_USER_AUTH_REQ = 1
+    # m->s
     FC_USER_AUTH_RESP_FAIL = 2
+    # m->s
     FC_USER_AUTH_RESP_OK = 3
+    # m->s
     FC_PANEL_CTRL = 4
+    # s->m
     FC_NEW_USER = 5
+    # s->m
     FC_DOOR_STATUS = 6
+    # m->s
     FC_ALIVE = 7
 
     # priorities
@@ -104,7 +132,7 @@ class acs_can_proto(object):
     PRIO_PANEL_CTRL = 3
     PRIO_NEW_USER = 3
     PRIO_DOOR_STATUS = 4
-    PRIO_ALIVE = 4
+    PRIO_ALIVE = 1
 
     MASTER_ALIVE_PERIOD = 5  # seconds
     MASTER_ALIVE_TIMEOUT = 12
@@ -150,6 +178,8 @@ class acs_can_proto(object):
     CAN_ID_MASK = 0xFFFFFFFF
 
     def __init__(self, master_addr:int, cb_user_auth_req, cb_new_user):
+        self.can_sock = can_raw_sock()
+
         self.cb_user_auth_req = cb_user_auth_req
         self.cb_new_user = cb_new_user
 
@@ -157,6 +187,13 @@ class acs_can_proto(object):
             self.addr = master_addr
         else:
             raise Exception("Invalid master address '{}'\n".format(master_addr))
+
+        # get only messages for us or broadcast
+        f_us = can_filter(socket.CAN_EFF_FLAG | (self.addr << self.ACS_DST_ADDR_OFFSET),
+                          socket.CAN_EFF_FLAG | self.ACS_DST_ADDR_MASK)
+        f_bcast = can_filter(socket.CAN_EFF_FLAG | (self.ACS_BROADCAST_ADDR << self.ACS_DST_ADDR_OFFSET),
+                             socket.CAN_EFF_FLAG | self.ACS_DST_ADDR_MASK)
+        self.can_sock.set_recv_filter([f_us, f_bcast])
 
     def __msg(self, prio, fc, dst):
         # replace with struct pack
@@ -214,11 +251,10 @@ class acs_can_proto(object):
     def process_msg(self, msg_head:int, msg_len:int, msg_data):
         prio, fc, dst, src = self.__parse_msg_head(msg_head)
 
-        if ((dst == self.addr or dst == self.ACS_BROADCAST_ADDR) and
-                msg_head & socket.CAN_EFF_FLAG and
-                src <= self.ACS_PNL_LAST_ADDR and
-                src >= self.ACS_PNL_FIRST_ADDR and
-                prio > self.PRIO_RESERVED):
+        if (msg_head & socket.CAN_EFF_FLAG and
+            src <= self.ACS_PNL_LAST_ADDR and
+            src >= self.ACS_PNL_FIRST_ADDR and
+            prio > self.PRIO_RESERVED):
             if fc == self.FC_USER_AUTH_REQ:
                 if self.cb_user_auth_req is not None:
                     return self.cb_user_auth_req(src, int.from_bytes(msg_data[:4], "little", signed=True))

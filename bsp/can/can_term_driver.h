@@ -16,8 +16,8 @@
 #define CAN_DLC_MAX 8
 
 void CAN_init(CCAN_CALLBACKS_T * ptr_callbacks, uint32_t baud_rate);
-void CAN_recv_filter_set(uint8_t msgobj_num, uint32_t id, uint32_t mask);
-void CAN_recv_filter_set_eff(uint8_t msgobj_num);
+void CAN_recv_filter(uint8_t msgobj_num, uint32_t id, uint32_t mask, bool extended);
+void CAN_recv_filter_all_ext(uint8_t msgobj_num);
 void CAN_send_once(uint8_t msgobj_num, uint32_t id, uint8_t * data, uint8_t size);
 void CAN_send_test(void);
 

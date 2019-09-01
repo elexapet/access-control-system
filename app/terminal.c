@@ -128,34 +128,31 @@ void term_can_recv(uint8_t msg_obj_num)
   uint8_t panel_id;
 
   // get target door if message is for us
-  if (msg_obj.msgobj == ACS_MSGOBJ_RECV_DOOR_A) //TODO pouzit dva MSG OBJ pro A a B
+  if (msg_obj.msgobj == ACS_MSGOBJ_RECV_DOOR_A)
   {
-    if (head.dst == ACC_PANEL_A_ADDR)
+    panel_id = ACC_PANEL_A;
+    DEBUGSTR("for door A\n");
+  }
+  else if (msg_obj.msgobj == ACS_MSGOBJ_RECV_DOOR_B)
+  {
+    panel_id = ACC_PANEL_B;
+    DEBUGSTR("for door B\n");
+  }
+  else if (msg_obj.msgobj == ACS_MSGOBJ_RECV_BCAST)
+  {
+    //broadcast message
+    if (head.fc == FC_ALIVE &&
+        head.src >= ACS_MSTR_FIRST_ADDR &&
+        head.src <= ACS_MSTR_LAST_ADDR)
     {
-      panel_id = ACC_PANEL_A;
-      DEBUGSTR("for door A\n");
+      // update master address if timeout occurred
+      portENTER_CRITICAL();
+      if (_master_timeout == true) _act_master = head.src;
+      _master_timeout = false;
+      portEXIT_CRITICAL();
+      DEBUGSTR("master alive\n");
     }
-    else if (head.dst == ACC_PANEL_B_ADDR)
-    {
-      panel_id = ACC_PANEL_B;
-      DEBUGSTR("for door B\n");
-    }
-    else if (head.dst == ACS_BROADCAST_ADDR)
-    {
-      if (head.fc == FC_ALIVE &&
-          head.src >= ACS_MSTR_FIRST_ADDR &&
-          head.src <= ACS_MSTR_LAST_ADDR)
-      {
-        // update master address if timeout occurred
-        portENTER_CRITICAL();
-        if (_master_timeout == true) _act_master = head.src;
-        _master_timeout = false;
-        portEXIT_CRITICAL();
-        DEBUGSTR("master alive\n");
-      }
-      return;
-    }
-    else return;
+    return;
   }
   else return;
 
@@ -333,8 +330,9 @@ static void terminal_task(void *pvParameters)
 
 void terminal_init(void)
 {
-  //init CAN comm
-  /* CAN Callback Functions of on-chip drivers */
+  // init CAN driver
+
+  /* assign CAN callback functions of on-chip drivers */
   CCAN_CALLBACKS_T term_can_callbacks =
   {
     term_can_recv,    /* callback for any message received CAN frame which ID matches with any of the message objects' masks */
@@ -348,19 +346,32 @@ void terminal_init(void)
   };
 
   CAN_init(&term_can_callbacks, CAN_BAUD_RATE);
-  CAN_recv_filter_set_eff(ACS_MSGOBJ_RECV_DOOR_A);
-  //CAN_recv_filter_set(ACS_MSGOBJ_RECV_DOOR_A, ACC_PANEL_A_ADDR << ACS_DST_ADDR_OFFSET, ACS_DST_ADDR_MASK);
-  //CAN_recv_filter_set(ACS_MSGOBJ_RECV_DOOR_B, ACC_PANEL_B_ADDR << ACS_DST_ADDR_OFFSET, ACS_DST_ADDR_MASK);
 
+  // CAN msg filter for door A
+  CAN_recv_filter(ACS_MSGOBJ_RECV_DOOR_A,
+                  ACC_PANEL_A_ADDR << ACS_DST_ADDR_OFFSET,
+                  ACS_DST_ADDR_MASK, true);
+  // CAN msg filter for door B
+  CAN_recv_filter(ACS_MSGOBJ_RECV_DOOR_B,
+                  ACC_PANEL_B_ADDR << ACS_DST_ADDR_OFFSET,
+                  ACS_DST_ADDR_MASK, true);
+  // CAN msg filter for broadcast
+  CAN_recv_filter(ACS_MSGOBJ_RECV_BCAST,
+                  ACS_BROADCAST_ADDR << ACS_DST_ADDR_OFFSET,
+                  ACS_DST_ADDR_MASK, true);
+
+  // initialize panels
   for (size_t id = 0; id < DOOR_ACC_PANEL_COUNT; ++id)
   {
     if (panel_conf[id].enabled) terminal_reconfigure(NULL, id);
   }
 
+  // create timer for master alive status timeout
   _act_timer = xTimerCreate("MAT", (MASTER_ALIVE_TIMEOUT / portTICK_PERIOD_MS),
                pdTRUE, (void *)_act_timer_id, _timer_callback);
   configASSERT(_act_timer);
 
+  // create task for terminal loop
   xTaskCreate(terminal_task, "term_tsk", configMINIMAL_STACK_SIZE + 128, NULL, (tskIDLE_PRIORITY + 1UL), NULL);
 }
 

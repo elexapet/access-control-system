@@ -11,9 +11,13 @@
 __BSS(RESERVED) char CAN_driver_memory[184];  /* reserve 184 bytes for CAN driver */
 #endif
 
+//
 #define CCAN_BCR_QUANTA(x) ((x) & 0x3F)
+// Synch. Jump Width
 #define CCAN_BCR_SJW(x) (((x) & 0x3) << 6)
+// Time segment 1
 #define CCAN_BCR_TSEG1(x) (((x) & 0x0F) << 8)
+// Time segment 2
 #define CCAN_BCR_TSEG2(x) (((x) & 0x07) << 12)
 
 
@@ -64,22 +68,22 @@ static void _timing_calculate(uint32_t baud_rate, uint32_t * can_api_timing_cfg)
 
 inline static void _100_kbaud_75sp(uint32_t * can_api_timing_cfg)
 {
-  /* 100kb 75% sampling point, CAN_CLK tolerance X% */
+  /* 100kb 75% sampling point, CAN_CLK tolerance 5% */
   /* Propagation time for UTP copper cable (0.64c) with maximum distance of 100 meter is 0.55us */
   /* CANCLKDIV: CAN_CLK=48MHz */
   /* CANBT register: TSEG1=14, TSEG2=5, SJW=4, BRP=X (actual value written is -1) */
-  //can_api_timing_cfg[0] = X;
-  //can_api_timing_cfg[1] = X;
+  //can_api_timing_cfg[0] = 0;
+  //can_api_timing_cfg[1] = CCAN_BCR_QUANTA(X) | CCAN_BCR_SJW(3) | CCAN_BCR_TSEG1(13) | CCAN_BCR_TSEG2(4);
 }
 
 inline static void _125_kbaud_75sp(uint32_t * can_api_timing_cfg)
 {
-  /* 125kb 75%, CAN_CLK tolerance X% */
+  /* 125kb 75%, CAN_CLK tolerance 5% */
   /* Propagation time for UTP copper cable (0.64c) with maximum distance of 100 meter is 0.55us */
   /* CANCLKDIV: CAN_CLK=48MHz */
-  /* CANBT register: TSEG1=11, TSEG2=4, SJW=4, BRP=X (actual value written is -1) */
-  //can_api_timing_cfg[0] = X;
-  //can_api_timing_cfg[1] = X;
+  /* CANBT register: TSEG1=11, TSEG2=4, SJW=4, BRP=4 (actual value written is -1) */
+  //can_api_timing_cfg[0] = 0;
+  //can_api_timing_cfg[1] = CCAN_BCR_QUANTA(X) | CCAN_BCR_SJW(3) | CCAN_BCR_TSEG1(10) | CCAN_BCR_TSEG2(3);
 }
 
 /*****************************************************************************
@@ -120,25 +124,32 @@ void CAN_init(CCAN_CALLBACKS_T * ptr_callbacks, uint32_t baud_rate)
   NVIC_EnableIRQ(CAN_IRQn);
 }
 
-void CAN_recv_filter_set(uint8_t msgobj_num, uint32_t id, uint32_t mask)
+// Configure Message object filter
+// matches when <recieved_id> & mask == id & mask
+void CAN_recv_filter(uint8_t msgobj_num, uint32_t id, uint32_t mask, bool extended)
 {
   CCAN_MSG_OBJ_T msg_obj = {0, };
 
-  /* Configure Message object filter */
+  if (extended == true)
+  {
+    id |= CAN_MSGOBJ_EXT;
+    mask |= CAN_MSGOBJ_EXT;
+  }
+
   msg_obj.msgobj = msgobj_num;
   msg_obj.mode_id = id;
   msg_obj.mask = mask;
   LPC_CCAN_API->config_rxmsgobj(&msg_obj);
 }
 
-void CAN_recv_filter_set_eff(uint8_t msgobj_num)
+/* Configure Message object to receive all extended frames 0-0x1FFFFFFF */
+void CAN_recv_filter_all_ext(uint8_t msgobj_num)
 {
   CCAN_MSG_OBJ_T msg_obj = {0, };
 
-  /* Configure Message object to receive all extended frames 0-0x1FFFFFFF */
   msg_obj.msgobj = msgobj_num;
   msg_obj.mode_id = CAN_MSGOBJ_EXT;
-  msg_obj.mask = 0x0;
+  msg_obj.mask = CAN_MSGOBJ_EXT;
   LPC_CCAN_API->config_rxmsgobj(&msg_obj);
 }
 

@@ -6,6 +6,7 @@
 #define ACS_MSGOBJ_SEND_DOOR_B 1
 #define ACS_MSGOBJ_RECV_DOOR_A 2
 #define ACS_MSGOBJ_RECV_DOOR_B 3
+#define ACS_MSGOBJ_RECV_BCAST 4
 
 // HEAD partitions sizes
 #define ACS_PRIO_BITS   3
@@ -53,7 +54,7 @@
 #define PRIO_PANEL_CTRL          0x3
 #define PRIO_NEW_USER            0x3
 #define PRIO_DOOR_STATUS         0x4
-#define PRIO_ALIVE               0x4
+#define PRIO_ALIVE               0x1
 
 
 #define PANEL_CTRL_DATA_DEF   0x00

@@ -64,8 +64,8 @@ extern const uint16_t ACC_PANEL_B_ADDR;
 #define DOOR_1_ACC_PANEL_RLED_PIN   0
 #define DOOR_1_RELAY_PORT           1
 #define DOOR_1_RELAY_PIN            10
-#define DOOR_1_SENSOR_PORT          0
-#define DOOR_1_SENSOR_PIN           6
+#define DOOR_1_SENSOR_PORT          1
+#define DOOR_1_SENSOR_PIN           8
 
 #define DOOR_1_OPEN_TIME_MS         8000
 #define DOOR_1_OK_GLED_TIME_MS      3000
@@ -87,8 +87,8 @@ extern const uint16_t ACC_PANEL_B_ADDR;
 #define DOOR_2_ACC_PANEL_RLED_PIN   2
 #define DOOR_2_RELAY_PORT           1
 #define DOOR_2_RELAY_PIN            11
-#define DOOR_2_SENSOR_PORT          0
-#define DOOR_2_SENSOR_PIN           7
+#define DOOR_2_SENSOR_PORT          1
+#define DOOR_2_SENSOR_PIN           5
 
 #define DOOR_2_OPEN_TIME_MS         8000
 #define DOOR_2_OK_GLED_TIME_MS      3000

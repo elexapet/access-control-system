@@ -61,11 +61,12 @@ static void _timer_callback(TimerHandle_t pxTimer)
 
   if (id == _act_timer_id)
   {
-    // Reset active master if timeout
+    // Active master timeout after T = 2 * MASTER_ALIVE_TIMEOUT
     portENTER_CRITICAL();
     if (_master_timeout == true)
     {
       _act_master = ACS_RESERVED_ADDR;
+      Board_LED_Set(BOARD_LED_STATUS, false);
     }
     _master_timeout = true;
     portEXIT_CRITICAL();
@@ -147,7 +148,11 @@ void term_can_recv(uint8_t msg_obj_num)
     {
       // update master address if timeout occurred
       portENTER_CRITICAL();
-      if (_master_timeout == true) _act_master = head.src;
+      if (_master_timeout == true)
+      {
+        _act_master = head.src;
+        Board_LED_Set(BOARD_LED_STATUS, true);
+      }
       _master_timeout = false;
       portEXIT_CRITICAL();
       DEBUGSTR("master alive\n");

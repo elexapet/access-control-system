@@ -177,54 +177,95 @@ void Board_Console_Init(void)
 #endif
 }
 
-#ifdef DEVEL_BOARD
+
 
 /* Initializes board LED(s) */
 static void Board_LED_Init(void)
 {
-	/* Set the PIO_7 as output */
+#ifdef DEVEL_BOARD
+	Chip_IOCON_PinMux(LPC_IOCON, IOCON_PIO0_7, IOCON_MODE_INACT, IOCON_FUNC0);
 	Chip_GPIO_SetPinDIROutput(LPC_GPIO, 0, 7);
+	Board_LED_Set(BOARD_LED_DBG_R, false);
 	Chip_IOCON_PinMux(LPC_IOCON, IOCON_PIO0_8, IOCON_MODE_INACT, IOCON_FUNC0);
 	Chip_GPIO_SetPinDIROutput(LPC_GPIO, 0, 8);
+	Board_LED_Set(BOARD_LED_DBG_G, false);
 	Chip_IOCON_PinMux(LPC_IOCON, IOCON_PIO0_9, IOCON_MODE_INACT, IOCON_FUNC0);
 	Chip_GPIO_SetPinDIROutput(LPC_GPIO, 0, 9);
+	Board_LED_Set(BOARD_LED_DBG_B, false);
+#endif
+	Chip_IOCON_PinMux(LPC_IOCON,
+	                  CHIP_IOCON_PIO[ACS_PANEL_STATUS_LED_PORT][ACS_PANEL_STATUS_LED_PIN],
+	                  IOCON_MODE_INACT, IOCON_FUNC0);
+  Chip_GPIO_SetPinDIROutput(LPC_GPIO, ACS_PANEL_STATUS_LED_PORT, ACS_PANEL_STATUS_LED_PIN);
+  Board_LED_Set(BOARD_LED_STATUS, false);
 }
 
 /* Sets the state of a board LED to on or off */
-void Board_LED_Set(uint8_t LEDNumber, bool On)
+void Board_LED_Set(board_led_t led_number, bool on)
 {
-	if(LEDNumber == 0)
-		Chip_GPIO_SetPinState(LPC_GPIO, 0, 7, !On);
-	else if (LEDNumber == 1)
-		Chip_GPIO_SetPinState(LPC_GPIO, 0, 8, !On);
-	else if (LEDNumber == 2)
-		Chip_GPIO_SetPinState(LPC_GPIO, 0, 9, !On);
+  switch (led_number)
+  {
+#ifdef DEVEL_BOARD
+    case BOARD_LED_DBG_R:
+      Chip_GPIO_SetPinState(LPC_GPIO, 0, 7, !on);
+      return;
+    case BOARD_LED_DBG_G:
+      Chip_GPIO_SetPinState(LPC_GPIO, 0, 8, !on);
+      return;
+    case BOARD_LED_DBG_B:
+      Chip_GPIO_SetPinState(LPC_GPIO, 0, 9, !on);
+      return;
+#endif
+    case BOARD_LED_STATUS:
+      Chip_GPIO_SetPinState(LPC_GPIO, ACS_PANEL_STATUS_LED_PORT, ACS_PANEL_STATUS_LED_PIN, !on);
+      return;
+    default:
+      return;
+  }
 }
 
 /* Returns the current state of a board LED */
-bool Board_LED_Test(uint8_t LEDNumber)
+bool Board_LED_Test(board_led_t led_number)
 {
-	if(LEDNumber == 0)
-		return !Chip_GPIO_GetPinState(LPC_GPIO, 0, 7);
-	else if (LEDNumber == 1)
-		return !Chip_GPIO_GetPinState(LPC_GPIO, 0, 7);
-	else if (LEDNumber == 2)
-		return !Chip_GPIO_GetPinState(LPC_GPIO, 0, 7);
-
-	return 0;
+  switch (led_number)
+  {
+#ifdef DEVEL_BOARD
+    case BOARD_LED_DBG_R:
+      return !Chip_GPIO_GetPinState(LPC_GPIO, 0, 7);
+    case BOARD_LED_DBG_G:
+      return !Chip_GPIO_GetPinState(LPC_GPIO, 0, 8);
+    case BOARD_LED_DBG_B:
+      return !Chip_GPIO_GetPinState(LPC_GPIO, 0, 9);
+#endif
+    case BOARD_LED_STATUS:
+      return !Chip_GPIO_GetPinState(LPC_GPIO, ACS_PANEL_STATUS_LED_PORT, ACS_PANEL_STATUS_LED_PIN);
+    default:
+      return 0;
+  }
 }
 
-void Board_LED_Toggle(uint8_t LEDNumber)
+void Board_LED_Toggle(board_led_t led_number)
 {
-	if (LEDNumber == 0)
-		Chip_GPIO_SetPinToggle(LPC_GPIO, 0, 7);
-	else if (LEDNumber == 1)
-		Chip_GPIO_SetPinToggle(LPC_GPIO, 0, 8);
-	else if (LEDNumber == 2)
-		Chip_GPIO_SetPinToggle(LPC_GPIO, 0, 9);
+  switch (led_number)
+  {
+#ifdef DEVEL_BOARD
+    case BOARD_LED_DBG_R:
+      Chip_GPIO_SetPinToggle(LPC_GPIO, 0, 7);
+      return;
+    case BOARD_LED_DBG_G:
+      Chip_GPIO_SetPinToggle(LPC_GPIO, 0, 8);
+      return;
+    case BOARD_LED_DBG_B:
+      Chip_GPIO_SetPinToggle(LPC_GPIO, 0, 9);
+      return;
+#endif
+    case BOARD_LED_STATUS:
+      Chip_GPIO_SetPinToggle(LPC_GPIO, ACS_PANEL_STATUS_LED_PORT, ACS_PANEL_STATUS_LED_PIN);
+      return;
+    default:
+      return;
+  }
 }
-
-#endif // DEVEL_BOARD
 
 /* Set up and initialize all required blocks and functions related to the
    board hardware */
@@ -239,13 +280,8 @@ void Board_Init(void)
 	/* Initialize GPIO */
 	Chip_GPIO_Init(LPC_GPIO);
 
-#ifdef DEVEL_BOARD
 	/* Initialize LEDs */
 	Board_LED_Init();
-	Board_LED_Set(0, false);
-	Board_LED_Set(1, false);
-	Board_LED_Set(2, false);
-#endif // DEVEL_BOARD
 
   // Enable INTs for all GPIO ports
   NVIC_EnableIRQ(EINT0_IRQn);

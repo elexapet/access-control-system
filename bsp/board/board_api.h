@@ -60,6 +60,7 @@ extern "C" {
 #define TRUE    (1)
 #endif
 
+#define ARRAY_SIZE(arr)     (sizeof(arr) / sizeof((arr)[0]))
 
 // Available LEDs on board
 typedef enum

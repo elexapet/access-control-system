@@ -28,10 +28,20 @@
 #define IAP_READ_UID 58
 extern unsigned int TERMINAL_UID[5]; // 0 - status code, 1 - least significant word
 
-// Panel address in ACS (from ROM)
+// Door addresses in ACS system
+// Initialized from external storage
+//
+// Expected organization
+// 0x00: A_ADDR[7:0]
+// 0x01: A_ADDR[15:8]
+// 0x02: B_ADDR[7:0]
+// 0x03; B_ADDR[15:8]
 // TODO place in EEPROM at 0x00 a 0x01
-extern const uint16_t ACC_PANEL_A_ADDR; //base address
-extern const uint16_t ACC_PANEL_B_ADDR;
+extern uint16_t ACC_PANEL_A_ADDR; // even
+extern uint16_t ACC_PANEL_B_ADDR; // odd
+
+#define PTR_ACC_PANEL_A_ADDR 0x0 // pointer to external memory
+#define PTR_ACC_PANEL_B_ADDR 0x2 // pointer to external memory
 
 // internal number of card readers
 #define ACC_PANEL_A 0
@@ -46,6 +56,11 @@ extern const uint16_t ACC_PANEL_B_ADDR;
 // communication status led
 #define ACS_PANEL_STATUS_LED_PORT  0
 #define ACS_PANEL_STATUS_LED_PIN   6
+
+//I2C storage for door IDs (EEPROM, IO EXPANDER or device with same access)
+#define STORE_I2C_DEV        I2C0
+#define STORE_I2C_BUS_FREQ   400000
+#define STORE_I2C_SLAVE_ADDR 0x50 // 7bit address
 
 //---------------------------------------------------------------------------------------------------------------------
 // Settings for panel A

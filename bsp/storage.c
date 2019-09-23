@@ -5,6 +5,8 @@
  *      Author: Petr
  */
 #include "storage.h"
+#include "FreeRTOS.h"
+#include "task.h"
 
 static void Init_I2C_PinMux(void)
 {
@@ -14,26 +16,27 @@ static void Init_I2C_PinMux(void)
   Chip_IOCON_PinMuxSet(LPC_IOCON, 0, 5, IOCON_FUNC1 | I2C_FASTPLUS_BIT);
 #elif (defined(BOARD_NXP_XPRESSO_11C24) || defined(BOARD_MCORE48_1125))
   Chip_SYSCTL_PeriphReset(RESET_I2C0);
-  Chip_IOCON_PinMuxSet(LPC_IOCON, IOCON_PIO0_4, IOCON_FUNC1 | I2C_FASTPLUS_BIT);
-  Chip_IOCON_PinMuxSet(LPC_IOCON, IOCON_PIO0_5, IOCON_FUNC1 | I2C_FASTPLUS_BIT);
+  Chip_IOCON_PinMux(LPC_IOCON, IOCON_PIO0_4, IOCON_MODE_INACT, IOCON_FUNC1);
+  Chip_IOCON_PinMux(LPC_IOCON, IOCON_PIO0_5, IOCON_MODE_INACT, IOCON_FUNC1);
 #else
   #error "Unsupported board for I2C operation."
 #endif
 }
 
-void storage_init(I2C_ID_T dev_id, uint32_t freq)
+void storage_init(void)
 {
-  configASSERT(freq > 1000);
-  configASSERT(freq <= 400000);
+  uint32_t freq = STORE_I2C_BUS_FREQ;
+
+  configASSERT(freq > 1000 && freq <= 400000);
 
   Init_I2C_PinMux();
 
   /* Initialize I2C */
-  Chip_I2C_Init(dev_id);
-  Chip_I2C_SetClockRate(dev_id, freq);
+  Chip_I2C_Init(STORE_I2C_DEV);
+  Chip_I2C_SetClockRate(STORE_I2C_DEV, freq);
 
   /* Set mode to interrupt */
-  Chip_I2C_SetMasterEventHandler(dev_id, Chip_I2C_EventHandler);
+  Chip_I2C_SetMasterEventHandler(STORE_I2C_DEV, Chip_I2C_EventHandler);
   NVIC_EnableIRQ(I2C0_IRQn);
 }
 
@@ -41,7 +44,7 @@ bool storage_read_word_le(const uint8_t addr, uint16_t * data)
 {
   const uint8_t len = sizeof(*data);
 
-  uint8_t n_got = Chip_I2C_MasterCmdRead(STORE_I2C_DEV, STORE_I2C_SLAVE_ADDR, addr, data, len);
+  uint8_t n_got = Chip_I2C_MasterCmdRead(STORE_I2C_DEV, STORE_I2C_SLAVE_ADDR, addr, (uint8_t *)data, len);
 
   return (n_got == len);
 }

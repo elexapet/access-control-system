@@ -9,6 +9,7 @@
 #define BSP_BOARD_CONFIG_H_
 
 #include <stdint.h>
+#include <stdbool.h>
 
 //-------------------------------------------------------------
 // General settings
@@ -23,25 +24,40 @@
 #define CAN_BAUD_RATE 125000
 
 //-------------------------------------------------------------
-
 // global UID from vendor (from chip)
 #define IAP_READ_UID 58
 extern unsigned int TERMINAL_UID[5]; // 0 - status code, 1 - least significant word
 
+//-------------------------------------------------------------
 // Door addresses in ACS system
-// Initialized from external storage
 //
-// Expected organization
-// 0x00: A_ADDR[7:0]
-// 0x01: A_ADDR[15:8]
-// 0x02: B_ADDR[7:0]
-// 0x03; B_ADDR[15:8]
-// TODO place in EEPROM at 0x00 a 0x01
-extern uint16_t ACC_PANEL_A_ADDR; // even
-extern uint16_t ACC_PANEL_B_ADDR; // odd
+// Read from external storage on startup
+// Designed to be even (address A) and odd (address B)
+// Always true: ADDR_B = ADDR_A + 1
 
-#define PTR_ACC_PANEL_A_ADDR 0x0 // pointer to external memory
-#define PTR_ACC_PANEL_B_ADDR 0x2 // pointer to external memory
+// Address getters
+extern uint16_t get_acs_panel_a_addr(void);
+extern uint16_t get_acs_panel_b_addr(void);
+// Address setter
+void set_acs_panel_addr(const uint16_t first_acs_addr);
+
+// Expected organization in external address space:
+// | 0x00 | A_ADDR [7:0]
+// | 0x01 | A_ADDR [9:8]
+//          PADDING [15:10]
+
+// The address actually uses less then 16 bits. See address bit width in ACS protocol.
+
+#define PTR_ACS_PANEL_FIRST_ADDR 0x0 // pointer to external memory
+
+
+// Setting for I2C external storage for door adresses
+// (EEPROM, IO EXPANDER or device with same access)
+#define STORE_I2C_DEV        I2C0
+#define STORE_I2C_BUS_FREQ   100000 // 400kHz MAX
+#define STORE_I2C_SLAVE_ADDR 0x50   // 7bit address
+
+//-------------------------------------------------------------
 
 // internal number of card readers
 #define ACC_PANEL_A 0
@@ -56,11 +72,6 @@ extern uint16_t ACC_PANEL_B_ADDR; // odd
 // communication status led
 #define ACS_PANEL_STATUS_LED_PORT  0
 #define ACS_PANEL_STATUS_LED_PIN   6
-
-//I2C storage for door IDs (EEPROM, IO EXPANDER or device with same access)
-#define STORE_I2C_DEV        I2C0
-#define STORE_I2C_BUS_FREQ   400000
-#define STORE_I2C_SLAVE_ADDR 0x50 // 7bit address
 
 //---------------------------------------------------------------------------------------------------------------------
 // Settings for panel A
@@ -107,10 +118,11 @@ extern uint16_t ACC_PANEL_B_ADDR; // odd
 
 #define DOOR_2_OPEN_TIME_MS         8000
 #define DOOR_2_OK_GLED_TIME_MS      3000
+
 //---------------------------------------------------------------------------------------------------------------------
+// Internal setting
 
 // if following is changed it will need code modification
-
 #define WEIGAND_DEVICE_LIMIT 4
 #define SERIAL_DEVICE_LIMIT 0
 #define DOOR_ACC_PANEL_MAXCOUNT 2
@@ -129,5 +141,14 @@ extern uint16_t ACC_PANEL_B_ADDR; // odd
 // IO
 #define LOG_HIGH 1
 #define LOG_LOW 0
+
+//---------------------------------------------------------------------------------------------------------------------
+
+
+// Initialize configuration
+// @return true if succeeded
+bool terminal_config_init(void);
+
+//---------------------------------------------------------------------------------------------------------------------
 
 #endif /* BSP_BOARD_CONFIG_H_ */

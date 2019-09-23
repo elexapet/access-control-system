@@ -16,9 +16,10 @@
 #include <stdio.h>
 #include <string.h>
 
-// Cache entry mapping
+// Cache entry type mapping our type
 typedef cache_item_t term_cache_item_t; // 4B
 
+// Used cache values
 enum term_cache_panel
 {
   cache_panel_none = 0,
@@ -27,12 +28,17 @@ enum term_cache_panel
   cache_panel_all = 3
 };
 
+// Address for currently active master
+static uint16_t _act_master = ACS_RESERVED_ADDR;
 
-uint16_t _act_master = ACS_RESERVED_ADDR;
-bool _master_timeout = true;
+// Flag for master alive broadcast timeout
+static bool _master_timeout = true;
 
-TimerHandle_t _act_timer = NULL;
-const uint32_t _act_timer_id = TERMINAL_TIMER_ID;
+// Timer for master timeout
+// Timer handle
+static TimerHandle_t _act_timer = NULL;
+// Timer ID
+static const uint32_t _act_timer_id = TERMINAL_TIMER_ID;
 
 
 static inline uint8_t map_panel_id_to_cache(uint8_t panel_id)
@@ -244,12 +250,12 @@ static void terminal_register_user(uint32_t user_id, uint8_t panel_id)
 
   if (panel_id == ACC_PANEL_A)
   {
-    head.src = ACC_PANEL_A_ADDR;
+    head.src = get_acs_panel_a_addr();
     CAN_send_once(ACS_MSGOBJ_SEND_DOOR_A, head.scalar, (void *)&user_id, sizeof(user_id));
   }
   else if (panel_id == ACC_PANEL_B)
   {
-    head.src = ACC_PANEL_B_ADDR;
+    head.src = get_acs_panel_b_addr();
     CAN_send_once(ACS_MSGOBJ_SEND_DOOR_B, head.scalar, (void *)&user_id, sizeof(user_id));
   }
 }
@@ -259,7 +265,7 @@ static void terminal_request_auth(uint32_t user_id, uint8_t panel_id)
   //check if master online
   if (_act_master == ACS_RESERVED_ADDR)
   {
-    DEBUGSTR("master offline\n");
+    DEBUGSTR("master off-line\n");
     return;
   }
 
@@ -272,12 +278,12 @@ static void terminal_request_auth(uint32_t user_id, uint8_t panel_id)
 
   if (panel_id == ACC_PANEL_A)
   {
-    head.src = ACC_PANEL_A_ADDR;
+    head.src = get_acs_panel_a_addr();
     CAN_send_once(ACS_MSGOBJ_SEND_DOOR_A, head.scalar, (void *)&user_id, sizeof(user_id));
   }
   else if (panel_id == ACC_PANEL_B)
   {
-    head.src = ACC_PANEL_B_ADDR;
+    head.src = get_acs_panel_b_addr();
     CAN_send_once(ACS_MSGOBJ_SEND_DOOR_B, head.scalar, (void *)&user_id, sizeof(user_id));
   }
 }
@@ -335,9 +341,10 @@ static void terminal_task(void *pvParameters)
 
 void terminal_init(void)
 {
-  // init CAN driver
+  // init config for terminal
+  configASSERT(terminal_config_init());
 
-  /* assign CAN callback functions of on-chip drivers */
+  // assign CAN callback functions of on-chip drivers
   CCAN_CALLBACKS_T term_can_callbacks =
   {
     term_can_recv,    /* callback for any message received CAN frame which ID matches with any of the message objects' masks */
@@ -350,15 +357,16 @@ void terminal_init(void)
     NULL,           /* callback for fall-back SDO handler (not used) */
   };
 
+  // init CAN driver
   CAN_init(&term_can_callbacks, CAN_BAUD_RATE);
 
   // CAN msg filter for door A
   CAN_recv_filter(ACS_MSGOBJ_RECV_DOOR_A,
-                  ACC_PANEL_A_ADDR << ACS_DST_ADDR_OFFSET,
+                  get_acs_panel_a_addr() << ACS_DST_ADDR_OFFSET,
                   ACS_DST_ADDR_MASK, true);
   // CAN msg filter for door B
   CAN_recv_filter(ACS_MSGOBJ_RECV_DOOR_B,
-                  ACC_PANEL_B_ADDR << ACS_DST_ADDR_OFFSET,
+                  get_acs_panel_b_addr() << ACS_DST_ADDR_OFFSET,
                   ACS_DST_ADDR_MASK, true);
   // CAN msg filter for broadcast
   CAN_recv_filter(ACS_MSGOBJ_RECV_BCAST,

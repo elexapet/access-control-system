@@ -12,14 +12,19 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-void storage_init(I2C_ID_T dev_id, uint32_t freq);
+// Initialize I2C bus for storage
+void storage_init(void);
 
+// Read a word from address (little-endian)
 bool storage_read_word_le(const uint8_t addr, uint16_t * data);
 
+// Write a word to address (little-endian)
 bool storage_write_word_le(const uint8_t addr, const uint16_t data);
 
+// Read a byte from address
 bool storage_read_byte(const uint8_t addr, uint8_t * data);
 
+// Write a byte to address
 bool storage_write_byte(const uint8_t addr, const uint8_t data);
 
 #endif /* BSP_STORAGE_H_ */

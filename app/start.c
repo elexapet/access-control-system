@@ -11,6 +11,7 @@
 #include "timers.h"
 #include "watchdog.h"
 #include "brownout.h"
+#include "storage.h"
 
 /*****************************************************************************
  * Private types/enumerations/variables
@@ -60,6 +61,8 @@ int main(void)
   Board_Init();
 
   Board_Print_Reset_Reason();
+
+  storage_init();
 
   terminal_init();
 

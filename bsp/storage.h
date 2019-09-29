@@ -12,6 +12,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#define STORE_I2C_DEV I2C0
+
+#define STORE_DEV_BUSY_FOR 50
+
 // Initialize I2C bus for storage
 void storage_init(void);
 

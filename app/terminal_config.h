@@ -53,8 +53,7 @@ void set_acs_panel_addr(const uint16_t first_acs_addr);
 
 // Setting for I2C external storage for door adresses
 // (EEPROM, IO EXPANDER or device with same access)
-#define STORE_I2C_DEV        I2C0
-#define STORE_I2C_BUS_FREQ   100000 // 400kHz MAX
+#define STORE_I2C_BUS_FREQ   400000 // 100kHz or 400kHz
 #define STORE_I2C_SLAVE_ADDR 0x50   // 7bit address
 
 //-------------------------------------------------------------

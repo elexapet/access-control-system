@@ -69,7 +69,9 @@ bool terminal_config_init(void)
 {
   bool ret_val = true;
 
+#ifdef DEVEL_BOARD
   //ret_val &= _save_acs_addrs_from_ext_stor();
+#endif
 
   //Read ACS ID from external storage
   ret_val &= _load_acs_addrs_from_ext_stor();

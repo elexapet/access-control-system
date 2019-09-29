@@ -8,19 +8,27 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
-static void Init_I2C_PinMux(void)
+static inline void Init_I2C_PinMux(void)
 {
-#if (defined(BOARD_NXP_XPRESSO_11U14) || defined(BOARD_NGX_BLUEBOARD_11U24))
-  Chip_SYSCTL_PeriphReset(RESET_I2C0);
-  Chip_IOCON_PinMuxSet(LPC_IOCON, 0, 4, IOCON_FUNC1 | I2C_FASTPLUS_BIT);
-  Chip_IOCON_PinMuxSet(LPC_IOCON, 0, 5, IOCON_FUNC1 | I2C_FASTPLUS_BIT);
-#elif (defined(BOARD_NXP_XPRESSO_11C24) || defined(BOARD_MCORE48_1125))
-  Chip_SYSCTL_PeriphReset(RESET_I2C0);
-  Chip_IOCON_PinMux(LPC_IOCON, IOCON_PIO0_4, IOCON_MODE_INACT, IOCON_FUNC1);
-  Chip_IOCON_PinMux(LPC_IOCON, IOCON_PIO0_5, IOCON_MODE_INACT, IOCON_FUNC1);
+#ifdef BOARD_NXP_XPRESSO_11C24
+  Chip_SYSCTL_DeassertPeriphReset(RESET_I2C0);
+  Chip_IOCON_PinMux(LPC_IOCON, CHIP_IOCON_PIO[0][4], IOCON_SFI2C_EN, IOCON_FUNC1);
+  Chip_IOCON_PinMux(LPC_IOCON, CHIP_IOCON_PIO[0][5], IOCON_SFI2C_EN, IOCON_FUNC1);
 #else
   #error "Unsupported board for I2C operation."
 #endif
+}
+
+static inline void _wait_for_dev_ready(void)
+{
+  uint8_t tmp;
+  for (int i = 0; i < STORE_DEV_BUSY_FOR; ++i)
+  {
+    if (Chip_I2C_MasterRead(STORE_I2C_DEV, STORE_I2C_SLAVE_ADDR, &tmp, 0))
+    {
+      break;
+    }
+  }
 }
 
 void storage_init(void)
@@ -49,11 +57,15 @@ bool storage_read_word_le(const uint8_t addr, uint16_t * data)
   return (n_got == len);
 }
 
+// TODO FIXME not working
 bool storage_write_word_le(const uint8_t addr, const uint16_t data)
 {
+  // in order of sending
   const uint8_t tx_buff[] = {addr, (uint8_t)data, (uint8_t)(data >> 8)};
 
   uint8_t n_sent = Chip_I2C_MasterSend(STORE_I2C_DEV, STORE_I2C_SLAVE_ADDR, tx_buff, ARRAY_SIZE(tx_buff));
+
+  _wait_for_dev_ready();
 
   return (n_sent == ARRAY_SIZE(tx_buff));
 }
@@ -72,6 +84,8 @@ bool storage_write_byte(const uint8_t addr, const uint8_t data)
   const uint8_t tx_buff[] = {addr, data};
 
   uint8_t n_sent = Chip_I2C_MasterSend(STORE_I2C_DEV, STORE_I2C_SLAVE_ADDR, tx_buff, ARRAY_SIZE(tx_buff));
+
+  _wait_for_dev_ready();
 
   return (n_sent == ARRAY_SIZE(tx_buff));
 }

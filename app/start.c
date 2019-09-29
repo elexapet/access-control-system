@@ -62,17 +62,19 @@ int main(void)
 
   Board_Print_Reset_Reason();
 
-  storage_init();
-
-  terminal_init();
-
   WDT_Init(PANEL_WATCHDOG_TIMEOUT);
 
-  check_system_stack_size();
+  storage_init();
 
   __enable_irq();
 
   WDT_Feed();
+
+  terminal_init();
+
+  WDT_Feed();
+
+  check_system_stack_size();
 
   /* Start the kernel.  From here on, only tasks and interrupts will run. */
   vTaskStartScheduler();

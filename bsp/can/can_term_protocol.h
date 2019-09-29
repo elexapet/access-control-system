@@ -1,3 +1,5 @@
+// ACS protocol definitions
+
 #ifndef CAN_TERM_PROTOCOL_H_
 #define CAN_TERM_PROTOCOL_H_
 

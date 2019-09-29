@@ -223,6 +223,9 @@ _STD_END
 #if !defined(DEBUG_SEMIHOSTING)
 int WRITEFUNC(int iFileHandle, char *pcBuffer, int iLength)
 {
+  (void)iFileHandle;
+  (void)pcBuffer;
+
 #if defined(DEBUG_ENABLE)
 	int i;
 	for (i = 0; i < iLength; i++) {

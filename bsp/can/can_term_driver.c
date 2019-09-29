@@ -66,24 +66,24 @@ static void _timing_calculate(uint32_t baud_rate, uint32_t * can_api_timing_cfg)
   }
 }
 
-inline static void _100_kbaud_75sp(uint32_t * can_api_timing_cfg)
+static inline void _100_kbaud_75sp(uint32_t * can_api_timing_cfg)
 {
   /* 100kb 75% sampling point, CAN_CLK tolerance 5% */
   /* Propagation time for UTP copper cable (0.64c) with maximum distance of 100 meter is 0.55us */
   /* CANCLKDIV: CAN_CLK=48MHz */
   /* CANBT register: TSEG1=14, TSEG2=5, SJW=4, BRP=X (actual value written is -1) */
-  //can_api_timing_cfg[0] = 0;
-  //can_api_timing_cfg[1] = CCAN_BCR_QUANTA(X) | CCAN_BCR_SJW(3) | CCAN_BCR_TSEG1(13) | CCAN_BCR_TSEG2(4);
+  can_api_timing_cfg[0] = 0;
+  can_api_timing_cfg[1] = CCAN_BCR_QUANTA(1) | CCAN_BCR_SJW(3) | CCAN_BCR_TSEG1(13) | CCAN_BCR_TSEG2(4);
 }
 
-inline static void _125_kbaud_75sp(uint32_t * can_api_timing_cfg)
+static inline void _125_kbaud_75sp(uint32_t * can_api_timing_cfg)
 {
   /* 125kb 75%, CAN_CLK tolerance 5% */
   /* Propagation time for UTP copper cable (0.64c) with maximum distance of 100 meter is 0.55us */
   /* CANCLKDIV: CAN_CLK=48MHz */
   /* CANBT register: TSEG1=11, TSEG2=4, SJW=4, BRP=4 (actual value written is -1) */
-  //can_api_timing_cfg[0] = 0;
-  //can_api_timing_cfg[1] = CCAN_BCR_QUANTA(X) | CCAN_BCR_SJW(3) | CCAN_BCR_TSEG1(10) | CCAN_BCR_TSEG2(3);
+  can_api_timing_cfg[0] = 0;
+  can_api_timing_cfg[1] = CCAN_BCR_QUANTA(1) | CCAN_BCR_SJW(3) | CCAN_BCR_TSEG1(10) | CCAN_BCR_TSEG2(3);
 }
 
 /*****************************************************************************

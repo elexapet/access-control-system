@@ -57,7 +57,6 @@ bool storage_read_word_le(const uint8_t addr, uint16_t * data)
   return (n_got == len);
 }
 
-// TODO FIXME not working
 bool storage_write_word_le(const uint8_t addr, const uint16_t data)
 {
   // in order of sending

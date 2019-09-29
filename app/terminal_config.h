@@ -15,6 +15,7 @@
 // General settings
 
 #define DEVEL_BOARD
+#define ENABLE_LOCAL_ACS_ADDR_WRITE 0
 
 // enable caching for operation when communication is lost
 // cache expiration is to be handled by master
@@ -93,7 +94,7 @@ void set_acs_panel_addr(const uint16_t first_acs_addr);
 #define DOOR_1_SENSOR_PIN           8
 
 #define DOOR_1_OPEN_TIME_MS         8000
-#define DOOR_1_OK_GLED_TIME_MS      3000
+#define DOOR_1_OK_GLED_TIME_MS      4000
 
 //---------------------------------------------------------------------------------------------------------------------
 // Settings for panel B
@@ -116,7 +117,7 @@ void set_acs_panel_addr(const uint16_t first_acs_addr);
 #define DOOR_2_SENSOR_PIN           5
 
 #define DOOR_2_OPEN_TIME_MS         8000
-#define DOOR_2_OK_GLED_TIME_MS      3000
+#define DOOR_2_OK_GLED_TIME_MS      4000
 
 //---------------------------------------------------------------------------------------------------------------------
 // Internal setting

@@ -1,5 +1,5 @@
 /*
- *  Access control system panel
+ *  Access control system terminal
  *  Created on: 24. 8. 2018
  *      Author: Petr
  */
@@ -12,7 +12,7 @@
 #include "task.h"
 #include "stream_buffer.h"
 #include "can/can_term_driver.h"
-#include "can/can_term_protocol.h"
+#include "acs_can_protocol.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -20,12 +20,12 @@
 typedef cache_item_t term_cache_item_t; // 4B
 
 // Used cache values
-enum term_cache_panel
+enum term_cache_reader
 {
-  cache_panel_none = 0,
-  cache_panel_door_A = 1,
-  cache_panel_door_B = 2,
-  cache_panel_all = 3
+  cache_reader_none = 0,
+  cache_reader_A = 1,
+  cache_reader_B = 2,
+  cache_reader_all = 3
 };
 
 // Address for currently active master
@@ -41,20 +41,20 @@ static TimerHandle_t _act_timer = NULL;
 static const uint32_t _act_timer_id = TERMINAL_TIMER_ID;
 
 
-static inline uint8_t map_panel_id_to_cache(uint8_t panel_id)
+static inline uint8_t map_reader_idx_to_cache(uint8_t reader_idx)
 {
-  return (panel_id == ACC_PANEL_A ? cache_panel_door_A : cache_panel_door_B);
+  return (reader_idx == ACS_READER_A_IDX ? cache_reader_A : cache_reader_B);
 }
 
-static inline void terminal_user_authorized(uint8_t panel_id)
+static inline void terminal_user_authorized(uint8_t reader_idx)
 {
   DEBUGSTR("auth OK\n");
-  panel_unlock(panel_id, BEEP_ON_SUCCESS, OK_LED_ON_SUCCESS);
+  reader_unlock(reader_idx, BEEP_ON_SUCCESS, OK_LED_ON_SUCCESS);
 }
 
-static inline void terminal_user_not_authorized(uint8_t panel_id)
+static inline void terminal_user_not_authorized(uint8_t reader_id)
 {
-  (void)panel_id;
+  (void)reader_id;
   DEBUGSTR("auth FAIL\n");
 }
 
@@ -129,20 +129,20 @@ void term_can_recv(uint8_t msg_obj_num)
   /* Now load up the msg_obj structure with the CAN message */
   LPC_CCAN_API->can_receive(&msg_obj);
 
-  msg_head_t head;
+  acs_msg_head_t head;
   head.scalar = msg_obj.mode_id;
 
-  uint8_t panel_id;
+  uint8_t reader_idx;
 
   // get target door if message is for us
   if (msg_obj.msgobj == ACS_MSGOBJ_RECV_DOOR_A)
   {
-    panel_id = ACC_PANEL_A;
+    reader_idx = ACS_READER_A_IDX;
     DEBUGSTR("for door A\n");
   }
   else if (msg_obj.msgobj == ACS_MSGOBJ_RECV_DOOR_B)
   {
-    panel_id = ACC_PANEL_B;
+    reader_idx = ACS_READER_B_IDX;
     DEBUGSTR("for door B\n");
   }
   else if (msg_obj.msgobj == ACS_MSGOBJ_RECV_BCAST)
@@ -168,12 +168,12 @@ void term_can_recv(uint8_t msg_obj_num)
   else return;
 
   // stop processing if card reader not configured
-  if (panel_id >= DOOR_ACC_PANEL_COUNT) return;
+  if (reader_idx >= ACS_READER_COUNT) return;
 
   // continue deducing action and execute it
   if (head.fc == FC_USER_AUTH_RESP)
   {
-    terminal_user_authorized(panel_id);
+    terminal_user_authorized(reader_idx);
 
     #if CACHING_ENABLED
       uint32_t user_id;
@@ -181,13 +181,13 @@ void term_can_recv(uint8_t msg_obj_num)
       memcpy(&user_id, msg_obj.data, len);
       term_cache_item_t user;
       user.key = user_id;
-      user.value = map_panel_id_to_cache(panel_id);
+      user.value = map_reader_idx_to_cache(reader_idx);
       static_cache_insert(user);
     #endif
   }
   else if (head.fc == FC_USER_NOT_AUTH_RESP)
   {
-    terminal_user_not_authorized(panel_id);
+    terminal_user_not_authorized(reader_idx);
 
     #if CACHING_ENABLED
       uint32_t user_id;
@@ -195,31 +195,31 @@ void term_can_recv(uint8_t msg_obj_num)
       memcpy(&user_id, msg_obj.data, len);
       term_cache_item_t user;
       user.key = user_id;
-      user.value = cache_panel_none;
+      user.value = cache_reader_none;
       static_cache_insert(user);
     #endif
   }
-  else if (head.fc == FC_PANEL_CTRL)
+  else if (head.fc == FC_DOOR_CTRL)
   {
     switch (msg_obj.data[0])
     {
-      case PANEL_CTRL_DATA_DEF:
+      case DATA_DOOR_CTRL_MODE_DEF:
         DEBUGSTR("mode DEF\n");
-        panel_conf[panel_id].mode = PANEL_MODE_DEF;
+        reader_conf[reader_idx].mode = READER_MODE_DEF;
         break;
-      case PANEL_CTRL_DATA_UNLCK:
+      case DATA_DOOR_CTRL_UNLCK:
         DEBUGSTR("cmd UNLOCK\n");
-        terminal_user_authorized(panel_id);
+        terminal_user_authorized(reader_idx);
         break;
-      case PANEL_CTRL_DATA_LOCK:
+      case DATA_DOOR_CTRL_LOCK:
         DEBUGSTR("mode LOCK\n");
-        panel_conf[panel_id].mode = PANEL_MODE_LOCKED;
+        reader_conf[reader_idx].mode = READER_MODE_LOCKED;
         break;
-      case PANEL_CTRL_DATA_LEARN:
+      case DATA_DOOR_CTRL_LEARN:
         DEBUGSTR("mode LEARN\n");
-        panel_conf[panel_id].mode = PANEL_MODE_LEARN;
+        reader_conf[reader_idx].mode = READER_MODE_LEARN;
         break;
-      case PANEL_CTRL_DATA_CLR_CACHE:
+      case DATA_DOOR_CTRL_CLR_CACHE:
         DEBUGSTR("cmd CLR CACHE\n");
 #if CACHING_ENABLED
         static_cache_reset();
@@ -232,7 +232,7 @@ void term_can_recv(uint8_t msg_obj_num)
   else return;
 }
 
-static void terminal_register_user(uint32_t user_id, uint8_t panel_id)
+static void terminal_register_user(uint32_t user_id, uint8_t reader_idx)
 {
   //check if master online
   if (_act_master == ACS_RESERVED_ADDR)
@@ -242,25 +242,25 @@ static void terminal_register_user(uint32_t user_id, uint8_t panel_id)
   }
 
   // Prepare msg head to send request on CAN
-  msg_head_t head;
+  acs_msg_head_t head;
   head.scalar = CAN_MSGOBJ_EXT;
   head.prio = PRIO_NEW_USER;
   head.fc = FC_NEW_USER;
   head.dst = _act_master;
 
-  if (panel_id == ACC_PANEL_A)
+  if (reader_idx == ACS_READER_A_IDX)
   {
-    head.src = get_acs_panel_a_addr();
+    head.src = get_reader_a_addr();
     CAN_send_once(ACS_MSGOBJ_SEND_DOOR_A, head.scalar, (void *)&user_id, sizeof(user_id));
   }
-  else if (panel_id == ACC_PANEL_B)
+  else if (reader_idx == ACS_READER_B_IDX)
   {
-    head.src = get_acs_panel_b_addr();
+    head.src = get_reader_b_addr();
     CAN_send_once(ACS_MSGOBJ_SEND_DOOR_B, head.scalar, (void *)&user_id, sizeof(user_id));
   }
 }
 
-static void terminal_request_auth(uint32_t user_id, uint8_t panel_id)
+static void terminal_request_auth(uint32_t user_id, uint8_t reader_idx)
 {
   //check if master online
   if (_act_master == ACS_RESERVED_ADDR)
@@ -270,53 +270,53 @@ static void terminal_request_auth(uint32_t user_id, uint8_t panel_id)
   }
 
   // Prepare msg head to send request on CAN
-  msg_head_t head;
+  acs_msg_head_t head;
   head.scalar = CAN_MSGOBJ_EXT;
   head.prio = PRIO_USER_AUTH_REQ;
   head.fc = FC_USER_AUTH_REQ;
   head.dst = _act_master;
 
-  if (panel_id == ACC_PANEL_A)
+  if (reader_idx == ACS_READER_A_IDX)
   {
-    head.src = get_acs_panel_a_addr();
+    head.src = get_reader_a_addr();
     CAN_send_once(ACS_MSGOBJ_SEND_DOOR_A, head.scalar, (void *)&user_id, sizeof(user_id));
   }
-  else if (panel_id == ACC_PANEL_B)
+  else if (reader_idx == ACS_READER_B_IDX)
   {
-    head.src = get_acs_panel_b_addr();
+    head.src = get_reader_b_addr();
     CAN_send_once(ACS_MSGOBJ_SEND_DOOR_B, head.scalar, (void *)&user_id, sizeof(user_id));
   }
 }
 
 
-static void terminal_user_identified(uint32_t user_id, uint8_t panel_id)
+static void terminal_user_identified(uint32_t user_id, uint8_t reader_idx)
 {
 #if CACHING_ENABLED
   term_cache_item_t user = {.key = user_id};
 #endif
 
-  if (panel_id < DOOR_ACC_PANEL_COUNT)
+  if (reader_idx < ACS_READER_COUNT)
   {
-    if (panel_conf[panel_id].mode == PANEL_MODE_LOCKED)
+    if (reader_conf[reader_idx].mode == READER_MODE_LOCKED)
     {
-      terminal_user_not_authorized(panel_id);
+      terminal_user_not_authorized(reader_idx);
     }
-    else if (panel_conf[panel_id].mode == PANEL_MODE_LEARN)
+    else if (reader_conf[reader_idx].mode == READER_MODE_LEARN)
     {
-      terminal_register_user(user_id, panel_id);
+      terminal_register_user(user_id, reader_idx);
     }
 #if CACHING_ENABLED
     else if (static_cache_get(&user))
     {
-      if (map_panel_id_to_cache(panel_id) & user.value)
+      if (map_reader_idx_to_cache(reader_idx) & user.value)
       {
-        terminal_user_authorized(panel_id);
+        terminal_user_authorized(reader_idx);
       }
     }
 #endif
     else
     {
-      terminal_request_auth(user_id, panel_id);
+      terminal_request_auth(user_id, reader_idx);
     }
   }
 }
@@ -330,11 +330,11 @@ static void terminal_task(void *pvParameters)
   while (true)
   {
     uint32_t user_id;
-    uint8_t panel_id = panel_get_request_from_buffer(&user_id);
-    if (panel_id < DOOR_ACC_PANEL_COUNT)
+    uint8_t reader_idx = reader_get_request_from_buffer(&user_id);
+    if (reader_idx < ACS_READER_COUNT)
     {
       DEBUGSTR("user identified\n");
-      terminal_user_identified(user_id, panel_id);
+      terminal_user_identified(user_id, reader_idx);
     }
   }
 }
@@ -362,25 +362,25 @@ void terminal_init(void)
 
   // CAN msg filter for door A
   CAN_recv_filter(ACS_MSGOBJ_RECV_DOOR_A,
-                  get_acs_panel_a_addr() << ACS_DST_ADDR_OFFSET,
+                  get_reader_a_addr() << ACS_DST_ADDR_OFFSET,
                   ACS_DST_ADDR_MASK, true);
   // CAN msg filter for door B
   CAN_recv_filter(ACS_MSGOBJ_RECV_DOOR_B,
-                  get_acs_panel_b_addr() << ACS_DST_ADDR_OFFSET,
+                  get_reader_b_addr() << ACS_DST_ADDR_OFFSET,
                   ACS_DST_ADDR_MASK, true);
   // CAN msg filter for broadcast
   CAN_recv_filter(ACS_MSGOBJ_RECV_BCAST,
                   ACS_BROADCAST_ADDR << ACS_DST_ADDR_OFFSET,
                   ACS_DST_ADDR_MASK, true);
 
-  // initialize panels
-  for (size_t id = 0; id < DOOR_ACC_PANEL_COUNT; ++id)
+  // initialize card readers
+  for (size_t id = 0; id < ACS_READER_COUNT; ++id)
   {
-    if (panel_conf[id].enabled) terminal_reconfigure(NULL, id);
+    if (reader_conf[id].enabled) terminal_reconfigure(NULL, id);
   }
 
   // create timer for master alive status timeout
-  _act_timer = xTimerCreate("MAT", (MASTER_ALIVE_TIMEOUT / portTICK_PERIOD_MS),
+  _act_timer = xTimerCreate("MAT", (ACS_MASTER_ALIVE_TIMEOUT_MS / portTICK_PERIOD_MS),
                pdTRUE, (void *)_act_timer_id, _timer_callback);
   configASSERT(_act_timer);
 
@@ -388,32 +388,32 @@ void terminal_init(void)
   xTaskCreate(terminal_task, "term_tsk", configMINIMAL_STACK_SIZE + 128, NULL, (tskIDLE_PRIORITY + 1UL), NULL);
 }
 
-void terminal_reconfigure(panel_conf_t * panel_cfg, uint8_t panel_id)
+void terminal_reconfigure(reader_conf_t * reader_cfg, uint8_t reader_idx)
 {
-  if (panel_id >= DOOR_ACC_PANEL_COUNT) return;
+  if (reader_idx >= ACS_READER_COUNT) return;
 
   portENTER_CRITICAL();
 
-  if (panel_cfg != NULL)
+  if (reader_cfg != NULL)
   {
-    memcpy(&panel_conf[panel_id], panel_cfg, sizeof(panel_conf_t));
+    memcpy(&reader_conf[reader_idx], reader_cfg, sizeof(reader_conf_t));
 
     //reconfigure interface to card reader
-    if (panel_conf[panel_id].enabled)
+    if (reader_conf[reader_idx].enabled)
     {
-      panel_init(panel_id);
-      DEBUGSTR("panel enabled\n");
+      reader_init(reader_idx);
+      DEBUGSTR("reader enabled\n");
     }
     else
     {
       //disable interface
-      panel_deinit(panel_id);
-      DEBUGSTR("panel disabled\n");
+      reader_deinit(reader_idx);
+      DEBUGSTR("reader disabled\n");
     }
   }
   else
   {
-    panel_init(panel_id);
+    reader_init(reader_idx);
   }
 
   portEXIT_CRITICAL();

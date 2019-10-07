@@ -8,11 +8,11 @@
 #ifndef BSP_TERMINAL_H_
 #define BSP_TERMINAL_H_
 
+#include <reader.h>
 #include <stdint.h>
-#include "panel.h"
 
 void terminal_init(void);
 
-void terminal_reconfigure(panel_conf_t * panel_cfg, uint8_t id);
+void terminal_reconfigure(reader_conf_t * reader_cfg, uint8_t id);
 
 #endif /* BSP_TERMINAL_H_ */

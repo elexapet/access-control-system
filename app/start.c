@@ -62,7 +62,7 @@ int main(void)
 
   Board_Print_Reset_Reason();
 
-  WDT_Init(PANEL_WATCHDOG_TIMEOUT);
+  WDT_Init(HW_WATCHDOG_TIMEOUT);
 
   storage_init();
 

@@ -194,9 +194,9 @@ static void Board_LED_Init(void)
 	Board_LED_Set(BOARD_LED_DBG_B, false);
 #endif
 	Chip_IOCON_PinMux(LPC_IOCON,
-	                  CHIP_IOCON_PIO[ACS_PANEL_STATUS_LED_PORT][ACS_PANEL_STATUS_LED_PIN],
+	                  CHIP_IOCON_PIO[ACS_COMM_STATUS_LED_PORT][ACS_COMM_STATUS_LED_PIN],
 	                  IOCON_MODE_INACT, IOCON_FUNC0);
-  Chip_GPIO_SetPinDIROutput(LPC_GPIO, ACS_PANEL_STATUS_LED_PORT, ACS_PANEL_STATUS_LED_PIN);
+  Chip_GPIO_SetPinDIROutput(LPC_GPIO, ACS_COMM_STATUS_LED_PORT, ACS_COMM_STATUS_LED_PIN);
   Board_LED_Set(BOARD_LED_STATUS, false);
 }
 
@@ -217,7 +217,7 @@ void Board_LED_Set(board_led_t led_number, bool on)
       return;
 #endif
     case BOARD_LED_STATUS:
-      Chip_GPIO_SetPinState(LPC_GPIO, ACS_PANEL_STATUS_LED_PORT, ACS_PANEL_STATUS_LED_PIN, !on);
+      Chip_GPIO_SetPinState(LPC_GPIO, ACS_COMM_STATUS_LED_PORT, ACS_COMM_STATUS_LED_PIN, !on);
       return;
     default:
       return;
@@ -238,7 +238,7 @@ bool Board_LED_Test(board_led_t led_number)
       return !Chip_GPIO_GetPinState(LPC_GPIO, 0, 9);
 #endif
     case BOARD_LED_STATUS:
-      return !Chip_GPIO_GetPinState(LPC_GPIO, ACS_PANEL_STATUS_LED_PORT, ACS_PANEL_STATUS_LED_PIN);
+      return !Chip_GPIO_GetPinState(LPC_GPIO, ACS_COMM_STATUS_LED_PORT, ACS_COMM_STATUS_LED_PIN);
     default:
       return 0;
   }
@@ -260,7 +260,7 @@ void Board_LED_Toggle(board_led_t led_number)
       return;
 #endif
     case BOARD_LED_STATUS:
-      Chip_GPIO_SetPinToggle(LPC_GPIO, ACS_PANEL_STATUS_LED_PORT, ACS_PANEL_STATUS_LED_PIN);
+      Chip_GPIO_SetPinToggle(LPC_GPIO, ACS_COMM_STATUS_LED_PORT, ACS_COMM_STATUS_LED_PIN);
       return;
     default:
       return;

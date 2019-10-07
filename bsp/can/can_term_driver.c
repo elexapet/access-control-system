@@ -3,7 +3,6 @@
  **********************************************************************/
 
 #include "can/can_term_driver.h"
-#include "can/can_term_protocol.h"
 #include <string.h>
 
 #if defined (  __GNUC__  )

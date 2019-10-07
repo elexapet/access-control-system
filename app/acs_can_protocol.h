@@ -1,7 +1,10 @@
-// ACS protocol definitions
+// ACS CAN protocol
+//
+// Contains defines and data types for the protocol
+//
 
-#ifndef CAN_TERM_PROTOCOL_H_
-#define CAN_TERM_PROTOCOL_H_
+#ifndef ACS_CAN_PROTOCOL_H_
+#define ACS_CAN_PROTOCOL_H_
 
 // Used Message object numbers
 #define ACS_MSGOBJ_SEND_DOOR_A 0
@@ -35,43 +38,46 @@
 #define ACS_FC_MASK       (((1 << ACS_FC_BITS) - 1) << ACS_FC_OFFSET)
 #define ACS_PRIO_MASK     (((1 << ACS_PRIO_BITS) - 1) << ACS_PRIO_OFFSET)
 
-#define ACC_MAX_PRIO  0
+#define ACS_MAX_PRIO  0
 #define ACS_LOW_PRIO  ((1 << ACS_PRIO_BITS) - 1)
 
 // ACS protocol function codes
 #define FC_RESERVED            0x0
-#define FC_USER_AUTH_REQ       0x1
-#define FC_USER_NOT_AUTH_RESP  0x2
-#define FC_USER_AUTH_RESP      0x3
-#define FC_PANEL_CTRL          0x4
-#define FC_NEW_USER            0x5
-#define FC_DOOR_STATUS         0x6
-#define FC_ALIVE               0x7
+#define FC_USER_AUTH_REQ       0x1 // S -> M
+#define FC_USER_NOT_AUTH_RESP  0x2 // M -> S
+#define FC_USER_AUTH_RESP      0x3 // M -> S
+#define FC_DOOR_CTRL           0x4 // M -> S
+#define FC_NEW_USER            0x5 // S -> M
+#define FC_DOOR_STATUS         0x6 // S -> M
+#define FC_ALIVE               0x7 // M -> S
 
 // priorities for each function code (0-7)
 #define PRIO_RESERVED            0x0
 #define PRIO_USER_AUTH_REQ       0x2
 #define PRIO_USER_AUTH_RESP_FAIL 0x2
 #define PRIO_USER_AUTH_RESP_OK   0x2
-#define PRIO_PANEL_CTRL          0x3
+#define PRIO_DOOR_CTRL           0x3
 #define PRIO_NEW_USER            0x3
 #define PRIO_DOOR_STATUS         0x4
 #define PRIO_ALIVE               0x1
 
+// Data for FC_DOOR_CTRL
+#define DATA_DOOR_CTRL_MODE_DEF   0x00
+#define DATA_DOOR_CTRL_UNLCK      0x01
+#define DATA_DOOR_CTRL_LOCK       0x02
+#define DATA_DOOR_CTRL_LEARN      0x03
+#define DATA_DOOR_CTRL_CLR_CACHE  0x04
 
-#define PANEL_CTRL_DATA_DEF   0x00
-#define PANEL_CTRL_DATA_UNLCK 0x01
-#define PANEL_CTRL_DATA_LOCK  0x02
-#define PANEL_CTRL_DATA_LEARN 0x03
-#define PANEL_CTRL_DATA_CLR_CACHE 0x04
+// Data for FC_DOOR_STATUS
+#define DATA_DOOR_STATUS_CLOSED   0x0
+#define DATA_DOOR_STATUS_OPEN     0x1
 
-#define DOOR_STATUS_DATA_CLOSED 0x0
-#define DOOR_STATUS_DATA_OPEN 0x1
+// Setting for master communication status
+#define ACS_MASTER_ALIVE_PERIOD_MS  5000
+#define ACS_MASTER_ALIVE_TIMEOUT_MS 10000
 
-#define MASTER_ALIVE_PERIOD  5000   // ms
-#define MASTER_ALIVE_TIMEOUT 10000  // ms
 
-// data types
+// Data type definitions
 
 #pragma pack(push,1)
 
@@ -86,28 +92,28 @@ typedef union
     uint32_t flags : 3;
   };
   uint32_t scalar;
-} msg_head_t;
+} acs_msg_head_t;
 
 typedef struct
 {
   uint32_t user_id;
-} msg_data_auth_req_t;
+} acs_msg_data_auth_req_t;
 
 typedef struct
 {
   uint32_t user_id;
-} msg_data_auth_resp_t;
+} acs_msg_data_auth_resp_t;
 
 typedef struct
 {
   uint32_t user_id;
-} msg_data_new_user_t;
+} acs_msg_data_new_user_t;
 
 typedef struct
 {
   uint8_t ctrl_command;
-} msg_data_panel_ctrl_t;
+} acs_msg_data_door_ctrl_t;
 
 #pragma pack(pop)
 
-#endif /* CAN_TERM_PROTOCOL_H_ */
+#endif /* ACS_CAN_PROTOCOL_H_ */

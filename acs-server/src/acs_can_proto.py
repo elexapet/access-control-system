@@ -116,7 +116,7 @@ class acs_can_proto(object):
     # m->s
     FC_USER_AUTH_RESP_OK = 3
     # m->s
-    FC_PANEL_CTRL = 4
+    FC_DOOR_CTRL = 4
     # s->m
     FC_NEW_USER = 5
     # s->m
@@ -129,7 +129,7 @@ class acs_can_proto(object):
     PRIO_USER_AUTH_REQ = 2
     PRIO_USER_AUTH_RESP_FAIL = 2
     PRIO_USER_AUTH_RESP_OK = 2
-    PRIO_PANEL_CTRL = 3
+    PRIO_DOOR_CTRL = 3
     PRIO_NEW_USER = 3
     PRIO_DOOR_STATUS = 4
     PRIO_ALIVE = 1
@@ -137,15 +137,18 @@ class acs_can_proto(object):
     MASTER_ALIVE_PERIOD = 5  # seconds
     MASTER_ALIVE_TIMEOUT = 12
 
-    # ACS data for FC's
-    PANEL_CTRL_DATA_DEF = b'\x00'
-    PANEL_CTRL_DATA_UNLCK = b'\x01'
-    PANEL_CTRL_DATA_LCK = b'\x02'
-    PANEL_CTRL_DATA_LEARN = b'\x03'
-    PANEL_CTRL_DATA_CLR_CACHE = b'\x04'
-    DOOR_STATUS_DATA_CLOSED = b'\x00'
-    DOOR_STATUS_DATA_OPEN = b'\x01'
+    # Data for FC_DOOR_CTRL
+    DATA_DOOR_CTRL_MODE_DEF = b'\x00'
+    DATA_DOOR_CTRL_UNLCK = b'\x01'
+    DATA_DOOR_CTRL_LOCK = b'\x02'
+    DATA_DOOR_CTRL_LEARN = b'\x03'
+    DATA_DOOR_CTRL_CLR_CACHE = b'\x04'
 
+    # Data for FC_DOOR_CTRL
+    DATA_DOOR_STATUS_CLOSED = b'\x00'
+    DATA_DOOR_STATUS_OPEN = b'\x01'
+
+    # Sizes of partitions in message header (CAN_ID)
     ACS_PRIO_BITS = 3
     ACS_FC_BITS = 6
     ACS_ADDR_BITS = 10
@@ -205,39 +208,39 @@ class acs_can_proto(object):
         can_id &= self.CAN_ID_MASK
         return can_id
 
-    def msg_auth_fail(self, panel_addr, user_id:int):
-        return (self.__msg(self.PRIO_USER_AUTH_RESP_FAIL, self.FC_USER_AUTH_RESP_FAIL, panel_addr),
+    def msg_auth_fail(self, reader_addr, user_id:int):
+        return (self.__msg(self.PRIO_USER_AUTH_RESP_FAIL, self.FC_USER_AUTH_RESP_FAIL, reader_addr),
                 4, user_id.to_bytes(4, "little", signed=True))
 
-    def msg_auth_ok(self, panel_addr, user_id:int):
-        return (self.__msg(self.PRIO_USER_AUTH_RESP_OK, self.FC_USER_AUTH_RESP_OK, panel_addr),
+    def msg_auth_ok(self, reader_addr, user_id:int):
+        return (self.__msg(self.PRIO_USER_AUTH_RESP_OK, self.FC_USER_AUTH_RESP_OK, reader_addr),
                 4, user_id.to_bytes(4, "little", signed=True))
 
-    def msg_panel_normal(self, panel_addr):
-        return (self.__msg(self.PRIO_PANEL_CTRL, self.FC_PANEL_CTRL, panel_addr),
-                1, self.PANEL_CTRL_DATA_DEF)
+    def msg_reader_mode_normal(self, reader_addr):
+        return (self.__msg(self.PRIO_DOOR_CTRL, self.FC_DOOR_CTRL, reader_addr),
+                1, self.DATA_DOOR_CTRL_MODE_DEF)
 
-    def msg_panel_unlock_once(self, panel_addr):
-        return (self.__msg(self.PRIO_PANEL_CTRL, self.FC_PANEL_CTRL, panel_addr),
-                1, self.PANEL_CTRL_DATA_UNLCK)
+    def msg_reader_unlock_once(self, reader_addr):
+        return (self.__msg(self.PRIO_DOOR_CTRL, self.FC_DOOR_CTRL, reader_addr),
+                1, self.DATA_DOOR_CTRL_UNLCK)
 
-    def msg_panel_lock(self, panel_addr):
-        return (self.__msg(self.PRIO_PANEL_CTRL, self.FC_PANEL_CTRL, panel_addr),
-                1, self.PANEL_CTRL_DATA_LCK)
+    def msg_reader_lock(self, reader_addr):
+        return (self.__msg(self.PRIO_DOOR_CTRL, self.FC_DOOR_CTRL, reader_addr),
+                1, self.DATA_DOOR_CTRL_LOCK)
 
-    def msg_panel_learn(self, panel_addr):
-        return (self.__msg(self.PRIO_PANEL_CTRL, self.FC_PANEL_CTRL, panel_addr),
-                1, self.PANEL_CTRL_DATA_LEARN)
+    def msg_reader_learn(self, reader_addr):
+        return (self.__msg(self.PRIO_DOOR_CTRL, self.FC_DOOR_CTRL, reader_addr),
+                1, self.DATA_DOOR_CTRL_LEARN)
 
-    def msg_panel_clear_cache(self, panel_addr):
-        return (self.__msg(self.PRIO_PANEL_CTRL, self.FC_PANEL_CTRL, panel_addr),
-                1, self.PANEL_CTRL_DATA_CLR_CACHE)
+    def msg_reader_clear_cache(self, reader_addr):
+        return (self.__msg(self.PRIO_DOOR_CTRL, self.FC_DOOR_CTRL, reader_addr),
+                1, self.DATA_DOOR_CTRL_CLR_CACHE)
 
-    def msg_new_user(self, panel_addr, user_id:int):
-        return (self.__msg(self.PRIO_NEW_USER, self.FC_NEW_USER, panel_addr),
+    def msg_announce_new_user(self, reader_addr, user_id:int):
+        return (self.__msg(self.PRIO_NEW_USER, self.FC_NEW_USER, reader_addr),
                 4, user_id.to_bytes(4, "little", signed=True))
 
-    def msg_im_alive(self):
+    def msg_master_alive(self):
         return (self.__msg(self.PRIO_ALIVE, self.FC_ALIVE, self.ACS_BROADCAST_ADDR),
                 0, b'\x00')
 
@@ -262,7 +265,7 @@ class acs_can_proto(object):
                 if self.cb_new_user is not None:
                     return self.cb_new_user(src, int.from_bytes(msg_data[:4], "little", signed=True))
             elif fc == self.FC_DOOR_STATUS:
-                # TODO
+                # TODO Door status not implemented
                 return self.NO_MESSAGE
             else:
                 return self.NO_MESSAGE

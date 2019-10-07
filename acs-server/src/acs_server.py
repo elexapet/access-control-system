@@ -49,35 +49,35 @@ class acs_server(object):
             sys.exit(0)
 
     # can responses
-    def add_new_user(self, panel_addr, user_id):
+    def add_new_user(self, reader_addr, user_id):
         if self.debug:
-            logging.debug("add_new_user: panel = {}, user id = {}".format(panel_addr, user_id))
+            logging.debug("add_new_user: reader = {}, user id = {}".format(reader_addr, user_id))
         # do not add existing users
         if self.db.get_user_group(user_id) is not None:
             return self.proto.NO_MESSAGE
         # create special group
-        group = self.db.create_group_for_panel(panel_addr)
+        group = self.db.create_group_for_panel(reader_addr)
         if group is not None:
             if self.db.add_user(user_id, group):
-                return self.proto.msg_new_user(panel_addr, user_id)
+                return self.proto.msg_announce_new_user(reader_addr, user_id)
             else:
                 self.db.remove_user_or_group(group)
                 return self.proto.NO_MESSAGE
         return self.proto.NO_MESSAGE
 
-    def resp_to_auth_req(self, panel_addr, user_id):
+    def resp_to_auth_req(self, reader_addr, user_id):
         if self.debug:
-            logging.debug("resp_to_auth_req: panel = {}, user id = {}".format(panel_addr, user_id))
-        if self.db.is_user_authorized(user_id, panel_addr):
-            return self.proto.msg_auth_ok(panel_addr, user_id)
+            logging.debug("resp_to_auth_req: reader = {}, user id = {}".format(reader_addr, user_id))
+        if self.db.is_user_authorized(user_id, reader_addr):
+            return self.proto.msg_auth_ok(reader_addr, user_id)
         else:
-            return self.proto.msg_auth_fail(panel_addr, user_id)
+            return self.proto.msg_auth_fail(reader_addr, user_id)
 
     # external commands
-    def switch_panel_to_learn(self, panel_addr):
+    def switch_reader_to_learn_mode(self, reader_addr):
         if self.debug:
-            logging.debug("switch_panel_to_learn: panel = {}".format(panel_addr))
-        can_id, dlc, data = self.proto.msg_panel_learn(panel_addr)
+            logging.debug("switch_reader_to_learn: reader = {}".format(reader_addr))
+        can_id, dlc, data = self.proto.msg_reader_learn(reader_addr)
         self.proto.can_sock.send(can_id, dlc, data)
 
     # main processing loop
@@ -93,7 +93,7 @@ class acs_server(object):
                 this_alive = time.monotonic()
                 if (this_alive - last_alive) >= self.proto.MASTER_ALIVE_PERIOD:
                     last_alive = this_alive
-                    can_id, dlc, data = self.proto.msg_im_alive()
+                    can_id, dlc, data = self.proto.msg_master_alive()
                     self.proto.can_sock.send(can_id, dlc, data)
 
                 # try recv

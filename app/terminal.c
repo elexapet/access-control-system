@@ -1,7 +1,10 @@
-/*
- *  Access control system terminal
- *  Created on: 24. 8. 2018
- *      Author: Petr
+/**
+ *  @file
+ *  @brief Terminal client for access control system (ACS).
+ *
+ *  @author Petr Elexa
+ *  @see LICENSE
+ *
  */
 
 #include "terminal.h"
@@ -16,10 +19,10 @@
 #include <stdio.h>
 #include <string.h>
 
-// Cache entry type mapping our type
-typedef cache_item_t term_cache_item_t; // 4B
+// Cache entry type mapping to our type.
+typedef cache_item_t term_cache_item_t;  // 4 bytes
 
-// Used cache values
+// Available cache values.
 enum term_cache_reader
 {
   cache_reader_none = 0,
@@ -28,19 +31,19 @@ enum term_cache_reader
   cache_reader_all = 3
 };
 
-// Address for currently active master
+// Address for currently active master.
 static uint16_t _act_master = ACS_RESERVED_ADDR;
 
-// Flag for master alive broadcast timeout
+// Flag for master alive broadcast timeout.
 static bool _master_timeout = true;
 
-// Timer for master timeout
-// Timer handle
+// Timer handle for master timeout.
 static TimerHandle_t _act_timer = NULL;
-// Timer ID
+
+// Timer ID for master timeout.
 static const uint32_t _act_timer_id = TERMINAL_TIMER_ID;
 
-
+// Map reader index to correct cache value.
 static inline uint8_t map_reader_idx_to_cache(uint8_t reader_idx)
 {
   return (reader_idx == ACS_READER_A_IDX ? cache_reader_A : cache_reader_B);
@@ -52,22 +55,23 @@ static inline void terminal_user_authorized(uint8_t reader_idx)
   reader_unlock(reader_idx, BEEP_ON_SUCCESS, OK_LED_ON_SUCCESS);
 }
 
-static inline void terminal_user_not_authorized(uint8_t reader_id)
+static inline void terminal_user_not_authorized(uint8_t reader_idx)
 {
-  (void)reader_id;
+  (void)reader_idx;
   DEBUGSTR("auth FAIL\n");
 }
 
+// Callback for timer dedicated to master master activity.
 static void _timer_callback(TimerHandle_t pxTimer)
 {
   configASSERT(pxTimer);
 
-  // Which timer expired
+  // Which timer expired.
   uint32_t id = (uint32_t) pvTimerGetTimerID(pxTimer);
 
   if (id == _act_timer_id)
   {
-    // Active master timeout after T = 2 * MASTER_ALIVE_TIMEOUT
+    // Active master timeout after T = 2 * MASTER_ALIVE_TIMEOUT.
     portENTER_CRITICAL();
     if (_master_timeout == true)
     {
@@ -79,54 +83,24 @@ static void _timer_callback(TimerHandle_t pxTimer)
   }
 }
 
-/* ROM CCAN driver callback functions prototypes */
-/*****************************************************************************
-**
-** Description:     CAN receive callback.
-**            Function is executed by the Callback handler after
-**            a CAN message has been received
-**
-** Parameters:      msg_obj_num. Contains the number of the message object
-**            that triggered the CAN receive callback.
-** Returned value:    None
-*****************************************************************************/
-void term_can_recv(uint8_t msg_obj_num);
-/*****************************************************************************
-**
-** Description:     CAN transmit callback.
-**            Function is executed by the Callback handler after
-**            a CAN message has been transmitted
-**
-** Parameters:      msg_obj_num. Contains the number of the message object
-**            that triggered the CAN transmit callback.
-** Returned value:    None
-*****************************************************************************/
+void term_can_error(uint32_t error_info)
+{
+  (void)error_info;
+  /* TODO Process CAN bus errors. */
+}
+
 void term_can_send(uint8_t msg_obj_num)
 {
   (void)msg_obj_num;
 }
-/*****************************************************************************
-**
-** Description:     CAN error callback.
-**            Function is executed by the Callback handler after
-**            an error has occured on the CAN bus
-**
-** Parameters:      error_info. Contains the error code
-**            that triggered the CAN error callback.
-** Returned value:    None
-*****************************************************************************/
-void term_can_error(uint32_t error_info)
-{
-  (void)error_info;
-}
 
-// This is called from ISR -> do not block
+// This is called from interrupt. We must not block.
 void term_can_recv(uint8_t msg_obj_num)
 {
   CCAN_MSG_OBJ_T msg_obj;
-  /* Determine which CAN message has been received */
+  // Determine which CAN message has been received.
   msg_obj.msgobj = msg_obj_num;
-  /* Now load up the msg_obj structure with the CAN message */
+  // Now load up the msg_obj structure with the CAN message.
   LPC_CCAN_API->can_receive(&msg_obj);
 
   acs_msg_head_t head;
@@ -134,7 +108,7 @@ void term_can_recv(uint8_t msg_obj_num)
 
   uint8_t reader_idx;
 
-  // get target door if message is for us
+  // Get target door if message is for us.
   if (msg_obj.msgobj == ACS_MSGOBJ_RECV_DOOR_A)
   {
     reader_idx = ACS_READER_A_IDX;
@@ -147,12 +121,12 @@ void term_can_recv(uint8_t msg_obj_num)
   }
   else if (msg_obj.msgobj == ACS_MSGOBJ_RECV_BCAST)
   {
-    //broadcast message
+    // Broadcast message.
     if (head.fc == FC_ALIVE &&
         head.src >= ACS_MSTR_FIRST_ADDR &&
         head.src <= ACS_MSTR_LAST_ADDR)
     {
-      // update master address if timeout occurred
+      // Update master address if timeout occurred.
       portENTER_CRITICAL();
       if (_master_timeout == true)
       {
@@ -167,10 +141,10 @@ void term_can_recv(uint8_t msg_obj_num)
   }
   else return;
 
-  // stop processing if card reader not configured
+  // Stop processing if card reader not configured.
   if (reader_idx >= ACS_READER_COUNT) return;
 
-  // continue deducing action and execute it
+  // Continue deducing action and execute it.
   if (head.fc == FC_USER_AUTH_RESP)
   {
     terminal_user_authorized(reader_idx);
@@ -232,6 +206,7 @@ void term_can_recv(uint8_t msg_obj_num)
   else return;
 }
 
+// Send command to server that register given user id
 static void terminal_register_user(uint32_t user_id, uint8_t reader_idx)
 {
   //check if master online
@@ -260,16 +235,17 @@ static void terminal_register_user(uint32_t user_id, uint8_t reader_idx)
   }
 }
 
+// Send command to server that request authorization of user for given reader.
 static void terminal_request_auth(uint32_t user_id, uint8_t reader_idx)
 {
-  //check if master online
+  // Check if master online.
   if (_act_master == ACS_RESERVED_ADDR)
   {
     DEBUGSTR("master off-line\n");
     return;
   }
 
-  // Prepare msg head to send request on CAN
+  // Prepare message head to send request on CAN.
   acs_msg_head_t head;
   head.scalar = CAN_MSGOBJ_EXT;
   head.prio = PRIO_USER_AUTH_REQ;
@@ -288,7 +264,7 @@ static void terminal_request_auth(uint32_t user_id, uint8_t reader_idx)
   }
 }
 
-
+// Process user identification on a reader.
 static void terminal_user_identified(uint32_t user_id, uint8_t reader_idx)
 {
 #if CACHING_ENABLED
@@ -321,6 +297,9 @@ static void terminal_user_identified(uint32_t user_id, uint8_t reader_idx)
   }
 }
 
+// Main terminal processing task.
+//
+// Waked only when request is in the reader buffer.
 static void terminal_task(void *pvParameters)
 {
   (void)pvParameters;
@@ -341,50 +320,51 @@ static void terminal_task(void *pvParameters)
 
 void terminal_init(void)
 {
-  // init config for terminal
+  // Initialize configuration for terminal.
   configASSERT(terminal_config_init());
 
-  // assign CAN callback functions of on-chip drivers
+  // Assign CAN callback functions of on-chip drivers.
   CCAN_CALLBACKS_T term_can_callbacks =
   {
-    term_can_recv,    /* callback for any message received CAN frame which ID matches with any of the message objects' masks */
-    term_can_send,    /* callback for every transmitted CAN frame */
-    term_can_error,   /* callback for CAN errors */
-    NULL,           /* callback for expedited read access (not used) */
-    NULL,           /* callback for expedited write access (not used) */
-    NULL,           /* callback for segmented read access (not used) */
-    NULL,           /* callback for segmented write access (not used) */
-    NULL,           /* callback for fall-back SDO handler (not used) */
+    term_can_recv,  // Callback for any message received CAN frame which ID
+                    // matches with any of the message objects' masks.
+    term_can_send,  // Callback for every transmitted CAN frame.
+    term_can_error, // Callback for CAN errors.
+    NULL,           // Not used.
+    NULL,           // Not used.
+    NULL,           // Not used.
+    NULL,           // Not used.
+    NULL,           // Not used.
   };
 
-  // init CAN driver
+  // Init CAN driver.
   CAN_init(&term_can_callbacks, CAN_BAUD_RATE);
 
-  // CAN msg filter for door A
+  // CAN msg filter for door A.
   CAN_recv_filter(ACS_MSGOBJ_RECV_DOOR_A,
                   get_reader_a_addr() << ACS_DST_ADDR_OFFSET,
                   ACS_DST_ADDR_MASK, true);
-  // CAN msg filter for door B
+  // CAN msg filter for door B.
   CAN_recv_filter(ACS_MSGOBJ_RECV_DOOR_B,
                   get_reader_b_addr() << ACS_DST_ADDR_OFFSET,
                   ACS_DST_ADDR_MASK, true);
-  // CAN msg filter for broadcast
+  // CAN msg filter for broadcast.
   CAN_recv_filter(ACS_MSGOBJ_RECV_BCAST,
                   ACS_BROADCAST_ADDR << ACS_DST_ADDR_OFFSET,
                   ACS_DST_ADDR_MASK, true);
 
-  // initialize card readers
+  // Initialize card readers.
   for (size_t id = 0; id < ACS_READER_COUNT; ++id)
   {
     if (reader_conf[id].enabled) terminal_reconfigure(NULL, id);
   }
 
-  // create timer for master alive status timeout
+  // Create timer for master alive status timeout.
   _act_timer = xTimerCreate("MAT", (ACS_MASTER_ALIVE_TIMEOUT_MS / portTICK_PERIOD_MS),
                pdTRUE, (void *)_act_timer_id, _timer_callback);
   configASSERT(_act_timer);
 
-  // create task for terminal loop
+  // Create task for terminal loop.
   xTaskCreate(terminal_task, "term_tsk", configMINIMAL_STACK_SIZE + 128, NULL, (tskIDLE_PRIORITY + 1UL), NULL);
 }
 
@@ -392,13 +372,13 @@ void terminal_reconfigure(reader_conf_t * reader_cfg, uint8_t reader_idx)
 {
   if (reader_idx >= ACS_READER_COUNT) return;
 
-  portENTER_CRITICAL();
+  portENTER_CRITICAL(); // Effectively disables interrupts.
 
   if (reader_cfg != NULL)
   {
     memcpy(&reader_conf[reader_idx], reader_cfg, sizeof(reader_conf_t));
 
-    //reconfigure interface to card reader
+    // Reconfigure the reader instance.
     if (reader_conf[reader_idx].enabled)
     {
       reader_init(reader_idx);
@@ -406,13 +386,14 @@ void terminal_reconfigure(reader_conf_t * reader_cfg, uint8_t reader_idx)
     }
     else
     {
-      //disable interface
+      // Disable interface.
       reader_deinit(reader_idx);
       DEBUGSTR("reader disabled\n");
     }
   }
   else
   {
+    // No new configuration given -- just init.
     reader_init(reader_idx);
   }
 

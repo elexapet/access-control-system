@@ -128,11 +128,9 @@ class acs_can_proto(object):
     # m->s
     FC_DOOR_CTRL = 4
     # s->m
-    FC_NEW_USER = 5
-    # s->m
-    FC_DOOR_STATUS = 6
+    FC_DOOR_STATUS = 5
     # m->s
-    FC_ALIVE = 7
+    FC_ALIVE = 6
 
     # priorities
     PRIO_RESERVED = 0
@@ -140,7 +138,6 @@ class acs_can_proto(object):
     PRIO_USER_AUTH_RESP_FAIL = 2
     PRIO_USER_AUTH_RESP_OK = 2
     PRIO_DOOR_CTRL = 3
-    PRIO_NEW_USER = 3
     PRIO_DOOR_STATUS = 4
     PRIO_ALIVE = 1
 
@@ -148,15 +145,12 @@ class acs_can_proto(object):
     MASTER_ALIVE_TIMEOUT = 12
 
     # Data for FC_DOOR_CTRL
-    DATA_DOOR_CTRL_MODE_DEF = b'\x00'
-    DATA_DOOR_CTRL_UNLCK = b'\x01'
-    DATA_DOOR_CTRL_LOCK = b'\x02'
-    DATA_DOOR_CTRL_LEARN = b'\x03'
-    DATA_DOOR_CTRL_CLR_CACHE = b'\x04'
+    DATA_DOOR_CTRL_REMOTE_UNLCK = b'\x01'
+    DATA_DOOR_CTRL_CLR_CACHE = b'\x02'
 
-    # Data for FC_DOOR_CTRL
-    DATA_DOOR_STATUS_CLOSED = b'\x00'
-    DATA_DOOR_STATUS_OPEN = b'\x01'
+    # Data for FC_DOOR_STATUS
+    DATA_DOOR_STATUS_CLOSED = b'\x01'
+    DATA_DOOR_STATUS_OPEN = b'\x02'
 
     # Sizes of partitions in message header (CAN_ID)
     ACS_PRIO_BITS = 3
@@ -190,12 +184,13 @@ class acs_can_proto(object):
 
     CAN_ID_MASK = 0xFFFFFFFF
 
-    def __init__(self, master_addr:int, cb_user_auth_req, cb_new_user):
+    def __init__(self, master_addr:int, cb_user_auth_req, cb_door_status_update):
+        # create socket
         self.can_sock = can_raw_sock()
 
         # register message callbacks
         self.cb_user_auth_req = cb_user_auth_req
-        self.cb_new_user = cb_new_user
+        self.cb_door_status_update = cb_door_status_update
 
         if self.ACS_MSTR_LAST_ADDR >= master_addr >= self.ACS_MSTR_FIRST_ADDR:
             self.addr = master_addr
@@ -208,6 +203,10 @@ class acs_can_proto(object):
         f_bcast = can_filter(socket.CAN_EFF_FLAG | (self.ACS_BROADCAST_ADDR << self.ACS_DST_ADDR_OFFSET),
                              socket.CAN_EFF_FLAG | self.ACS_DST_ADDR_MASK)
         self.can_sock.set_recv_filter([f_us, f_bcast])
+
+    # Bind to a CAN interface.
+    def bind(self, can_if):
+        self.can_sock.bind(can_if)
 
     # Create CAN arbitration ID.
     def __msg(self, prio, fc, dst):
@@ -228,29 +227,13 @@ class acs_can_proto(object):
         return (self.__msg(self.PRIO_USER_AUTH_RESP_OK, self.FC_USER_AUTH_RESP_OK, reader_addr),
                 4, user_id.to_bytes(4, "little", signed=True))
 
-    def msg_reader_mode_normal(self, reader_addr):
-        return (self.__msg(self.PRIO_DOOR_CTRL, self.FC_DOOR_CTRL, reader_addr),
-                1, self.DATA_DOOR_CTRL_MODE_DEF)
-
     def msg_reader_unlock_once(self, reader_addr):
         return (self.__msg(self.PRIO_DOOR_CTRL, self.FC_DOOR_CTRL, reader_addr),
-                1, self.DATA_DOOR_CTRL_UNLCK)
-
-    def msg_reader_lock(self, reader_addr):
-        return (self.__msg(self.PRIO_DOOR_CTRL, self.FC_DOOR_CTRL, reader_addr),
-                1, self.DATA_DOOR_CTRL_LOCK)
-
-    def msg_reader_learn(self, reader_addr):
-        return (self.__msg(self.PRIO_DOOR_CTRL, self.FC_DOOR_CTRL, reader_addr),
-                1, self.DATA_DOOR_CTRL_LEARN)
+                1, self.DATA_DOOR_CTRL_REMOTE_UNLCK)
 
     def msg_reader_clear_cache(self, reader_addr):
         return (self.__msg(self.PRIO_DOOR_CTRL, self.FC_DOOR_CTRL, reader_addr),
                 1, self.DATA_DOOR_CTRL_CLR_CACHE)
-
-    def msg_announce_new_user(self, reader_addr, user_id:int):
-        return (self.__msg(self.PRIO_NEW_USER, self.FC_NEW_USER, reader_addr),
-                4, user_id.to_bytes(4, "little", signed=True))
 
     def msg_master_alive(self):
         return (self.__msg(self.PRIO_ALIVE, self.FC_ALIVE, self.ACS_BROADCAST_ADDR),
@@ -274,13 +257,16 @@ class acs_can_proto(object):
             prio > self.PRIO_RESERVED):
             if fc == self.FC_USER_AUTH_REQ:
                 if self.cb_user_auth_req is not None:
-                    return self.cb_user_auth_req(src, int.from_bytes(msg_data[:4], "little", signed=True))
-            elif fc == self.FC_NEW_USER:
-                if self.cb_new_user is not None:
-                    return self.cb_new_user(src, int.from_bytes(msg_data[:4], "little", signed=True))
+                    user_id = int.from_bytes(msg_data[:4], "little", signed=True)
+                    if self.cb_user_auth_req(src, user_id):
+                        self.msg_auth_ok(src, user_id)
+                    else:
+                        self.msg_auth_fail(src, user_id)
             elif fc == self.FC_DOOR_STATUS:
-                # TODO Door status not implemented
-                return self.NO_MESSAGE
+                if self.cb_door_status_update is not None:
+                    status = int.from_bytes(msg_data[:1], "little", signed=True)
+                    self.cb_door_status_update(src, status)
+                    return self.NO_MESSAGE
             else:
                 return self.NO_MESSAGE
 

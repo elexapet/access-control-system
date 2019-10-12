@@ -26,8 +26,9 @@ class acs_server(object):
         self.can_if = can_if
         self.addr = addr
         try:
-            self.proto = acs_can_proto(addr, cb_user_auth_req=self.resp_to_auth_req, cb_new_user=self.add_new_user)
-            self.proto.can_sock.bind(can_if)
+            self.proto = acs_can_proto(addr, cb_user_auth_req=self.resp_to_auth_req,
+                                       cb_door_status_update=self.door_status_update)
+            self.proto.bind(can_if)
         except Exception as e:
             logging.exception("Unable to start the server: %s", e)
             sys.exit(1)
@@ -54,39 +55,57 @@ class acs_server(object):
             sys.exit(0)
 
     # server command to unlock door
+    def remote_unlock_door(self, reader_addr):
+        if self.debug:
+            logging.debug("remote_unlock_door: reader={}".format(reader_addr))
+        can_id, dlc, data = self.proto.msg_reader_unlock_once(reader_addr)
+        self.proto.can_sock.send(can_id, dlc, data)
+
     # add a new user to database
     def add_new_user(self, reader_addr, user_id):
         if self.debug:
             logging.debug("add_new_user: reader={}, user={}".format(reader_addr, user_id))
         # do not add existing users
         if self.db.get_user_group(user_id) is not None:
-            return self.proto.NO_MESSAGE
+            return
         # create special group
         group = self.db.create_group_for_panel(reader_addr)
         if group is not None:
             if self.db.add_user(user_id, group):
-                return self.proto.msg_announce_new_user(reader_addr, user_id)
+                return
             else:
-                self.db.remove_user_or_group(group)
-                return self.proto.NO_MESSAGE
-        return self.proto.NO_MESSAGE
+                self.db.remove_group(group)
+                return
+        return
 
     # callback to authorization request
     # return True if authorized to open door False otherwise
     def resp_to_auth_req(self, reader_addr, user_id):
         if self.debug:
-            logging.debug("resp_to_auth_req: reader = {}, user id = {}".format(reader_addr, user_id))
-        if self.db.is_user_authorized(user_id, reader_addr):
-            return self.proto.msg_auth_ok(reader_addr, user_id)
-        else:
-            return self.proto.msg_auth_fail(reader_addr, user_id)
+            logging.debug("resp_to_auth_req: reader={}, user={}".format(reader_addr, user_id))
 
-    # external commands
-    def switch_reader_to_learn_mode(self, reader_addr):
+        mode = self.db.get_door_mode(reader_addr)
+        if mode is None:
+            logging.debug("resp_to_auth_req: no door mode!")
+            mode = self.db.DOOR_MODE_ENABLED  # fallback to default
+
+        if mode == self.db.DOOR_MODE_ENABLED:
+            if self.db.is_user_authorized(user_id, reader_addr):
+                self.db.log_user_access(user_id, reader_addr)
+                return True
+            else:
+                return False
+        elif mode == self.db.DOOR_MODE_LEARN:
+            self.add_new_user(reader_addr, user_id)
+            return True
+        else:
+            return False
+
+    # callback for door status update
+    def door_status_update(self, reader_addr, status):
         if self.debug:
-            logging.debug("switch_reader_to_learn: reader = {}".format(reader_addr))
-        can_id, dlc, data = self.proto.msg_reader_learn(reader_addr)
-        self.proto.can_sock.send(can_id, dlc, data)
+            logging.debug("door_status_update: reader={} open={}".format(reader_addr, status == self.proto.DATA_DOOR_STATUS_OPEN))
+        self.db.set_door_status(reader_addr, status)
 
     # main processing loop
     def run(self):
@@ -157,4 +176,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

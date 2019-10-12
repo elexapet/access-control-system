@@ -73,6 +73,13 @@ void set_reader_addr(const uint16_t first_acs_addr);
 #define ACS_COMM_STATUS_LED_PORT  0
 #define ACS_COMM_STATUS_LED_PIN   6
 
+// Door sensor types.
+#define SENSOR_IS_NO 0  // Normally open.
+#define SENSOR_IS_NC 1  // Normally closed.
+
+// If DOOR_SENSOR_TYPE is defined enables door sensor
+#define DOOR_SENSOR_TYPE SENSOR_IS_NO
+
 //---------------------------------------------------------------------------------------------------------------------
 // Settings for RFID reader A
 //---------------------------------------------------------------------------------------------------------------------
@@ -90,7 +97,7 @@ void set_reader_addr(const uint16_t first_acs_addr);
 #define ACS_READER_A_RLED_PIN   0
 #define ACS_READER_A_RELAY_PORT           1
 #define ACS_READER_A_RELAY_PIN            10
-#define ACS_READER_A_SENSOR_PORT          1
+#define ACS_READER_A_SENSOR_PORT          1 // Can be only 0 or 1.
 #define ACS_READER_A_SENSOR_PIN           8
 
 #define ACS_READER_A_OPEN_TIME_MS         8000
@@ -113,7 +120,7 @@ void set_reader_addr(const uint16_t first_acs_addr);
 #define ACS_READER_B_RLED_PIN   2
 #define ACS_READER_B_RELAY_PORT           1
 #define ACS_READER_B_RELAY_PIN            11
-#define ACS_READER_B_SENSOR_PORT          1
+#define ACS_READER_B_SENSOR_PORT          1 // Can be only 0 or 1.
 #define ACS_READER_B_SENSOR_PIN           5
 
 #define ACS_READER_B_OPEN_TIME_MS         8000

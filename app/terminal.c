@@ -177,21 +177,9 @@ void term_can_recv(uint8_t msg_obj_num)
   {
     switch (msg_obj.data[0])
     {
-      case DATA_DOOR_CTRL_MODE_DEF:
-        DEBUGSTR("mode DEF\n");
-        reader_conf[reader_idx].mode = READER_MODE_DEF;
-        break;
-      case DATA_DOOR_CTRL_UNLCK:
+      case DATA_DOOR_CTRL_REMOTE_UNLCK:
         DEBUGSTR("cmd UNLOCK\n");
-        terminal_user_authorized(reader_idx);
-        break;
-      case DATA_DOOR_CTRL_LOCK:
-        DEBUGSTR("mode LOCK\n");
-        reader_conf[reader_idx].mode = READER_MODE_LOCKED;
-        break;
-      case DATA_DOOR_CTRL_LEARN:
-        DEBUGSTR("mode LEARN\n");
-        reader_conf[reader_idx].mode = READER_MODE_LEARN;
+        reader_unlock(reader_idx, BEEP_ON_SUCCESS, OK_LED_ON_SUCCESS);
         break;
       case DATA_DOOR_CTRL_CLR_CACHE:
         DEBUGSTR("cmd CLR CACHE\n");
@@ -206,8 +194,8 @@ void term_can_recv(uint8_t msg_obj_num)
   else return;
 }
 
-// Send command to server that register given user id
-static void terminal_register_user(uint32_t user_id, uint8_t reader_idx)
+// Send door status update to server
+static void terminal_send_door_status(uint8_t reader_idx, bool open)
 {
   //check if master online
   if (_act_master == ACS_RESERVED_ADDR)
@@ -219,19 +207,21 @@ static void terminal_register_user(uint32_t user_id, uint8_t reader_idx)
   // Prepare msg head to send request on CAN
   acs_msg_head_t head;
   head.scalar = CAN_MSGOBJ_EXT;
-  head.prio = PRIO_NEW_USER;
-  head.fc = FC_NEW_USER;
+  head.prio = PRIO_DOOR_STATUS;
+  head.fc = FC_DOOR_STATUS;
   head.dst = _act_master;
+
+  uint8_t status = (open ? DATA_DOOR_STATUS_OPEN : DATA_DOOR_STATUS_CLOSED);
 
   if (reader_idx == ACS_READER_A_IDX)
   {
     head.src = get_reader_a_addr();
-    CAN_send_once(ACS_MSGOBJ_SEND_DOOR_A, head.scalar, (void *)&user_id, sizeof(user_id));
+    CAN_send_once(ACS_MSGOBJ_SEND_DOOR_A, head.scalar, (void *)&status, sizeof(status));
   }
   else if (reader_idx == ACS_READER_B_IDX)
   {
     head.src = get_reader_b_addr();
-    CAN_send_once(ACS_MSGOBJ_SEND_DOOR_B, head.scalar, (void *)&user_id, sizeof(user_id));
+    CAN_send_once(ACS_MSGOBJ_SEND_DOOR_B, head.scalar, (void *)&status, sizeof(status));
   }
 }
 
@@ -273,27 +263,20 @@ static void terminal_user_identified(uint32_t user_id, uint8_t reader_idx)
 
   if (reader_idx < ACS_READER_COUNT)
   {
-    if (reader_conf[reader_idx].mode == READER_MODE_LOCKED)
-    {
-      terminal_user_not_authorized(reader_idx);
-    }
-    else if (reader_conf[reader_idx].mode == READER_MODE_LEARN)
-    {
-      terminal_register_user(user_id, reader_idx);
-    }
 #if CACHING_ENABLED
-    else if (static_cache_get(&user))
+    if (static_cache_get(&user))
     {
       if (map_reader_idx_to_cache(reader_idx) & user.value)
       {
         terminal_user_authorized(reader_idx);
       }
     }
-#endif
     else
+#else
     {
       terminal_request_auth(user_id, reader_idx);
     }
+#endif
   }
 }
 

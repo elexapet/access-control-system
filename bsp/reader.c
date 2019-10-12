@@ -44,7 +44,6 @@ reader_conf_t reader_conf[ACS_READER_MAXCOUNT] =
     .timer_open = NULL,
     .open_time_sec = ACS_READER_A_OPEN_TIME_MS,
     .gled_time_sec = ACS_READER_A_OK_GLED_TIME_MS,
-    .mode = READER_MODE_DEF,
     .enabled = ACS_READER_A_ENABLED,
   },
   {
@@ -52,7 +51,6 @@ reader_conf_t reader_conf[ACS_READER_MAXCOUNT] =
     .timer_open = NULL,
     .open_time_sec = ACS_READER_B_OPEN_TIME_MS,
     .gled_time_sec = ACS_READER_B_OK_GLED_TIME_MS,
-    .mode = READER_MODE_DEF,
     .enabled = ACS_READER_B_ENABLED,
   }
 };

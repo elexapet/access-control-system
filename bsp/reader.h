@@ -25,7 +25,6 @@ typedef struct
   TimerHandle_t timer_ok;
   uint16_t open_time_sec;
   uint16_t gled_time_sec;
-  reader_mode_t mode;
   uint8_t enabled;
 } reader_conf_t;
 

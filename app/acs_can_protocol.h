@@ -47,9 +47,8 @@
 #define FC_USER_NOT_AUTH_RESP  0x2 // M -> S
 #define FC_USER_AUTH_RESP      0x3 // M -> S
 #define FC_DOOR_CTRL           0x4 // M -> S
-#define FC_NEW_USER            0x5 // S -> M
-#define FC_DOOR_STATUS         0x6 // S -> M
-#define FC_ALIVE               0x7 // M -> S
+#define FC_DOOR_STATUS         0x5 // S -> M
+#define FC_ALIVE               0x6 // M -> S
 
 // priorities for each function code (0-7)
 #define PRIO_RESERVED            0x0
@@ -57,20 +56,16 @@
 #define PRIO_USER_AUTH_RESP_FAIL 0x2
 #define PRIO_USER_AUTH_RESP_OK   0x2
 #define PRIO_DOOR_CTRL           0x3
-#define PRIO_NEW_USER            0x3
 #define PRIO_DOOR_STATUS         0x4
 #define PRIO_ALIVE               0x1
 
 // Data for FC_DOOR_CTRL
-#define DATA_DOOR_CTRL_MODE_DEF   0x00
-#define DATA_DOOR_CTRL_UNLCK      0x01
-#define DATA_DOOR_CTRL_LOCK       0x02
-#define DATA_DOOR_CTRL_LEARN      0x03
-#define DATA_DOOR_CTRL_CLR_CACHE  0x04
+#define DATA_DOOR_CTRL_REMOTE_UNLCK 0x01
+#define DATA_DOOR_CTRL_CLR_CACHE    0x02
 
 // Data for FC_DOOR_STATUS
-#define DATA_DOOR_STATUS_CLOSED   0x0
-#define DATA_DOOR_STATUS_OPEN     0x1
+#define DATA_DOOR_STATUS_CLOSED   0x01
+#define DATA_DOOR_STATUS_OPEN     0x02
 
 // Setting for master communication status
 #define ACS_MASTER_ALIVE_PERIOD_MS  5000
@@ -103,11 +98,6 @@ typedef struct
 {
   uint32_t user_id;
 } acs_msg_data_auth_resp_t;
-
-typedef struct
-{
-  uint32_t user_id;
-} acs_msg_data_new_user_t;
 
 typedef struct
 {

@@ -9,6 +9,9 @@ import ctypes
 import mmap
 
 class can_filter(ctypes.Structure):
+    """
+    Native structure of a CAN filter for SocketCAN
+    """
     _pack_ = 1
     _fields_ = [
                 ('id', ctypes.c_uint32),
@@ -17,6 +20,9 @@ class can_filter(ctypes.Structure):
 
 
 class can_raw_sock(object):
+    """
+    Thin layer over CAN socket.
+    """
     __CAN_MTU = 16
     __FORMAT = "<IB3x8s"
     CAN_ERR_TX_TIMEOUT = 0x00000001
@@ -105,8 +111,12 @@ class can_raw_sock(object):
         elif can_id & self.CAN_ERR_RESTARTED:
             logging.warning("CAN controller restarted")
 
-# ACS protocol over CAN
+
 class acs_can_proto(object):
+    """
+    Implementation of ACS protocol for CAN (Uses extended arbitration ID).
+    """
+
     # ACS protocol function codes
     FC_RESERVED = 0
     # s->m
@@ -183,6 +193,7 @@ class acs_can_proto(object):
     def __init__(self, master_addr:int, cb_user_auth_req, cb_new_user):
         self.can_sock = can_raw_sock()
 
+        # register message callbacks
         self.cb_user_auth_req = cb_user_auth_req
         self.cb_new_user = cb_new_user
 
@@ -198,8 +209,9 @@ class acs_can_proto(object):
                              socket.CAN_EFF_FLAG | self.ACS_DST_ADDR_MASK)
         self.can_sock.set_recv_filter([f_us, f_bcast])
 
+    # Create CAN arbitration ID.
     def __msg(self, prio, fc, dst):
-        # replace with struct pack
+        # improvement: replace with struct pack
         can_id = (prio << self.ACS_PRIO_OFFSET) & self.ACS_PRIO_MASK
         can_id |= (fc << self.ACS_FC_OFFSET) & self.ACS_FC_MASK
         can_id |= (dst << self.ACS_DST_ADDR_OFFSET) & self.ACS_DST_ADDR_MASK
@@ -244,6 +256,7 @@ class acs_can_proto(object):
         return (self.__msg(self.PRIO_ALIVE, self.FC_ALIVE, self.ACS_BROADCAST_ADDR),
                 0, b'\x00')
 
+    # Parse arbitration ID
     def __parse_msg_head(self, msg_head):
         prio = (msg_head & self.ACS_PRIO_MASK) >> self.ACS_PRIO_OFFSET
         fc = (msg_head & self.ACS_FC_MASK) >> self.ACS_FC_OFFSET
@@ -251,6 +264,7 @@ class acs_can_proto(object):
         src = (msg_head & self.ACS_SRC_ADDR_MASK) >> self.ACS_SRC_ADDR_OFFSET
         return (prio, fc, dst, src)
 
+    # Process received CAN message
     def process_msg(self, msg_head:int, msg_len:int, msg_data):
         prio, fc, dst, src = self.__parse_msg_head(msg_head)
 
@@ -271,7 +285,3 @@ class acs_can_proto(object):
                 return self.NO_MESSAGE
 
         return self.NO_MESSAGE
-
-
-
-

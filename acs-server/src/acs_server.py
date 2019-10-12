@@ -1,6 +1,3 @@
-"""
-This is main loop for ACS server.
-"""
 import errno
 import signal
 import sys
@@ -16,6 +13,13 @@ from acs_can_proto import acs_can_proto, can_raw_sock
 
 
 class acs_server(object):
+    """
+    This is access control server (ACS) main class.
+
+    The server acts as a master to RFID readers connected by CAN bus.
+    Interfaces to database of users trough "acs_database" and uses protocol implemented by "acs_can_proto".
+    """
+
     __running = True
 
     def __init__(self, can_if, addr, r_host, r_port, debug):
@@ -40,6 +44,7 @@ class acs_server(object):
 
         self.debug = debug
 
+    # OS signals handler
     def sigterm(self, signum, frame):
         if self.__running:
             self.__running = False
@@ -48,10 +53,11 @@ class acs_server(object):
             logging.warning("Forcing shutdown...")
             sys.exit(0)
 
-    # can responses
+    # server command to unlock door
+    # add a new user to database
     def add_new_user(self, reader_addr, user_id):
         if self.debug:
-            logging.debug("add_new_user: reader = {}, user id = {}".format(reader_addr, user_id))
+            logging.debug("add_new_user: reader={}, user={}".format(reader_addr, user_id))
         # do not add existing users
         if self.db.get_user_group(user_id) is not None:
             return self.proto.NO_MESSAGE
@@ -65,6 +71,8 @@ class acs_server(object):
                 return self.proto.NO_MESSAGE
         return self.proto.NO_MESSAGE
 
+    # callback to authorization request
+    # return True if authorized to open door False otherwise
     def resp_to_auth_req(self, reader_addr, user_id):
         if self.debug:
             logging.debug("resp_to_auth_req: reader = {}, user id = {}".format(reader_addr, user_id))

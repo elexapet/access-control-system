@@ -1,7 +1,8 @@
 #!/bin/sh
 
-# Create single application from python sources
+# Create single executable package from python sources
 
+# Build parameters
 APP_BIN=acs-server
 WORK_DIR=dist
 INPUT_DIR=src

@@ -19,6 +19,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#define USER_REQUEST_WAIT_MS 1000
+
 // Cache entry type mapping to our type.
 typedef cache_item_t term_cache_item_t;  // 4 bytes
 
@@ -42,6 +44,9 @@ static TimerHandle_t _act_timer = NULL;
 
 // Timer ID for master timeout.
 static const uint32_t _act_timer_id = TERMINAL_TIMER_ID;
+
+// Last door open(true) / close(false) status
+static bool last_door_state[ACS_READER_COUNT] = {false, false};
 
 // Map reader index to correct cache value.
 static inline uint8_t map_reader_idx_to_cache(uint8_t reader_idx)
@@ -195,7 +200,7 @@ void term_can_recv(uint8_t msg_obj_num)
 }
 
 // Send door status update to server
-static void terminal_send_door_status(uint8_t reader_idx, bool open)
+static void terminal_send_door_status(uint8_t reader_idx, bool is_open)
 {
   //check if master online
   if (_act_master == ACS_RESERVED_ADDR)
@@ -211,7 +216,7 @@ static void terminal_send_door_status(uint8_t reader_idx, bool open)
   head.fc = FC_DOOR_STATUS;
   head.dst = _act_master;
 
-  uint8_t status = (open ? DATA_DOOR_STATUS_OPEN : DATA_DOOR_STATUS_CLOSED);
+  uint8_t status = (is_open ? DATA_DOOR_STATUS_OPEN : DATA_DOOR_STATUS_CLOSED);
 
   if (reader_idx == ACS_READER_A_IDX)
   {
@@ -292,11 +297,21 @@ static void terminal_task(void *pvParameters)
   while (true)
   {
     uint32_t user_id;
-    uint8_t reader_idx = reader_get_request_from_buffer(&user_id);
+    uint8_t reader_idx = reader_get_request_from_buffer(&user_id, USER_REQUEST_WAIT_MS);
     if (reader_idx < ACS_READER_COUNT)
     {
       DEBUGSTR("user identified\n");
       terminal_user_identified(user_id, reader_idx);
+    }
+    // Check if door open/close state changed
+    for (size_t idx = 0; idx < ACS_READER_COUNT; ++idx)
+    {
+      if (reader_is_door_open(idx) != last_door_state[idx])
+      {
+        DEBUGSTR("new door state\n");
+        last_door_state[idx] = !last_door_state[idx];
+        terminal_send_door_status(idx, last_door_state[idx]);
+      }
     }
   }
 }

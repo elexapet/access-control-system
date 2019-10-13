@@ -1,8 +1,17 @@
 
 #include <reader.h>
 
+// Define sensor binary value when door is open.
+#if DOOR_SENSOR_TYPE == SENSOR_IS_NC
+#define DOOR_SENSOR_VALUE_OPEN LOG_LOW  // Switch is closed when door is open.
+#else
+#define DOOR_SENSOR_VALUE_OPEN LOG_HIGH // Switch is open when door is open.
+#endif
 
-// buffer for user_id received from RFID reader
+#define DOOR_OPEN 1
+#define DOOR_CLOSED 0
+
+// Buffer for user_id received from RFID reader.
 static StreamBufferHandle_t _reader_buffer;
 
 static const reader_wiring_t _reader_wiring[ACS_READER_MAXCOUNT] =
@@ -47,6 +56,7 @@ reader_conf_t reader_conf[ACS_READER_MAXCOUNT] =
     .open_time_sec = ACS_READER_A_OPEN_TIME_MS,
     .gled_time_sec = ACS_READER_A_OK_GLED_TIME_MS,
     .enabled = ACS_READER_A_ENABLED,
+    .door_open = DOOR_CLOSED
   },
   {
     .timer_ok = NULL,
@@ -54,6 +64,7 @@ reader_conf_t reader_conf[ACS_READER_MAXCOUNT] =
     .open_time_sec = ACS_READER_B_OPEN_TIME_MS,
     .gled_time_sec = ACS_READER_B_OK_GLED_TIME_MS,
     .enabled = ACS_READER_B_ENABLED,
+    .door_open = DOOR_CLOSED
   }
 };
 
@@ -160,13 +171,13 @@ void reader_deinit(uint8_t idx)
   weigand_disable(_reader_wiring[idx].data_port, _reader_wiring[idx].d0_pin, _reader_wiring[idx].d1_pin);
 }
 
-int8_t reader_get_request_from_buffer(uint32_t * user_id)
+int8_t reader_get_request_from_buffer(uint32_t * user_id, uint16_t time_to_wait_ms)
 {
   weigand26_buff_item_t item;
   size_t bytes_got;
 
   // Suspend if empty
-  bytes_got = xStreamBufferReceive(_reader_buffer, &item, WEIGAND26_BUFF_ITEM_SIZE, pdMS_TO_TICKS(portMAX_DELAY));
+  bytes_got = xStreamBufferReceive(_reader_buffer, &item, WEIGAND26_BUFF_ITEM_SIZE, pdMS_TO_TICKS(time_to_wait_ms));
 
   if (bytes_got == WEIGAND26_BUFF_ITEM_SIZE && weigand_is_parity_ok(item.frame))
   {
@@ -197,20 +208,33 @@ void reader_unlock(uint8_t idx, bool with_beep, bool with_ok_led)
   configASSERT(xTimerStart(reader_conf[idx].timer_ok, 0));
 }
 
-// Sensor interrupt handler
+bool reader_is_door_open(uint8_t reader_idx)
+{
+  return reader_conf[reader_idx].door_open == DOOR_OPEN;
+}
+
+// Sensor interrupt handler.
 void reader_sensor_int_handler(uint8_t port, uint32_t int_states)
 {
+  if (_reader_wiring[ACS_READER_A_IDX].sensor_port != port &&
+      _reader_wiring[ACS_READER_B_IDX].sensor_port != port)
+  {
+    return;
+  }
+
+  // door sensor A
   if (int_states & (1 << _reader_wiring[ACS_READER_A_IDX].sensor_pin))
   {
-    // TODO inform terminal
-    // Lock door after open
-    Chip_GPIO_SetPinState(LPC_GPIO, _reader_wiring[ACS_READER_A_IDX].relay_port, _reader_wiring[ACS_READER_A_IDX].relay_pin, LOG_HIGH);
+    // update current state
+    uint8_t sensor_value = Chip_GPIO_ReadPortBit(LPC_GPIO, port, _reader_wiring[ACS_READER_A_IDX].sensor_pin);
+    reader_conf[ACS_READER_A_IDX].door_open = (sensor_value == DOOR_SENSOR_VALUE_OPEN ? DOOR_OPEN : DOOR_CLOSED);
   }
+  // door sensor B
   if (int_states & (1 << _reader_wiring[ACS_READER_B_IDX].sensor_pin))
   {
-    // TODO inform terminal
-    // Lock door after open
-    Chip_GPIO_SetPinState(LPC_GPIO, _reader_wiring[ACS_READER_B_IDX].relay_port, _reader_wiring[ACS_READER_B_IDX].relay_pin, LOG_HIGH);
+    // update current state
+    uint8_t sensor_value = Chip_GPIO_ReadPortBit(LPC_GPIO, port, _reader_wiring[ACS_READER_B_IDX].sensor_pin);
+    reader_conf[ACS_READER_B_IDX].door_open = (sensor_value == DOOR_SENSOR_VALUE_OPEN ? DOOR_OPEN : DOOR_CLOSED);
   }
 }
 

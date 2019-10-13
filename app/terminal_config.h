@@ -73,9 +73,9 @@ void set_reader_addr(const uint16_t first_acs_addr);
 #define ACS_COMM_STATUS_LED_PORT  0
 #define ACS_COMM_STATUS_LED_PIN   6
 
-// Door sensor types.
-#define SENSOR_IS_NO 0  // Normally open.
-#define SENSOR_IS_NC 1  // Normally closed.
+// Door sensor types (reed switch).
+#define SENSOR_IS_NO 0  // Normally open (Form A).
+#define SENSOR_IS_NC 1  // Normally closed (Form B).
 
 // If DOOR_SENSOR_TYPE is defined enables door sensor
 #define DOOR_SENSOR_TYPE SENSOR_IS_NO

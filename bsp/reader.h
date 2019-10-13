@@ -6,6 +6,7 @@
 #define BSP_READER_H_
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "board.h"
 #include "FreeRTOS.h"
 #include "stream_buffer.h"
@@ -26,6 +27,7 @@ typedef struct
   uint16_t open_time_sec;
   uint16_t gled_time_sec;
   uint8_t enabled;
+  uint8_t door_open;
 } reader_conf_t;
 
 typedef struct
@@ -53,9 +55,10 @@ void reader_init(uint8_t idx);
 void reader_deinit(uint8_t idx);
 
 // user_id is 24-bit number
-int8_t reader_get_request_from_buffer(uint32_t * user_id);
+int8_t reader_get_request_from_buffer(uint32_t * user_id, uint16_t time_to_wait_ms);
 
 void reader_unlock(uint8_t idx, bool with_beep, bool with_ok_led);
 
+bool reader_is_door_open(uint8_t reader_idx);
 
 #endif /* BSP_READER_H_ */

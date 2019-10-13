@@ -48,14 +48,14 @@ typedef struct
 
 extern reader_conf_t reader_conf[ACS_READER_COUNT];
 
-void reader_init(uint8_t id);
+void reader_init(uint8_t idx);
 
-void reader_deinit(uint8_t id);
+void reader_deinit(uint8_t idx);
 
 // user_id is 24-bit number
 int8_t reader_get_request_from_buffer(uint32_t * user_id);
 
-void reader_unlock(uint8_t id, bool with_beep, bool with_ok_led);
+void reader_unlock(uint8_t idx, bool with_beep, bool with_ok_led);
 
 
 #endif /* BSP_READER_H_ */

@@ -1,6 +1,8 @@
 
 #include <reader.h>
 
+
+// buffer for user_id received from RFID reader
 static StreamBufferHandle_t _reader_buffer;
 
 static const reader_wiring_t _reader_wiring[ACS_READER_MAXCOUNT] =
@@ -56,7 +58,8 @@ reader_conf_t reader_conf[ACS_READER_MAXCOUNT] =
 };
 
 
-static void reader_timer_open_callback(TimerHandle_t pxTimer)
+// Timer callback to lock after specified time
+static void _timer_open_callback(TimerHandle_t pxTimer)
 {
   configASSERT(pxTimer);
 
@@ -70,7 +73,8 @@ static void reader_timer_open_callback(TimerHandle_t pxTimer)
   }
 }
 
-static void reader_timer_ok_callback(TimerHandle_t pxTimer)
+// Timer callback to stop signaling unlock
+static void _timer_ok_callback(TimerHandle_t pxTimer)
 {
   configASSERT(pxTimer);
 
@@ -87,9 +91,9 @@ static void reader_timer_ok_callback(TimerHandle_t pxTimer)
 }
 
 
-void reader_init(uint8_t id)
+void reader_init(uint8_t idx)
 {
-  //Create stream buffer to receive id from all card readers
+  //Create stream buffer to receive idx from all card readers
   if (_reader_buffer == NULL)
   {
     _reader_buffer = xStreamBufferCreate(2 * ACS_READER_COUNT * WEIGAND26_BUFF_ITEM_SIZE, WEIGAND26_BUFF_ITEM_SIZE);
@@ -97,67 +101,63 @@ void reader_init(uint8_t id)
   configASSERT(_reader_buffer);
 
   //Init interface to reader
-  weigand_init(_reader_buffer, id, _reader_wiring[id].data_port, _reader_wiring[id].d0_pin, _reader_wiring[id].d1_pin);
+  weigand_init(_reader_buffer, idx, _reader_wiring[idx].data_port, _reader_wiring[idx].d0_pin, _reader_wiring[idx].d1_pin);
 
   //Create timer only once
-  if (reader_conf[id].timer_open == NULL)
+  if (reader_conf[idx].timer_open == NULL)
   {
-    reader_conf[id].timer_open = xTimerCreate("PT0", (reader_conf[id].open_time_sec / portTICK_PERIOD_MS), pdFALSE, (void *)(uint32_t) id, reader_timer_open_callback);
+    reader_conf[idx].timer_open = xTimerCreate("PT0", (reader_conf[idx].open_time_sec / portTICK_PERIOD_MS), pdFALSE, (void *)(uint32_t) idx, _timer_open_callback);
   }
-  configASSERT(reader_conf[id].timer_open);
+  configASSERT(reader_conf[idx].timer_open);
 
-  if (reader_conf[id].timer_ok == NULL)
+  if (reader_conf[idx].timer_ok == NULL)
   {
-    reader_conf[id].timer_ok = xTimerCreate("PT1", (reader_conf[id].gled_time_sec / portTICK_PERIOD_MS), pdFALSE, (void *)(uint32_t) id, reader_timer_ok_callback);
+    reader_conf[idx].timer_ok = xTimerCreate("PT1", (reader_conf[idx].gled_time_sec / portTICK_PERIOD_MS), pdFALSE, (void *)(uint32_t) idx, _timer_ok_callback);
   }
-  configASSERT(reader_conf[id].timer_ok);
+  configASSERT(reader_conf[idx].timer_ok);
 
   //Setup GLED
-  Chip_GPIO_SetPinDIROutput(LPC_GPIO, _reader_wiring[id].gled_port, _reader_wiring[id].gled_pin);
-  Chip_IOCON_PinMux(LPC_IOCON, CHIP_IOCON_PIO[_reader_wiring[id].gled_port][_reader_wiring[id].gled_pin], IOCON_MODE_INACT, IOCON_FUNC0);
-  Chip_GPIO_SetPinState(LPC_GPIO, _reader_wiring[id].gled_port, _reader_wiring[id].gled_pin, LOG_LOW);
+  Chip_GPIO_SetPinDIROutput(LPC_GPIO, _reader_wiring[idx].gled_port, _reader_wiring[idx].gled_pin);
+  Chip_IOCON_PinMux(LPC_IOCON, CHIP_IOCON_PIO[_reader_wiring[idx].gled_port][_reader_wiring[idx].gled_pin], IOCON_MODE_INACT, IOCON_FUNC0);
+  Chip_GPIO_SetPinState(LPC_GPIO, _reader_wiring[idx].gled_port, _reader_wiring[idx].gled_pin, LOG_LOW);
 
   //Setup RLED
-  Chip_GPIO_SetPinDIROutput(LPC_GPIO, _reader_wiring[id].rled_port, _reader_wiring[id].rled_pin);
-  Chip_IOCON_PinMux(LPC_IOCON, CHIP_IOCON_PIO[_reader_wiring[id].rled_port][_reader_wiring[id].rled_pin], IOCON_MODE_INACT, IOCON_FUNC0);
-  Chip_GPIO_SetPinState(LPC_GPIO, _reader_wiring[id].rled_port, _reader_wiring[id].rled_pin, LOG_HIGH);
+  Chip_GPIO_SetPinDIROutput(LPC_GPIO, _reader_wiring[idx].rled_port, _reader_wiring[idx].rled_pin);
+  Chip_IOCON_PinMux(LPC_IOCON, CHIP_IOCON_PIO[_reader_wiring[idx].rled_port][_reader_wiring[idx].rled_pin], IOCON_MODE_INACT, IOCON_FUNC0);
+  Chip_GPIO_SetPinState(LPC_GPIO, _reader_wiring[idx].rled_port, _reader_wiring[idx].rled_pin, LOG_HIGH);
 
   //Setup BEEPER
-  Chip_GPIO_SetPinDIROutput(LPC_GPIO, _reader_wiring[id].beep_port, _reader_wiring[id].beep_pin);
-  Chip_IOCON_PinMux(LPC_IOCON, CHIP_IOCON_PIO[_reader_wiring[id].beep_port][_reader_wiring[id].beep_pin], IOCON_MODE_INACT, IOCON_FUNC0);
-  Chip_GPIO_SetPinState(LPC_GPIO, _reader_wiring[id].beep_port, _reader_wiring[id].beep_pin, LOG_LOW);
+  Chip_GPIO_SetPinDIROutput(LPC_GPIO, _reader_wiring[idx].beep_port, _reader_wiring[idx].beep_pin);
+  Chip_IOCON_PinMux(LPC_IOCON, CHIP_IOCON_PIO[_reader_wiring[idx].beep_port][_reader_wiring[idx].beep_pin], IOCON_MODE_INACT, IOCON_FUNC0);
+  Chip_GPIO_SetPinState(LPC_GPIO, _reader_wiring[idx].beep_port, _reader_wiring[idx].beep_pin, LOG_LOW);
 
   //RELAY
-  Chip_GPIO_SetPinDIROutput(LPC_GPIO, _reader_wiring[id].relay_port, _reader_wiring[id].relay_pin);
-  Chip_IOCON_PinMux(LPC_IOCON, CHIP_IOCON_PIO[_reader_wiring[id].relay_port][_reader_wiring[id].relay_pin], IOCON_MODE_PULLUP, IOCON_FUNC0);
-  Chip_GPIO_SetPinState(LPC_GPIO, _reader_wiring[id].relay_port, _reader_wiring[id].relay_pin, LOG_HIGH);
+  Chip_GPIO_SetPinDIROutput(LPC_GPIO, _reader_wiring[idx].relay_port, _reader_wiring[idx].relay_pin);
+  Chip_IOCON_PinMux(LPC_IOCON, CHIP_IOCON_PIO[_reader_wiring[idx].relay_port][_reader_wiring[idx].relay_pin], IOCON_MODE_PULLUP, IOCON_FUNC0);
+  Chip_GPIO_SetPinState(LPC_GPIO, _reader_wiring[idx].relay_port, _reader_wiring[idx].relay_pin, LOG_HIGH);
 
   //SENSOR (has pull-up resistor)
-  Chip_IOCON_PinMux(LPC_IOCON, CHIP_IOCON_PIO[_reader_wiring[id].sensor_port][_reader_wiring[id].sensor_pin], IOCON_MODE_INACT, IOCON_FUNC0);
-  Chip_GPIO_SetPinDIRInput(LPC_GPIO, _reader_wiring[id].sensor_port, _reader_wiring[id].sensor_pin);
+  Chip_IOCON_PinMux(LPC_IOCON, CHIP_IOCON_PIO[_reader_wiring[idx].sensor_port][_reader_wiring[idx].sensor_pin], IOCON_MODE_INACT, IOCON_FUNC0);
+  Chip_GPIO_SetPinDIRInput(LPC_GPIO, _reader_wiring[idx].sensor_port, _reader_wiring[idx].sensor_pin);
 #ifdef DOOR_SENSOR_TYPE
-#if DOOR_SENSOR_TYPE == SENSOR_IS_NC
-  Chip_GPIO_SetupPinInt(LPC_GPIO, _reader_wiring[id].sensor_port, _reader_wiring[id].sensor_pin, GPIO_INT_ACTIVE_HIGH_LEVEL);
-#else
-  Chip_GPIO_SetupPinInt(LPC_GPIO, _reader_wiring[id].sensor_port, _reader_wiring[id].sensor_pin, GPIO_INT_ACTIVE_LOW_LEVEL);
-#endif
-  Chip_GPIO_ClearInts(LPC_GPIO, _reader_wiring[id].sensor_port, (1 << _reader_wiring[id].sensor_pin));
-  Chip_GPIO_EnableInt(LPC_GPIO, _reader_wiring[id].sensor_port, (1 << _reader_wiring[id].sensor_pin));
+  Chip_GPIO_SetupPinInt(LPC_GPIO, _reader_wiring[idx].sensor_port, _reader_wiring[idx].sensor_pin, GPIO_INT_BOTH_EDGES);
+  Chip_GPIO_ClearInts(LPC_GPIO, _reader_wiring[idx].sensor_port, (1 << _reader_wiring[idx].sensor_pin));
+  Chip_GPIO_EnableInt(LPC_GPIO, _reader_wiring[idx].sensor_port, (1 << _reader_wiring[idx].sensor_pin));
 #endif
 }
 
-void reader_deinit(uint8_t id)
+void reader_deinit(uint8_t idx)
 {
-  if (xTimerDelete(reader_conf[id].timer_open, 0) != pdFAIL)
+  if (xTimerDelete(reader_conf[idx].timer_open, 0) != pdFAIL)
   {
-    reader_conf[id].timer_open = NULL;
+    reader_conf[idx].timer_open = NULL;
   }
-  if (xTimerDelete(reader_conf[id].timer_ok, 0) != pdFAIL)
+  if (xTimerDelete(reader_conf[idx].timer_ok, 0) != pdFAIL)
   {
-    reader_conf[id].timer_ok = NULL;
+    reader_conf[idx].timer_ok = NULL;
   }
 
-  weigand_disable(_reader_wiring[id].data_port, _reader_wiring[id].d0_pin, _reader_wiring[id].d1_pin);
+  weigand_disable(_reader_wiring[idx].data_port, _reader_wiring[idx].d0_pin, _reader_wiring[idx].d1_pin);
 }
 
 int8_t reader_get_request_from_buffer(uint32_t * user_id)
@@ -179,22 +179,22 @@ int8_t reader_get_request_from_buffer(uint32_t * user_id)
   }
 }
 
-void reader_unlock(uint8_t id, bool with_beep, bool with_ok_led)
+void reader_unlock(uint8_t idx, bool with_beep, bool with_ok_led)
 {
   // Unlock state
   if (with_beep)
   {
-    Chip_GPIO_SetPinState(LPC_GPIO, _reader_wiring[id].beep_port, _reader_wiring[id].beep_pin, LOG_HIGH);
+    Chip_GPIO_SetPinState(LPC_GPIO, _reader_wiring[idx].beep_port, _reader_wiring[idx].beep_pin, LOG_HIGH);
   }
   if (with_ok_led)
   {
-    Chip_GPIO_SetPinState(LPC_GPIO, _reader_wiring[id].gled_port, _reader_wiring[id].gled_pin, LOG_HIGH);
+    Chip_GPIO_SetPinState(LPC_GPIO, _reader_wiring[idx].gled_port, _reader_wiring[idx].gled_pin, LOG_HIGH);
   }
-  Chip_GPIO_SetPinState(LPC_GPIO, _reader_wiring[id].rled_port, _reader_wiring[id].rled_pin, LOG_LOW);
-  configASSERT(xTimerStart(reader_conf[id].timer_open, 0));
+  Chip_GPIO_SetPinState(LPC_GPIO, _reader_wiring[idx].rled_port, _reader_wiring[idx].rled_pin, LOG_LOW);
+  configASSERT(xTimerStart(reader_conf[idx].timer_open, 0));
 
-  Chip_GPIO_SetPinState(LPC_GPIO, _reader_wiring[id].relay_port, _reader_wiring[id].relay_pin, LOG_LOW);
-  configASSERT(xTimerStart(reader_conf[id].timer_ok, 0));
+  Chip_GPIO_SetPinState(LPC_GPIO, _reader_wiring[idx].relay_port, _reader_wiring[idx].relay_pin, LOG_LOW);
+  configASSERT(xTimerStart(reader_conf[idx].timer_ok, 0));
 }
 
 // Sensor interrupt handler
@@ -214,7 +214,7 @@ void reader_sensor_int_handler(uint8_t port, uint32_t int_states)
   }
 }
 
-//GPIO port 0 handler
+// GPIO port 0 handler.
 void PIOINT0_IRQHandler(void)
 {
   NVIC_ClearPendingIRQ(EINT0_IRQn);
@@ -225,7 +225,7 @@ void PIOINT0_IRQHandler(void)
   reader_sensor_int_handler(0, int_states);
 }
 
-//GPIO port 1 handler
+// GPIO port 1 handler.
 void PIOINT1_IRQHandler(void)
 {
   NVIC_ClearPendingIRQ(EINT1_IRQn);

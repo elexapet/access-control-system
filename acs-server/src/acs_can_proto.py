@@ -259,13 +259,12 @@ class acs_can_proto(object):
                 if self.cb_user_auth_req is not None:
                     user_id = int.from_bytes(msg_data[:4], "little", signed=True)
                     if self.cb_user_auth_req(src, user_id):
-                        self.msg_auth_ok(src, user_id)
+                        return self.msg_auth_ok(src, user_id)
                     else:
-                        self.msg_auth_fail(src, user_id)
+                        return self.msg_auth_fail(src, user_id)
             elif fc == self.FC_DOOR_STATUS:
                 if self.cb_door_status_update is not None:
-                    status = int.from_bytes(msg_data[:1], "little", signed=True)
-                    self.cb_door_status_update(src, status)
+                    self.cb_door_status_update(src, msg_data[:1] == self.DATA_DOOR_STATUS_OPEN)
                     return self.NO_MESSAGE
             else:
                 return self.NO_MESSAGE

@@ -1,6 +1,5 @@
 import redis
 import logging
-from acs_can_proto import acs_can_proto
 
 class acs_database(object):
     """
@@ -33,9 +32,11 @@ class acs_database(object):
 
     # Doors can be disabled to prevent access. Or switched to learn mode where authorization request
     # is interpreted that door is unlocked and user is added to database and given access to source door.
-    DOOR_MODE_DISABLE = 0
-    DOOR_MODE_ENABLED = 1
-    DOOR_MODE_LEARN = 2
+    DOOR_MODE_DISABLE = b"off"
+    DOOR_MODE_ENABLED = b"on"
+    DOOR_MODE_LEARN = b"learn"
+    DOOR_STATUS_OPEN = b"open"
+    DOOR_STATUS_CLOSED = b"closed"
 
     def __init__(self, host=__DEFAULT_HOST, port=__DEFAULT_PORT):
         # create database connection
@@ -79,6 +80,12 @@ class acs_database(object):
         # If returned cursor is 0 then end was reached.
         return (cursor, users)
 
+    # Return portition of groups (depending on the cursor value).
+    def get_groups(self, cursor:int=0):
+        cursor, users = self.__rclient_user.scan(cursor, ".*", 15)
+        # If returned cursor is 0 then end was reached.
+        return (cursor, users)
+
     # Return created group's name, None if failed.
     def create_group_for_panel(self, reader_addr:int) -> str:
         group = "{}{}".format(self.__NONAME_GRP_PREFIX, reader_addr)
@@ -89,15 +96,15 @@ class acs_database(object):
 
     # Return the number of readers that were added,
     # not including all the readers already present.
-    def add_panels_to_group(self, group:str, readers:list) -> int:
+    def add_panels_to_group(self, group:str, *readers) -> int:
         for reader_addr in readers:
             if self.__rclient_door.llen(reader_addr) == 0:
-                self.__rclient_door.rpush(reader_addr, self.DOOR_MODE_ENABLED, acs_can_proto.DATA_DOOR_STATUS_OPEN)
-        return self.__rclient_group.sadd(group, readers)
+                self.__rclient_door.rpush(reader_addr, self.DOOR_MODE_ENABLED, self.DOOR_STATUS_CLOSED)
+        return self.__rclient_group.sadd(group, *readers)
 
     # Return the number of readers that were removed from the set,
     # not including non existing readers.
-    def remove_panels_from_group(self, group:str, readers:list) -> int:
+    def remove_panels_from_group(self, group:str, *readers) -> int:
         for reader_addr in readers:
             self.__rclient_door.delete(reader_addr)
         return self.__rclient_group.srem(group, readers)
@@ -120,16 +127,24 @@ class acs_database(object):
     def log_user_access(self, user_id, reader_addr):
         logging.info("User \"{}\" accessed door \"{}\"".format(user_id, reader_addr))
 
+    # Mode is one of DOOR_MODE_...
     def set_door_mode(self, reader_addr, mode):
         self.__rclient_door.lset(reader_addr, self.__DOOR_MODE_IDX, mode)
 
+    # Return one of DOOR_MODE_...
     def get_door_mode(self, reader_addr):
         return self.__rclient_door.lindex(reader_addr, self.__DOOR_MODE_IDX)
 
     # Door open/close status is tracked.
-    def set_door_status(self, reader_addr, status):
+    def set_door_is_open(self, reader_addr, is_open:bool):
+        status = self.DOOR_STATUS_CLOSED
+        if is_open:
+            status = self.DOOR_STATUS_OPEN
         self.__rclient_door.lset(reader_addr, self.__DOOR_STATUS_IDX, status)
 
-    # Door open/close status is tracked. Return data type for FC_DOOR_STATUS
-    def get_door_status(self, reader_addr):
-        return self.__rclient_door.lindex(reader_addr, self.__DOOR_STATUS_IDX)
+    # Door open/close status is tracked.
+    def is_door_open(self, reader_addr) -> bool:
+        if self.__rclient_door.lindex(reader_addr, self.__DOOR_STATUS_IDX) == self.DOOR_STATUS_OPEN:
+            return True
+        else:
+            return False

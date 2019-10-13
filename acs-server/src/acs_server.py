@@ -4,8 +4,8 @@ import sys
 import os
 import logging
 import time
+# For remote debugging add firewall exception e.g. iptables -A INPUT -p tcp -m state --state NEW -m tcp --dport 5678 -j ACCEPT
 # import ptvsd
-
 
 from helpers import parse_args, format_data
 from acs_database import acs_database
@@ -83,12 +83,11 @@ class acs_server(object):
     def resp_to_auth_req(self, reader_addr, user_id):
         if self.debug:
             logging.debug("resp_to_auth_req: reader={}, user={}".format(reader_addr, user_id))
-
         mode = self.db.get_door_mode(reader_addr)
         if mode is None:
-            logging.debug("resp_to_auth_req: no door mode!")
+            if self.debug:
+                logging.debug("resp_to_auth_req: no door mode!")
             mode = self.db.DOOR_MODE_ENABLED  # fallback to default
-
         if mode == self.db.DOOR_MODE_ENABLED:
             if self.db.is_user_authorized(user_id, reader_addr):
                 self.db.log_user_access(user_id, reader_addr)
@@ -102,10 +101,10 @@ class acs_server(object):
             return False
 
     # callback for door status update
-    def door_status_update(self, reader_addr, status):
+    def door_status_update(self, reader_addr, is_open):
         if self.debug:
-            logging.debug("door_status_update: reader={} open={}".format(reader_addr, status == self.proto.DATA_DOOR_STATUS_OPEN))
-        self.db.set_door_status(reader_addr, status)
+            logging.debug("door_status_update: reader={} open={}".format(reader_addr, is_open))
+        self.db.set_door_is_open(reader_addr, is_open)
 
     # main processing loop
     def run(self):

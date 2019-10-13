@@ -18,24 +18,24 @@ SET 814190 door_C
 SET 814185 door_C
 SET 814204 door_D
 SET 814199 door_D
-SET 1000 _void
-SET 1001 _void
-SET 1002 _void
-SET 1003 _void
-SET 1004 _void
-SET 1005 _void
-SET 1006 _void
-SET 1007 _void
-SET 1008 _void
-SET 1009 _void
-SET 1010 _void
+SET 1000 __void
+SET 1001 __void
+SET 1002 __void
+SET 1003 __void
+SET 1004 __void
+SET 1005 __void
+SET 1006 __void
+SET 1007 __void
+SET 1008 __void
+SET 1009 __void
+SET 1010 __void
 SELECT 2
-RPUSH 4 1 2
-RPUSH 5 1 2
-RPUSH 6 1 2
-RPUSH 7 1 2
-RPUSH 8 1 2
-RPUSH 9 1 2
-RPUSH 10 1 2
-RPUSH 11 1 2
-RPUSH 12 1 2
+RPUSH 4 on closed
+RPUSH 5 on closed
+RPUSH 6 on closed
+RPUSH 7 on closed
+RPUSH 8 on closed
+RPUSH 9 on closed
+RPUSH 10 on closed
+RPUSH 11 on closed
+RPUSH 12 on closed

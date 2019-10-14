@@ -62,7 +62,7 @@ class acs_server(object):
         self.proto.can_sock.send(can_id, dlc, data)
 
     # add a new user to database
-    def add_new_user(self, reader_addr, user_id):
+    def add_new_user(self, user_id, reader_addr):
         if self.debug:
             logging.debug("add_new_user: reader={}, user={}".format(reader_addr, user_id))
         # do not add existing users
@@ -85,9 +85,7 @@ class acs_server(object):
             logging.debug("resp_to_auth_req: reader={}, user={}".format(reader_addr, user_id))
         mode = self.db.get_door_mode(reader_addr)
         if mode is None:
-            if self.debug:
-                logging.debug("resp_to_auth_req: no door mode!")
-            mode = self.db.DOOR_MODE_ENABLED  # fallback to default
+            return False  # treat as invalid request (door does not exist)
         if mode == self.db.DOOR_MODE_ENABLED:
             if self.db.is_user_authorized(user_id, reader_addr):
                 self.db.log_user_access(user_id, reader_addr)
@@ -95,13 +93,13 @@ class acs_server(object):
             else:
                 return False
         elif mode == self.db.DOOR_MODE_LEARN:
-            self.add_new_user(reader_addr, user_id)
+            self.add_new_user(user_id, reader_addr)
             return True
         else:
             return False
 
     # callback for door status update
-    def door_status_update(self, reader_addr, is_open):
+    def door_status_update(self, reader_addr, is_open:bool):
         if self.debug:
             logging.debug("door_status_update: reader={} open={}".format(reader_addr, is_open))
         self.db.set_door_is_open(reader_addr, is_open)

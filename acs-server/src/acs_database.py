@@ -113,6 +113,10 @@ class acs_database(object):
     def get_panels_in_group(self, group:str):
         return self.__rclient_group.smembers(group)
 
+    # Return true if door is in database
+    def is_door_registered(self, reader_addr:int) -> bool:
+        self.__rclient_door.llen(reader_addr) == 2
+
     # Return True if user is authorized for given reader (door) number.
     def is_user_authorized(self, user_id:int, reader_addr:int) -> bool:
         group = self.get_user_group(user_id)
@@ -125,7 +129,7 @@ class acs_database(object):
 
     # Log that user accessed a door/reader.
     def log_user_access(self, user_id, reader_addr):
-        logging.info("User \"{}\" accessed door \"{}\"".format(user_id, reader_addr))
+        logging.info("User \"{}\" accessed \"{}\"".format(user_id, reader_addr))
 
     # Mode is one of DOOR_MODE_...
     def set_door_mode(self, reader_addr, mode):
@@ -133,7 +137,10 @@ class acs_database(object):
 
     # Return one of DOOR_MODE_...
     def get_door_mode(self, reader_addr):
-        return self.__rclient_door.lindex(reader_addr, self.__DOOR_MODE_IDX)
+        door_mode = self.__rclient_door.lindex(reader_addr, self.__DOOR_MODE_IDX)
+        if door_mode is None:
+            logging.warning("Door {} does not exist! Check DB consistency.".format(reader_addr))
+        return door_mode
 
     # Door open/close status is tracked.
     def set_door_is_open(self, reader_addr, is_open:bool):

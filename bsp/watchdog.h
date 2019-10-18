@@ -1,8 +1,10 @@
-/*
- * watchdog.h
+/**
+ *  @file
+ *  @brief HW watchdog.
  *
- *  Created on: 23. 9. 2018
- *      Author: Petr
+ *  @author Petr Elexa
+ *  @see LICENSE
+ *
  */
 
 #ifndef BSP_WATCHDOG_H_
@@ -10,9 +12,29 @@
 
 #include <stdint.h>
 
+/**
+* @brief Watchdog timer interrupt handler.
+*
+*        Handles watchdog timer timeout events.
+*        Will be called only in debug mode.
+*
+*/
 void WDT_IRQHandler(void);
 
+/**
+* @brief Initialize Watchdog timer.
+*
+*        After init watchdog must be reloaded by @ref WDT_Feed.
+*
+* @param timeout ... time to reset or interrupt from watchdog timer.
+*
+*/
 void WDT_Init(uint8_t timeout);
+
+/**
+* @brief Feed watchdog timer.
+*
+*/
 void WDT_Feed(void);
 
 #endif /* BSP_WATCHDOG_H_ */

@@ -1,5 +1,10 @@
-/*
- * This RFID reader implementation uses Weigand26 card reader protocol.
+/**
+ *  @file
+ *  @brief RFID card reader driver.
+ *
+ *  @author Petr Elexa
+ *  @see LICENSE
+ *
  */
 
 #ifndef BSP_READER_H_
@@ -47,18 +52,50 @@ typedef struct
   uint8_t sensor_pin;
 } reader_wiring_t;
 
-
+/**
+ * @brief Configuration of readers
+ */
 extern reader_conf_t reader_conf[ACS_READER_COUNT];
 
+/**
+ * @brief Initialize reader driver.
+ *
+ */
 void reader_init(uint8_t idx);
 
+/**
+ * @brief Disable reader driver.
+ *
+ * @param idx ... reader index
+ */
 void reader_deinit(uint8_t idx);
 
-// user_id is 24-bit number
+
+/**
+ * @brief Disable reader driver.
+ *
+ * @param user_id ... 24-bit number
+ * @param idx ... reader index
+ * @param ... time_to_wait_ms ... time to wait for request
+ */
 int8_t reader_get_request_from_buffer(uint32_t * user_id, uint16_t time_to_wait_ms);
 
+/**
+ * @brief Unlock door belonging to reader.
+ *
+ * @param idx ... reader index
+ * @param with_beep ... true for sound signal
+ * @param with_ok_led ... true for visual signal
+ */
 void reader_unlock(uint8_t idx, bool with_beep, bool with_ok_led);
 
+/**
+ * @brief Check door status.
+ *
+ * @param idx ... reader index
+ *
+ * @return true if door is open
+ */
 bool reader_is_door_open(uint8_t reader_idx);
 
 #endif /* BSP_READER_H_ */

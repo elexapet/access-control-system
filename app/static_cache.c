@@ -1,6 +1,12 @@
-/*
- * Similar to Set Associative Cache.
- *  Divide into sets by key. Each set is a sorted array.
+/**
+ *  @file
+ *  @brief Statically allocated cache for user IDs.
+ *
+ *  It is similar to Set Associative Cache.
+ *  Place key and value into sets by key hash. Each set is a sorted array.
+ *
+ *  @author Petr Elexa
+ *  @see LICENSE
  *
  */
 
@@ -9,12 +15,17 @@
 
 #if CACHING_ENABLED
 
+/*****************************************************************************
+ * Private types/enumerations/variables
+ ****************************************************************************/
+
 typedef struct
 {
   cache_item_t * const ptr_items;
   int length;
 } cache_set_t;
 
+// Allocate cache in memory.
 static cache_item_t _cache_set_0[STATIC_CACHE_SET_CAP];
 static cache_item_t _cache_set_1[STATIC_CACHE_SET_CAP];
 static cache_item_t _cache_set_2[STATIC_CACHE_SET_CAP];
@@ -28,6 +39,11 @@ static cache_set_t _cache_sets[STATIC_CACHE_SETS]
                                            {_cache_set_3, 0}
                                        };
 
+/*****************************************************************************
+ * Private functions
+ ****************************************************************************/
+
+// Standard implementation of binary search.
 static bool _binary_search(const cache_set_t * ptr_set, const cache_item_t kv, int * ptr_idx)
 {
   int down = 0;
@@ -42,20 +58,24 @@ static bool _binary_search(const cache_set_t * ptr_set, const cache_item_t kv, i
     else
     {
       *ptr_idx = mid;
-      return true; // found
+      return true; // Found.
     }
   }
   *ptr_idx = down;
-  return false; //not found
+  return false; // Not found.
 }
 
+// Retrieve cache set the key should be in. Decide from first two bits.
 // O(1)
 static inline cache_set_t * _get_cache_set(const cache_item_t kv)
 {
   return &_cache_sets[(kv.key & 0x3)];
 }
 
-// O(log (STATIC_CACHE_CAPACITY / STATIC_CACHE_SETS))
+/*****************************************************************************
+ * Public functions
+ ****************************************************************************/
+
 bool static_cache_get(cache_item_t * ptr_kv)
 {
   const cache_set_t * ptr_set = _get_cache_set(*ptr_kv);
@@ -63,18 +83,17 @@ bool static_cache_get(cache_item_t * ptr_kv)
   int idx = 0;
   if (_binary_search(ptr_set, *ptr_kv, &idx))
   {
-    //found
+    // Found.
     *ptr_kv = ptr_set->ptr_items[idx];
     return true;
   }
   else
   {
-    //not found
+    // Not found.
     return false;
   }
 }
 
-// O(log (STATIC_CACHE_CAPACITY / 4) + 2*(STATIC_CACHE_CAPACITY / 4))
 void static_cache_insert(const cache_item_t kv)
 {
   cache_set_t * ptr_set = _get_cache_set(kv);
@@ -82,18 +101,18 @@ void static_cache_insert(const cache_item_t kv)
   int idx = 0;
   if (_binary_search(ptr_set, kv, &idx))
   {
-    ptr_set->ptr_items[idx] = kv; // update existing item
+    ptr_set->ptr_items[idx] = kv; // Update existing item.
   }
   else
   {
     if ( 1 + ptr_set->length >= STATIC_CACHE_SET_CAP)
     {
-      // cache set full - replace existing
+      // Cache set full - replace existing.
       ptr_set->ptr_items[idx] = kv;
     }
     else
     {
-      // move items and place new one
+      // Move items and place new one.
       for (int i = ptr_set->length - 1; i >= idx; --i)
       {
         ptr_set->ptr_items[i + 1] = ptr_set->ptr_items[i];
@@ -104,7 +123,6 @@ void static_cache_insert(const cache_item_t kv)
   }
 }
 
-// O(log (STATIC_CACHE_CAPACITY / 4) + 2*(STATIC_CACHE_CAPACITY / 4))
 void static_cache_erase(const cache_item_t kv)
 {
   cache_set_t * ptr_set = _get_cache_set(kv);
@@ -112,7 +130,7 @@ void static_cache_erase(const cache_item_t kv)
   int idx;
   if (_binary_search(ptr_set, kv, &idx))
   {
-    // found delete and move remaining
+    // Key was found - delete and fill the empty position.
     for (int i = idx; i < ptr_set->length - 1; ++i)
     {
       ptr_set->ptr_items[i] = ptr_set->ptr_items[i + 1];

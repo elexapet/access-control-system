@@ -1,6 +1,12 @@
-/***********************************************************************
- *  CCAN driver
- **********************************************************************/
+/**
+ *  @file
+ *  @brief Interface for LPC11C24's on-board CCAN driver in ROM.
+ *
+ *
+ *  @author Petr Elexa
+ *  @see LICENSE
+ *
+ */
 
 #include "can/can_term_driver.h"
 #include <string.h>
@@ -10,7 +16,7 @@
 __BSS(RESERVED) char CAN_driver_memory[184];  /* reserve 184 bytes for CAN driver */
 #endif
 
-//
+// Time quanta
 #define CCAN_BCR_QUANTA(x) ((x) & 0x3F)
 // Synch. Jump Width
 #define CCAN_BCR_SJW(x) (((x) & 0x3) << 6)
@@ -19,17 +25,6 @@ __BSS(RESERVED) char CAN_driver_memory[184];  /* reserve 184 bytes for CAN drive
 // Time segment 2
 #define CCAN_BCR_TSEG2(x) (((x) & 0x07) << 12)
 
-
-/*****************************************************************************
- * Private types/enumerations/variables
- ****************************************************************************/
-
-/* IRQ handler prototype */
-void CAN_IRQHandler(void);
-
-/*****************************************************************************
- * Public types/enumerations/variables
- ****************************************************************************/
 
 /*****************************************************************************
  * Private functions
@@ -89,18 +84,6 @@ static inline void _125_kbaud_75sp(uint32_t * can_api_timing_cfg)
  * Public functions
  ****************************************************************************/
 
-
-/*****************************************************************************
-** Function name:   CAN_init
-**
-** Description:     Initializes CAN
-**            Function should be executed before using the CAN bus.
-**            Initializes the CAN controller, on-chip drivers.
-**
-**
-** Parameters:      None
-** Returned value:    None
-*****************************************************************************/
 void CAN_init(CCAN_CALLBACKS_T * ptr_callbacks, uint32_t baud_rate)
 {
   // Power up CAN
@@ -123,8 +106,6 @@ void CAN_init(CCAN_CALLBACKS_T * ptr_callbacks, uint32_t baud_rate)
   NVIC_EnableIRQ(CAN_IRQn);
 }
 
-// Configure Message object filter
-// matches when <recieved_id> & mask == id & mask
 void CAN_recv_filter(uint8_t msgobj_num, uint32_t id, uint32_t mask, bool extended)
 {
   CCAN_MSG_OBJ_T msg_obj = {0, };
@@ -141,7 +122,6 @@ void CAN_recv_filter(uint8_t msgobj_num, uint32_t id, uint32_t mask, bool extend
   LPC_CCAN_API->config_rxmsgobj(&msg_obj);
 }
 
-/* Configure Message object to receive all extended frames 0-0x1FFFFFFF */
 void CAN_recv_filter_all_ext(uint8_t msgobj_num)
 {
   CCAN_MSG_OBJ_T msg_obj = {0, };
@@ -183,16 +163,6 @@ void CAN_send_test(void)
   LPC_CCAN_API->can_transmit(&msg_obj);
 }
 
-/*****************************************************************************
-** Function name:   CAN_IRQHandler
-**
-** Description:     CAN interrupt handler.
-**            The CAN interrupt handler must be provided by the user application.
-**            It's function is to call the isr() API located in the ROM
-**
-** Parameters:      None
-** Returned value:    None
-*****************************************************************************/
 void CAN_IRQHandler(void)
 {
   LPC_CCAN_API->isr();

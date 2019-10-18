@@ -1,8 +1,20 @@
-/*
- * weigand.h
+/**
+ *  @file
+ *  @brief Wiegand26 interface driver.
  *
- *  Created on: 24. 8. 2018
- *      Author: Petr
+ *
+ *  500 b/s transfer rate
+ *  data pulse 40-70us
+ *  data interval >2ms
+ *
+ *  Only Wiegand 26bit format
+ *  Frame:
+ *  | even parity (1b) | facility code (8b) | card number (16b) | odd parity (1b) |
+ *  transmission duration ~52ms
+ *
+ *  @author Petr Elexa
+ *  @see LICENSE
+ *
  */
 
 #ifndef BSP_WEIGAND_H_
@@ -15,7 +27,7 @@
 #include "stream_buffer.h"
 
 #define WEIGAND26_FRAME_SIZE 26
-#define WEIGAND26_FRAME_TIME_LIMIT 80 // frame time < 68ms
+#define WEIGAND26_FRAME_TIME_LIMIT 80 // Actual frame time in worst case is 68ms.
 
 typedef union
 {
@@ -33,21 +45,61 @@ typedef union
 // Buffer item type required from consumer of this driver to be used
 typedef struct
 {
-  uint8_t source;
+  uint8_t source; // =interface identification
   weigand26_frame_t frame;
 } weigand26_buff_item_t;
 
 #define WEIGAND26_BUFF_ITEM_SIZE sizeof(weigand26_buff_item_t)
 
-//One buffer for each receiving component is preferred
+//
+/**
+ * @brief Initialize Wiegand driver.
+ *
+ * @note One buffer for each consumer is preferred.
+ *
+ * @param buffer ... Receive buffer for frames from RFID card/tags.
+ *                   See weigand26_buff_item_t
+ * @param id ... interface identification
+ * @param dx_port ... Port number for data signals.
+ * @param d0_pin ... Pin for 0's data signal.
+ * @param d1_pin ... Pin for 1's data signal.
+ */
 void weigand_init(StreamBufferHandle_t buffer, uint8_t id, uint8_t dx_port, uint8_t d0_pin, uint8_t d1_pin);
 
+/**
+ * @brief Disable Wiegand driver.
+ *
+ * @param dx_port ... Port number for data signals.
+ * @param d0_pin ... Pin for 0's data signal.
+ * @param d1_pin ... Pin for 1's data signal.
+ */
 void weigand_disable(uint8_t dx_port, uint8_t d0_pin, uint8_t d1_pin);
 
+/**
+ * @brief Parse facility code from frame.
+ *
+ * @param frame ... Wiegand26 data frame.
+ *
+ * @return facility code
+ */
 uint32_t weigand_get_facility(weigand26_frame_t frame);
 
+/**
+ * @brief Parse card number from frame.
+ *
+ * @param frame ... Wiegand26 data frame.
+ *
+ * @return card number
+ */
 uint32_t weigand_get_card(weigand26_frame_t frame);
 
+/**
+ * @brief Check frame parity.
+ *
+ * @param frame ... Wiegand26 data frame.
+ *
+ * @return true if parity is valid
+ */
 bool weigand_is_parity_ok(weigand26_frame_t frame);
 
 #endif /* BSP_WEIGAND_H_ */

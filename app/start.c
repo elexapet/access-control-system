@@ -1,6 +1,13 @@
-/*
-  Main startup sequence
-*/
+/**
+ *  @file
+ *  @brief Main entry point
+ *
+ *  Contains start-up sequence.
+ *
+ *  @author Petr Elexa
+ *  @see LICENSE
+ *
+ */
 
 #include "can/can_term_driver.h"
 #include "terminal.h"
@@ -27,7 +34,7 @@
  * Private functions
  ****************************************************************************/
 
-static void check_system_stack_size(void)
+static void _check_system_stack_size(void)
 {
   extern unsigned long _vStackTop[], _pvHeapStart[];
   unsigned long ulInterruptStackSize;
@@ -54,6 +61,7 @@ int main(void)
 {
 	__disable_irq();
 
+	// Init brown-out detection.
 	BOD_Init();
 
 	// Set up and initialize all required blocks and
@@ -70,13 +78,13 @@ int main(void)
 
   WDT_Feed();
 
-  terminal_init();
+  terminal_init(); // Terminal init requires enabled interrupts.
 
   WDT_Feed();
 
-  check_system_stack_size();
+  _check_system_stack_size();
 
-  /* Start the kernel.  From here on, only tasks and interrupts will run. */
+  // Start the kernel.  From here on, only tasks and interrupts will run.
   vTaskStartScheduler();
 
   return 1;

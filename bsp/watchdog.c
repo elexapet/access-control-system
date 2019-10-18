@@ -1,37 +1,20 @@
-/*
-===============================================================================
- Name        : watchdog.c
- Author      : Petr Elexa
- Version     :
- Copyright   :
- Description :
-===============================================================================
-*/
+/**
+ *  @file
+ *  @brief HW watchdog.
+ *
+ *  @author Petr Elexa
+ *  @see LICENSE
+ *
+ */
 
 #include "watchdog.h"
 #include "board.h"
 
-/*****************************************************************************
- * Private types/enumerations/variables
- ****************************************************************************/
-
-/*****************************************************************************
- * Public types/enumerations/variables
- ****************************************************************************/
-
-/*****************************************************************************
- * Private functions
- ****************************************************************************/
 
 /*****************************************************************************
  * Public functions
  ****************************************************************************/
 
-/**
- * @brief	Watchdog Timer Interrupt Handler for debugging
- * @return	Nothing
- * @note	Handles watchdog timer timeout events
- */
 void WDT_IRQHandler(void)
 {
 	uint32_t wdtStatus = Chip_WWDT_GetStatus(LPC_WWDT);
@@ -50,9 +33,7 @@ void WDT_IRQHandler(void)
 	}
 }
 
-/**
- * @brief	Init
- */
+
 void WDT_Init(uint8_t timeout)
 {
 	uint32_t wdtFreq;

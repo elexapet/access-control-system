@@ -1,8 +1,10 @@
-/*
- * brownout.c
+/**
+ *  @file
+ *  @brief Brown-out detection.
  *
- *  Created on: 21. 8. 2019
- *      Author: Petr
+ *  @author Petr Elexa
+ *  @see LICENSE
+ *
  */
 
 #include "brownout.h"

@@ -1,18 +1,23 @@
-/*
- * terminal_config.c
+/**
+ *  @file
+ *  @brief Configuration of hardware and software.
  *
- *      Author: Petr
+ *  @author Petr Elexa
+ *  @see LICENSE
+ *
  */
 
 #include "terminal_config.h"
 #include "storage.h"
 #include "acs_can_protocol.h"
 
+// Network address mask.
 #define ACS_ADDR_BIT_MASK ((1 << ACS_ADDR_BITS) - 1)
 
-// door addresses in ACS
+// Door addresses in ACS.
 uint16_t _READER_A_ADDR = 0x4; // even
 uint16_t _READER_B_ADDR = 0x5; // odd
+
 
 inline uint16_t get_reader_a_addr(void)
 {
@@ -49,19 +54,19 @@ static bool _save_acs_addrs_from_ext_stor(void)
   return ret_val;
 }
 
-void set_reader_addr(uint16_t first_acs_addr)
+void set_reader_addr(uint16_t acs_addr)
 {
-  first_acs_addr &= ACS_ADDR_BIT_MASK;
+  acs_addr &= ACS_ADDR_BIT_MASK;
 
-  if (first_acs_addr & 0x1) // even address
+  if (acs_addr & 0x1) // even address
   {
-    _READER_B_ADDR = first_acs_addr;
-    _READER_A_ADDR = first_acs_addr - 1;
+    _READER_B_ADDR = acs_addr;
+    _READER_A_ADDR = acs_addr - 1;
   }
   else // odd address
   {
-    _READER_A_ADDR = first_acs_addr;
-    _READER_B_ADDR = first_acs_addr + 1;
+    _READER_A_ADDR = acs_addr;
+    _READER_B_ADDR = acs_addr + 1;
   }
 }
 

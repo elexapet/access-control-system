@@ -1,3 +1,13 @@
+/**
+ *  @file
+ *  @brief RFID reader driver
+ *
+ *         This RFID reader implementation uses Weigand26 card reader protocol.
+ *
+ *  @author Petr Elexa
+ *  @see LICENSE
+ *
+ */
 
 #include <reader.h>
 

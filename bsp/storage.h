@@ -1,8 +1,12 @@
-/*
- * storage.h
+/**
+ *  @file
+ *  @brief Storage implementation.
  *
- *  Created on: 20. 9. 2019
- *      Author: Petr
+ *         Supports I2C EEPROMs and I/O expanders.
+ *
+ *  @author Petr Elexa
+ *  @see LICENSE
+ *
  */
 
 #ifndef BSP_STORAGE_H_
@@ -12,23 +16,43 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// I2C device to use
 #define STORE_I2C_DEV I2C0
 
-#define STORE_DEV_BUSY_FOR 50
 
-// Initialize I2C bus for storage
+/**
+ * @brief Initialize I2C bus for storage.
+ *
+ */
 void storage_init(void);
 
-// Read a word from address (little-endian)
+/**
+ * @brief Read a word from address (little-endian).
+ *
+ * @return true if succeeded
+ */
 bool storage_read_word_le(const uint8_t addr, uint16_t * data);
 
-// Write a word to address (little-endian)
+/**
+ * @brief Write a word to address (little-endian).
+ *
+ * @return true if succeeded
+ */
 bool storage_write_word_le(const uint8_t addr, const uint16_t data);
 
-// Read a byte from address
+/**
+ * @brief Read a byte from address.
+ *
+ * @return true if succeeded
+ */
 bool storage_read_byte(const uint8_t addr, uint8_t * data);
 
-// Write a byte to address
+/**
+ * @brief Write a byte to address.
+ *
+ * @return true if succeeded
+ */
 bool storage_write_byte(const uint8_t addr, const uint8_t data);
+
 
 #endif /* BSP_STORAGE_H_ */

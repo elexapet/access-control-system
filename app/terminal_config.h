@@ -1,46 +1,91 @@
-/*
- * terminal_config.h
+/**
+ *  @file
+ *  @brief Terminal client configuration (hardware and software).
+ * *
+ *  @author Petr Elexa
+ *  @see LICENSE
  *
- *  Created on: 24. 8. 2018
- *      Author: Petr
  */
 
-#ifndef BSP_BOARD_CONFIG_H_
-#define BSP_BOARD_CONFIG_H_
+#ifndef TERM_CONFIG_H_
+#define TERM_CONFIG_H_
 
 #include <stdint.h>
 #include <stdbool.h>
 
-//-------------------------------------------------------------
-// General settings
-
 #define DEVEL_BOARD
+
+//-------------------------------------------------------------
+// General settings.
+//-------------------------------------------------------------
+
+// Enable write of ACS address to external storage on startup.
 #define ENABLE_LOCAL_ACS_ADDR_WRITE 0
 
-// enable caching for operation when communication is lost
-// cache expiration is to be handled by master
+// Enable caching for operation when communication is lost.
+// Cache expiration is to be handled by master (Not implemented).
 #define CACHING_ENABLED 0
 
-// CAN bus speed b/s
+// CAN bus speed b/s - affects maximum data cable length.
+// Suggested option for common use are 100kbit/s and 125kbit/s.
 #define CAN_BAUD_RATE 125000
 
+// Setting for I2C external storage for door adresses
+// (EEPROM, IO EXPANDER or device with same access).
+#define STORE_I2C_BUS_FREQ   400000 // 100kHz or 400kHz
+#define STORE_I2C_SLAVE_ADDR 0x50   // 7bit address
+
+// Internal index of card readers (can be swapped).
+#define ACS_READER_A_IDX 0
+#define ACS_READER_B_IDX 1
+
+// Number of card readers present 1 or 2.
+#define ACS_READER_COUNT 2
+
+#define BEEP_ON_SUCCESS false
+#define OK_LED_ON_SUCCESS true
+
+// Door sensor types (reed switch).
+#define SENSOR_IS_NO 0  // Normally open (Form A).
+#define SENSOR_IS_NC 1  // Normally closed (Form B).
+
+// If DOOR_SENSOR_TYPE is defined enables door sensor.
+#define DOOR_SENSOR_TYPE SENSOR_IS_NO
+
+// Communication status led.
+#define ACS_COMM_STATUS_LED_PORT  0
+#define ACS_COMM_STATUS_LED_PIN   6
+
 //-------------------------------------------------------------
-// global UID from vendor (from chip)
+// Global UID from vendor (from chip).
+//-------------------------------------------------------------
 #define IAP_READ_UID 58
 extern unsigned int TERMINAL_UID[5]; // 0 - status code, 1 - least significant word
 
 //-------------------------------------------------------------
-// Door addresses in a network for ACS system
+// Door addresses in a network for ACS system.
+//-------------------------------------------------------------
 //
 // Read from external storage on startup
 // Designed to be even (address A) and odd (address B)
 // Always true: ADDR_B = ADDR_A + 1
 
-// Address getters
+/**
+* @brief Get network address of door A.
+*
+*/
 extern uint16_t get_reader_a_addr(void);
+/**
+* @brief Get network address of door B.
+*
+*/
 extern uint16_t get_reader_b_addr(void);
-// Address setter
-void set_reader_addr(const uint16_t first_acs_addr);
+/**
+ * @brief Address setter.
+ *
+ * @param acs_addr ... ACS network address (odd or even).
+ */
+void set_reader_addr(const uint16_t acs_addr);
 
 // Expected organization in external address space:
 // | 0x00 | A_ADDR [7:0]
@@ -50,35 +95,7 @@ void set_reader_addr(const uint16_t first_acs_addr);
 // The address actually uses less then 16 bits. See address bit width in ACS protocol.
 
 #define PTR_READER_FIRST_ADDR 0x0 // pointer to external memory
-
-
-// Setting for I2C external storage for door adresses
-// (EEPROM, IO EXPANDER or device with same access)
-#define STORE_I2C_BUS_FREQ   400000 // 100kHz or 400kHz
-#define STORE_I2C_SLAVE_ADDR 0x50   // 7bit address
-
-//-------------------------------------------------------------
-
-// internal number of card readers
-#define ACS_READER_A_IDX 0
-#define ACS_READER_B_IDX 1
-
-// card reader count 1/2
-#define ACS_READER_COUNT 2
-
-#define BEEP_ON_SUCCESS false
-#define OK_LED_ON_SUCCESS true
-
-// communication status led
-#define ACS_COMM_STATUS_LED_PORT  0
-#define ACS_COMM_STATUS_LED_PIN   6
-
-// Door sensor types (reed switch).
-#define SENSOR_IS_NO 0  // Normally open (Form A).
-#define SENSOR_IS_NC 1  // Normally closed (Form B).
-
-// If DOOR_SENSOR_TYPE is defined enables door sensor
-#define DOOR_SENSOR_TYPE SENSOR_IS_NO
+#define STORE_DEV_BUSY_FOR 50 // Number of read commands to try before EEPROM timeout
 
 //---------------------------------------------------------------------------------------------------------------------
 // Settings for RFID reader A
@@ -126,8 +143,10 @@ void set_reader_addr(const uint16_t first_acs_addr);
 #define ACS_READER_B_OPEN_TIME_MS         8000
 #define ACS_READER_B_OK_GLED_TIME_MS      4000
 
+
 //---------------------------------------------------------------------------------------------------------------------
 // Internal setting
+//---------------------------------------------------------------------------------------------------------------------
 
 // if following is changed it will need code modification
 #define WEIGAND_DEVICE_LIMIT 4
@@ -140,22 +159,29 @@ void set_reader_addr(const uint16_t first_acs_addr);
 #endif
 
 //---------------------------------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------------------
 
 #define HW_WATCHDOG_TIMEOUT 1 // in seconds
 
 //---------------------------------------------------------------------------------------------------------------------
-
 // IO
+//---------------------------------------------------------------------------------------------------------------------
+
 #define LOG_HIGH 1
 #define LOG_LOW 0
 
 //---------------------------------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------------------
 
-
-// Initialize configuration
-// @return true if succeeded
+/**
+*
+* @brief Initialize configuration for terminal.
+*
+*        Reads address from storage.
+* @return true if succeeded
+*/
 bool terminal_config_init(void);
 
 //---------------------------------------------------------------------------------------------------------------------
 
-#endif /* BSP_BOARD_CONFIG_H_ */
+#endif /* TERM_CONFIG_H_ */

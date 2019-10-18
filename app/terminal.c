@@ -19,7 +19,13 @@
 #include <stdio.h>
 #include <string.h>
 
-#define USER_REQUEST_WAIT_MS 1000
+/*****************************************************************************
+ * Private types/enumerations/variables
+ ****************************************************************************/
+
+// How long to wait for user request.
+// This also controls intensity of door status messages.
+static const uint16_t USER_REQUEST_WAIT_MS = 1500;
 
 // Cache entry type mapping to our type.
 typedef cache_item_t term_cache_item_t;  // 4 bytes
@@ -46,7 +52,11 @@ static TimerHandle_t _act_timer = NULL;
 static const uint32_t _act_timer_id = TERMINAL_TIMER_ID;
 
 // Last door open(true) / close(false) status
-static bool last_door_state[ACS_READER_COUNT] = {false, false};
+static bool _last_door_state[ACS_READER_COUNT] = {false, false};
+
+/*****************************************************************************
+ * Private functions
+ ****************************************************************************/
 
 // Map reader index to correct cache value.
 static inline uint8_t map_reader_idx_to_cache(uint8_t reader_idx)
@@ -54,13 +64,13 @@ static inline uint8_t map_reader_idx_to_cache(uint8_t reader_idx)
   return (reader_idx == ACS_READER_A_IDX ? cache_reader_A : cache_reader_B);
 }
 
-static inline void terminal_user_authorized(uint8_t reader_idx)
+static inline void _terminal_user_authorized(uint8_t reader_idx)
 {
   DEBUGSTR("auth OK\n");
   reader_unlock(reader_idx, BEEP_ON_SUCCESS, OK_LED_ON_SUCCESS);
 }
 
-static inline void terminal_user_not_authorized(uint8_t reader_idx)
+static inline void __terminal_user_not_authorized(uint8_t reader_idx)
 {
   (void)reader_idx;
   DEBUGSTR("auth FAIL\n");
@@ -87,6 +97,10 @@ static void _timer_callback(TimerHandle_t pxTimer)
     portEXIT_CRITICAL();
   }
 }
+
+/*****************************************************************************
+ * Public functions
+ ****************************************************************************/
 
 void term_can_error(uint32_t error_info)
 {
@@ -152,7 +166,7 @@ void term_can_recv(uint8_t msg_obj_num)
   // Continue deducing action and execute it.
   if (head.fc == FC_USER_AUTH_RESP)
   {
-    terminal_user_authorized(reader_idx);
+    _terminal_user_authorized(reader_idx);
 
     #if CACHING_ENABLED
       uint32_t user_id;
@@ -166,7 +180,7 @@ void term_can_recv(uint8_t msg_obj_num)
   }
   else if (head.fc == FC_USER_NOT_AUTH_RESP)
   {
-    terminal_user_not_authorized(reader_idx);
+    __terminal_user_not_authorized(reader_idx);
 
     #if CACHING_ENABLED
       uint32_t user_id;
@@ -273,7 +287,7 @@ static void terminal_user_identified(uint32_t user_id, uint8_t reader_idx)
     {
       if (map_reader_idx_to_cache(reader_idx) & user.value)
       {
-        terminal_user_authorized(reader_idx);
+        _terminal_user_authorized(reader_idx);
       }
     }
     else
@@ -285,17 +299,19 @@ static void terminal_user_identified(uint32_t user_id, uint8_t reader_idx)
   }
 }
 
-// Main terminal processing task.
+// Main loop in terminal processing task.
 //
-// Waked only when request is in the reader buffer.
+// Waked only when request is in the reader buffer or after timeout.
 static void terminal_task(void *pvParameters)
 {
   (void)pvParameters;
 
+  // start timer for detecting master timeout
   configASSERT(xTimerStart(_act_timer, 0));
 
   while (true)
   {
+    // Get pending user request
     uint32_t user_id;
     uint8_t reader_idx = reader_get_request_from_buffer(&user_id, USER_REQUEST_WAIT_MS);
     if (reader_idx < ACS_READER_COUNT)
@@ -306,11 +322,11 @@ static void terminal_task(void *pvParameters)
     // Check if door open/close state changed
     for (size_t idx = 0; idx < ACS_READER_COUNT; ++idx)
     {
-      if (reader_is_door_open(idx) != last_door_state[idx])
+      if (reader_is_door_open(idx) != _last_door_state[idx])
       {
         DEBUGSTR("new door state\n");
-        last_door_state[idx] = !last_door_state[idx];
-        terminal_send_door_status(idx, last_door_state[idx]);
+        _last_door_state[idx] = !_last_door_state[idx];
+        terminal_send_door_status(idx, _last_door_state[idx]);
       }
     }
   }

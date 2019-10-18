@@ -1,21 +1,26 @@
-/*
- * storage.c
+/**
+ *  @file
+ *  @brief Storage implementation.
  *
- *  Created on: 20. 9. 2019
- *      Author: Petr
+ *         Supports I2C EEPROMs and I/O expanders.
+ *
+ *  @author Petr Elexa
+ *  @see LICENSE
+ *
  */
+
 #include "storage.h"
 #include "FreeRTOS.h"
 #include "task.h"
 
-static inline void Init_I2C_PinMux(void)
+static inline void _init_I2C_pins(void)
 {
 #ifdef BOARD_NXP_XPRESSO_11C24
   Chip_SYSCTL_DeassertPeriphReset(RESET_I2C0);
   Chip_IOCON_PinMux(LPC_IOCON, CHIP_IOCON_PIO[0][4], IOCON_SFI2C_EN, IOCON_FUNC1);
   Chip_IOCON_PinMux(LPC_IOCON, CHIP_IOCON_PIO[0][5], IOCON_SFI2C_EN, IOCON_FUNC1);
 #else
-  #error "Unsupported board for I2C operation."
+  #error "Unsupported board for I2C storage."
 #endif
 }
 
@@ -37,7 +42,7 @@ void storage_init(void)
 
   configASSERT(freq > 1000 && freq <= 400000);
 
-  Init_I2C_PinMux();
+  _init_I2C_pins();
 
   /* Initialize I2C */
   Chip_I2C_Init(STORE_I2C_DEV);

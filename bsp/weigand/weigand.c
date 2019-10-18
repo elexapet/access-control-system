@@ -1,10 +1,6 @@
-/*
- * weigand.c
- *
- *  Created on: 24. 8. 2018
- *      Author: Petr
- *
- *  Wiegand interface
+/**
+ *  @file
+ *  @brief Wiegand26 interface driver.
  *
  *  500 b/s transfer rate
  *  data pulse 40-70us
@@ -15,7 +11,8 @@
  *  | even parity (1b) | facility code (8b) | card number (16b) | odd parity (1b) |
  *  transmission duration ~52ms
  *
- *
+ *  @author Petr Elexa
+ *  @see LICENSE
  *
  */
 

@@ -16,21 +16,41 @@
 __BSS(RESERVED) char CAN_driver_memory[184];  /* reserve 184 bytes for CAN driver */
 #endif
 
-// Time quanta
+// Time quanta (Bit-rate prescaler)
 #define CCAN_BCR_QUANTA(x) ((x) & 0x3F)
-// Synch. Jump Width
+// Synchronization jump width
 #define CCAN_BCR_SJW(x) (((x) & 0x3) << 6)
 // Time segment 1
 #define CCAN_BCR_TSEG1(x) (((x) & 0x0F) << 8)
 // Time segment 2
 #define CCAN_BCR_TSEG2(x) (((x) & 0x07) << 12)
 
+#define CAN_CALC_SYNC_SEG 1
+
+
+// Sample point = 100 * (tseg1 + CAN_CALC_SYNC_SEG) / (tseg1 + tseg2 + CAN_CALC_SYNC_SEG)
+
+// HW constants
+#define	TSEG1_MIN 1
+#define	TSEG1_MAX 13
+#define TSEG2_MIN 1
+#define TSEG2_MAX 8
+#define SJW_MAX   4
+#define BRP_MIN   1
+#define BRP_MAX   32
+
 
 /*****************************************************************************
  * Private functions
  ****************************************************************************/
 
-/* timing calculation from CAN example for integrated CCAN */
+/*
+ * Integrated CCAN hardware timing calculation from LPC11Cxx CCAN on-chip driver example.
+ * Satisfies chapter 8 "BIT TIMING REQUIREMENTS" of the "Bosch CAN Specification version 2.0"
+ * at http://www.semiconductors.bosch.de/pdf/can2spec.pdf.
+ *
+ * Hard coded sample point 50%
+ */
 static void _timing_calculate(uint32_t baud_rate, uint32_t * can_api_timing_cfg)
 {
   uint32_t pClk, div, quanta, segs, seg1, seg2, clk_per_bit, can_sjw;
@@ -60,14 +80,60 @@ static void _timing_calculate(uint32_t baud_rate, uint32_t * can_api_timing_cfg)
   }
 }
 
-static inline void _100_kbaud_75sp(uint32_t * can_api_timing_cfg)
+/*
+ * Integrated CCAN hardware timing calculation from LPC11Cxx CCAN on-chip driver example.
+ * Satisfies chapter 8 "BIT TIMING REQUIREMENTS" of the "Bosch CAN Specification version 2.0"
+ * at http://www.semiconductors.bosch.de/pdf/can2spec.pdf.
+ *
+ * Uses CiA recommended sample points.
+ */
+static void _timing_calculate_sp(uint32_t baud_rate, uint32_t * can_api_timing_cfg)
 {
-  /* 100kb 75% sampling point, CAN_CLK tolerance 5% */
-  /* Propagation time for UTP copper cable (0.64c) with maximum distance of 100 meter is 0.55us */
-  /* CANCLKDIV: CAN_CLK=48MHz */
-  /* CANBT register: TSEG1=14, TSEG2=5, SJW=4, BRP=X (actual value written is -1) */
-  can_api_timing_cfg[0] = 0;
-  can_api_timing_cfg[1] = CCAN_BCR_QUANTA(1) | CCAN_BCR_SJW(3) | CCAN_BCR_TSEG1(13) | CCAN_BCR_TSEG2(4);
+  uint32_t pClk, div, quanta, segs, seg1, seg2, clk_per_bit, can_sjw;
+  pClk = Chip_Clock_GetMainClockRate();
+
+  uint8_t spt_nominal;
+
+  if (baud_rate > 800000)
+  {
+	spt_nominal = 75;
+  }
+  else if (baud_rate > 500000)
+  {
+	spt_nominal = 80;
+  }
+  else
+  {
+	spt_nominal = 87;
+  }
+
+  clk_per_bit = pClk / baud_rate;
+
+  for (div = 0; div <= 15; div++)
+  {
+    for (quanta = 1; quanta <= 32; quanta++)
+    {
+      for (segs = 3; segs <= 17; segs++)
+      {
+        if (clk_per_bit == (segs * quanta * (div + 1)))
+        {
+          segs -= 3;
+
+          // Sample point
+          seg2 = segs - (spt_nominal * segs) / 100;
+          seg2 = seg2 > TSEG2_MIN ? (seg2 < TSEG2_MAX ? seg2 : TSEG2_MAX) : TSEG2_MIN; // Clamp the value
+          seg1 = segs - seg2;
+
+          can_sjw = seg1 > 3 ? 3 : seg1;
+
+          can_api_timing_cfg[0] = div;
+          can_api_timing_cfg[1] =
+            CCAN_BCR_QUANTA(quanta - 1) | CCAN_BCR_SJW(can_sjw) | CCAN_BCR_TSEG1(seg1) | CCAN_BCR_TSEG2(seg2);
+          return;
+        }
+      }
+    }
+  }
 }
 
 static inline void _125_kbaud_75sp(uint32_t * can_api_timing_cfg)
@@ -76,8 +142,8 @@ static inline void _125_kbaud_75sp(uint32_t * can_api_timing_cfg)
   /* Propagation time for UTP copper cable (0.64c) with maximum distance of 100 meter is 0.55us */
   /* CANCLKDIV: CAN_CLK=48MHz */
   /* CANBT register: TSEG1=11, TSEG2=4, SJW=4, BRP=4 (actual value written is -1) */
-  can_api_timing_cfg[0] = 0;
-  can_api_timing_cfg[1] = CCAN_BCR_QUANTA(1) | CCAN_BCR_SJW(3) | CCAN_BCR_TSEG1(10) | CCAN_BCR_TSEG2(3);
+  can_api_timing_cfg[0] = 5;
+  can_api_timing_cfg[1] = CCAN_BCR_QUANTA(3) | CCAN_BCR_SJW(3) | CCAN_BCR_TSEG1(10) | CCAN_BCR_TSEG2(3);
 }
 
 /*****************************************************************************

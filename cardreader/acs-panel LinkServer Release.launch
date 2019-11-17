@@ -35,13 +35,13 @@
 <stringAttribute key="org.eclipse.cdt.launch.DEBUGGER_START_MODE" value="remote"/>
 <booleanAttribute key="org.eclipse.cdt.launch.DEBUGGER_STOP_AT_MAIN" value="false"/>
 <stringAttribute key="org.eclipse.cdt.launch.DEBUGGER_STOP_AT_MAIN_SYMBOL" value="main"/>
-<stringAttribute key="org.eclipse.cdt.launch.PROGRAM_NAME" value="Release\cardreader.axf"/>
-<stringAttribute key="org.eclipse.cdt.launch.PROJECT_ATTR" value="cardreader"/>
+<stringAttribute key="org.eclipse.cdt.launch.PROGRAM_NAME" value="Release\acs-panel.axf"/>
+<stringAttribute key="org.eclipse.cdt.launch.PROJECT_ATTR" value="acs-panel"/>
 <booleanAttribute key="org.eclipse.cdt.launch.PROJECT_BUILD_CONFIG_AUTO_ATTR" value="false"/>
-<stringAttribute key="org.eclipse.cdt.launch.PROJECT_BUILD_CONFIG_ID_ATTR" value="com.crt.advproject.config.exe.release.1151933113"/>
+<stringAttribute key="org.eclipse.cdt.launch.PROJECT_BUILD_CONFIG_ID_ATTR" value=""/>
 <booleanAttribute key="org.eclipse.cdt.launch.use_terminal" value="false"/>
 <listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_PATHS">
-<listEntry value="/cardreader"/>
+<listEntry value="/acs-panel"/>
 </listAttribute>
 <listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_TYPES">
 <listEntry value="4"/>

@@ -53,6 +53,30 @@
 								<option id="com.crt.advproject.gcc.exe.debug.option.optimization.level.2073691341" name="Optimization Level" superClass="com.crt.advproject.gcc.exe.debug.option.optimization.level" useByScannerDiscovery="false" value="gnu.c.optimization.level.none" valueType="enumerated"/>
 								<option id="gnu.c.compiler.option.preprocessor.undef.symbol.173213259" name="Undefined symbols (-U)" superClass="gnu.c.compiler.option.preprocessor.undef.symbol" useByScannerDiscovery="false"/>
 								<option id="com.crt.advproject.gcc.fpu.395363749" name="Floating point" superClass="com.crt.advproject.gcc.fpu" useByScannerDiscovery="false"/>
+								<option id="gnu.c.compiler.option.dialect.flags.731587318" superClass="gnu.c.compiler.option.dialect.flags"/>
+								<option id="gnu.c.compiler.option.preprocessor.nostdinc.1002609323" superClass="gnu.c.compiler.option.preprocessor.nostdinc"/>
+								<option id="gnu.c.compiler.option.preprocessor.preprocess.1708006935" superClass="gnu.c.compiler.option.preprocessor.preprocess"/>
+								<option id="gnu.c.compiler.option.include.files.463537764" superClass="gnu.c.compiler.option.include.files"/>
+								<option id="com.crt.advproject.gcc.exe.debug.option.debugging.level.1781791345" superClass="com.crt.advproject.gcc.exe.debug.option.debugging.level"/>
+								<option id="gnu.c.compiler.option.debugging.other.984223897" superClass="gnu.c.compiler.option.debugging.other"/>
+								<option id="gnu.c.compiler.option.debugging.prof.1201131333" superClass="gnu.c.compiler.option.debugging.prof"/>
+								<option id="gnu.c.compiler.option.debugging.gprof.734947778" superClass="gnu.c.compiler.option.debugging.gprof"/>
+								<option id="gnu.c.compiler.option.debugging.codecov.179654064" superClass="gnu.c.compiler.option.debugging.codecov"/>
+								<option id="gnu.c.compiler.option.warnings.syntax.179951348" superClass="gnu.c.compiler.option.warnings.syntax"/>
+								<option id="gnu.c.compiler.option.warnings.pedantic.error.1664940322" superClass="gnu.c.compiler.option.warnings.pedantic.error"/>
+								<option id="gnu.c.compiler.option.warnings.nowarn.897560688" superClass="gnu.c.compiler.option.warnings.nowarn"/>
+								<option id="gnu.c.compiler.option.warnings.allwarn.672203109" superClass="gnu.c.compiler.option.warnings.allwarn"/>
+								<option id="gnu.c.compiler.option.warnings.toerrors.757406430" superClass="gnu.c.compiler.option.warnings.toerrors"/>
+								<option id="gnu.c.compiler.option.warnings.wconversion.1265869035" superClass="gnu.c.compiler.option.warnings.wconversion"/>
+								<option id="gnu.c.compiler.option.misc.verbose.1677068181" superClass="gnu.c.compiler.option.misc.verbose"/>
+								<option id="gnu.c.compiler.option.misc.ansi.496564932" superClass="gnu.c.compiler.option.misc.ansi"/>
+								<option id="gnu.c.compiler.option.misc.pic.1521925377" superClass="gnu.c.compiler.option.misc.pic"/>
+								<option id="com.crt.advproject.gcc.lto.465109222" superClass="com.crt.advproject.gcc.lto"/>
+								<option id="com.crt.advproject.gcc.lto.fat.1914358001" superClass="com.crt.advproject.gcc.lto.fat"/>
+								<option id="com.crt.advproject.gcc.thumbinterwork.917835802" superClass="com.crt.advproject.gcc.thumbinterwork"/>
+								<option id="com.crt.advproject.gcc.securestate.341742926" superClass="com.crt.advproject.gcc.securestate"/>
+								<option id="com.crt.advproject.gcc.config.214368915" superClass="com.crt.advproject.gcc.config"/>
+								<option id="com.crt.advproject.gcc.store.1860306799" superClass="com.crt.advproject.gcc.store"/>
 								<inputType id="com.crt.advproject.compiler.input.834651089" superClass="com.crt.advproject.compiler.input"/>
 							</tool>
 							<tool command="arm-none-eabi-gcc" commandLinePattern="${COMMAND} ${FLAGS} ${OUTPUT_FLAG} ${OUTPUT_PREFIX}${OUTPUT} ${INPUTS}" errorParsers="org.eclipse.cdt.core.GASErrorParser" id="com.crt.advproject.gas.exe.debug.429375711" name="MCU Assembler" superClass="com.crt.advproject.gas.exe.debug">
@@ -66,6 +90,12 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/lpc_chip_11cxx_lib/inc}&quot;"/>
 								</option>
 								<option id="com.crt.advproject.gas.fpu.468889510" name="Floating point" superClass="com.crt.advproject.gas.fpu" useByScannerDiscovery="false"/>
+								<option id="gnu.both.asm.option.warnings.nowarn.1996846729" superClass="gnu.both.asm.option.warnings.nowarn"/>
+								<option id="gnu.both.asm.option.version.788320447" superClass="gnu.both.asm.option.version"/>
+								<option id="com.crt.advproject.gas.exe.debug.option.debugging.level.19966344" superClass="com.crt.advproject.gas.exe.debug.option.debugging.level"/>
+								<option id="com.crt.advproject.gas.thumbinterwork.1330713680" superClass="com.crt.advproject.gas.thumbinterwork"/>
+								<option id="com.crt.advproject.gas.config.2025230520" superClass="com.crt.advproject.gas.config"/>
+								<option id="com.crt.advproject.gas.store.2053327254" superClass="com.crt.advproject.gas.store"/>
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.469338895" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 								<inputType id="com.crt.advproject.assembler.input.1168973654" name="Additional Assembly Source Files" superClass="com.crt.advproject.assembler.input"/>
 							</tool>
@@ -80,7 +110,7 @@
 								<option id="com.crt.advproject.link.memory.sections.169757493" name="Extra linker script input sections" superClass="com.crt.advproject.link.memory.sections" useByScannerDiscovery="false" valueType="stringList"/>
 								<option id="com.crt.advproject.link.gcc.multicore.master.userobjs.540811877" name="Slave Objects (not visible)" superClass="com.crt.advproject.link.gcc.multicore.master.userobjs" useByScannerDiscovery="false" valueType="userObjs"/>
 								<option id="com.crt.advproject.link.arch.1936665023" name="Architecture" superClass="com.crt.advproject.link.arch" useByScannerDiscovery="false" value="com.crt.advproject.link.target.cm0" valueType="enumerated"/>
-								<option id="com.crt.advproject.link.script.1346413052" name="Linker script" superClass="com.crt.advproject.link.script" useByScannerDiscovery="false" value="&quot;cardreader_Debug.ld&quot;" valueType="string"/>
+								<option id="com.crt.advproject.link.script.1346413052" name="Linker script" superClass="com.crt.advproject.link.script" useByScannerDiscovery="false" value="&quot;acs-panel_Debug.ld&quot;" valueType="string"/>
 								<option id="com.crt.advproject.link.manage.44878082" name="Manage linker script" superClass="com.crt.advproject.link.manage" useByScannerDiscovery="false" value="true" valueType="boolean"/>
 								<option id="gnu.c.link.option.nostdlibs.1151749493" name="No startup or default libs (-nostdlib)" superClass="gnu.c.link.option.nostdlibs" useByScannerDiscovery="false" value="true" valueType="boolean"/>
 								<option id="gnu.c.link.option.other.289747101" name="Other options (-Xlinker [option])" superClass="gnu.c.link.option.other" useByScannerDiscovery="false" valueType="stringList">
@@ -100,12 +130,42 @@
 								<option id="com.crt.advproject.link.gcc.multicore.slave.1826238096" name="Multicore configuration" superClass="com.crt.advproject.link.gcc.multicore.slave" useByScannerDiscovery="false"/>
 								<option defaultValue="com.crt.advproject.heapAndStack.lpcXpressoStyle" id="com.crt.advproject.link.memory.heapAndStack.style.1305918220" name="Heap and Stack placement" superClass="com.crt.advproject.link.memory.heapAndStack.style" useByScannerDiscovery="false" value="com.crt.advproject.heapAndStack.mcuXpressoStyle" valueType="enumerated"/>
 								<option id="com.crt.advproject.link.fpu.134045384" name="Floating point" superClass="com.crt.advproject.link.fpu" useByScannerDiscovery="false" value="com.crt.advproject.link.fpu.none" valueType="enumerated"/>
+								<option id="gnu.c.link.option.nostart.2030131006" superClass="gnu.c.link.option.nostart"/>
+								<option id="gnu.c.link.option.nodeflibs.641432227" superClass="gnu.c.link.option.nodeflibs"/>
+								<option id="gnu.c.link.option.strip.201394104" superClass="gnu.c.link.option.strip"/>
+								<option id="gnu.c.link.option.noshared.2114995381" superClass="gnu.c.link.option.noshared"/>
+								<option id="gnu.c.link.option.ldflags.832855377" superClass="gnu.c.link.option.ldflags"/>
+								<option id="gnu.c.link.option.userobjs.748296537" superClass="gnu.c.link.option.userobjs"/>
+								<option id="gnu.c.link.option.shared.1341713099" superClass="gnu.c.link.option.shared"/>
+								<option id="gnu.c.link.option.soname.1203240416" superClass="gnu.c.link.option.soname"/>
+								<option id="gnu.c.link.option.implname.2083578694" superClass="gnu.c.link.option.implname"/>
+								<option id="gnu.c.link.option.defname.1847781051" superClass="gnu.c.link.option.defname"/>
+								<option id="gnu.c.link.option.debugging.prof.371583868" superClass="gnu.c.link.option.debugging.prof"/>
+								<option id="gnu.c.link.option.debugging.gprof.1690642736" superClass="gnu.c.link.option.debugging.gprof"/>
+								<option id="gnu.c.link.option.debugging.codecov.1157892863" superClass="gnu.c.link.option.debugging.codecov"/>
+								<option id="com.crt.advproject.link.gcc.lto.265949188" superClass="com.crt.advproject.link.gcc.lto"/>
+								<option id="com.crt.advproject.link.gcc.lto.optmization.level.78533620" superClass="com.crt.advproject.link.gcc.lto.optmization.level"/>
+								<option id="com.crt.advproject.link.scriptdir.421677327" superClass="com.crt.advproject.link.scriptdir"/>
+								<option id="com.crt.advproject.link.flashconfigenable.1977481505" superClass="com.crt.advproject.link.flashconfigenable"/>
+								<option id="com.crt.advproject.link.ecrp.1013403843" superClass="com.crt.advproject.link.ecrp"/>
+								<option id="com.crt.advproject.link.gcc.nanofloat.616575485" superClass="com.crt.advproject.link.gcc.nanofloat"/>
+								<option id="com.crt.advproject.link.gcc.nanofloat.scanf.1414258876" superClass="com.crt.advproject.link.gcc.nanofloat.scanf"/>
+								<option id="com.crt.advproject.link.toram.2133311553" superClass="com.crt.advproject.link.toram"/>
+								<option id="com.crt.advproject.link.stackOffset.466586739" superClass="com.crt.advproject.link.stackOffset"/>
+								<option id="com.crt.advproject.link.gcc.multicore.master.540423868" superClass="com.crt.advproject.link.gcc.multicore.master"/>
+								<option id="com.crt.advproject.link.gcc.multicore.empty.1269757443" superClass="com.crt.advproject.link.gcc.multicore.empty"/>
+								<option id="com.crt.advproject.link.config.1275394135" superClass="com.crt.advproject.link.config"/>
+								<option id="com.crt.advproject.link.store.771579301" superClass="com.crt.advproject.link.store"/>
+								<option id="com.crt.advproject.link.securestate.1201599733" superClass="com.crt.advproject.link.securestate"/>
 								<inputType id="cdt.managedbuild.tool.gnu.c.linker.input.1208716874" superClass="cdt.managedbuild.tool.gnu.c.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
 								</inputType>
 							</tool>
-							<tool errorParsers="" id="com.crt.advproject.tool.debug.debug.1743975518" name="MCU Debugger" superClass="com.crt.advproject.tool.debug.debug"/>
+							<tool errorParsers="" id="com.crt.advproject.tool.debug.debug.1743975518" name="MCU Debugger">
+								<option id="com.crt.advproject.linkserver.debug.prevent.debug.346530991" superClass="com.crt.advproject.linkserver.debug.prevent.debug"/>
+							</tool>
+							<tool id="com.crt.advproject.tool.debug.debug.110078329" name="MCU Debugger" superClass="com.crt.advproject.tool.debug.debug"/>
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
@@ -177,6 +237,30 @@
 								<option id="gnu.c.compiler.option.warnings.extrawarn.896547246" name="Extra warnings (-Wextra)" superClass="gnu.c.compiler.option.warnings.extrawarn" useByScannerDiscovery="false" value="true" valueType="boolean"/>
 								<option id="com.crt.advproject.gcc.lto.1212353997" name="Enable Link-time optimization (-flto)" superClass="com.crt.advproject.gcc.lto" useByScannerDiscovery="false" value="false" valueType="boolean"/>
 								<option id="com.crt.advproject.gcc.exe.release.option.optimization.level.1636335418" name="Optimization Level" superClass="com.crt.advproject.gcc.exe.release.option.optimization.level" useByScannerDiscovery="false" value="gnu.c.optimization.level.most" valueType="enumerated"/>
+								<option id="gnu.c.compiler.option.dialect.flags.2102465596" superClass="gnu.c.compiler.option.dialect.flags"/>
+								<option id="gnu.c.compiler.option.preprocessor.nostdinc.603285092" superClass="gnu.c.compiler.option.preprocessor.nostdinc"/>
+								<option id="gnu.c.compiler.option.preprocessor.preprocess.1018230563" superClass="gnu.c.compiler.option.preprocessor.preprocess"/>
+								<option id="gnu.c.compiler.option.preprocessor.undef.symbol.146284137" superClass="gnu.c.compiler.option.preprocessor.undef.symbol"/>
+								<option id="gnu.c.compiler.option.include.files.1562835343" superClass="gnu.c.compiler.option.include.files"/>
+								<option id="com.crt.advproject.gcc.exe.release.option.debugging.level.2000096857" superClass="com.crt.advproject.gcc.exe.release.option.debugging.level"/>
+								<option id="gnu.c.compiler.option.debugging.other.1795638427" superClass="gnu.c.compiler.option.debugging.other"/>
+								<option id="gnu.c.compiler.option.debugging.prof.1489050014" superClass="gnu.c.compiler.option.debugging.prof"/>
+								<option id="gnu.c.compiler.option.debugging.gprof.645963255" superClass="gnu.c.compiler.option.debugging.gprof"/>
+								<option id="gnu.c.compiler.option.debugging.codecov.578433470" superClass="gnu.c.compiler.option.debugging.codecov"/>
+								<option id="gnu.c.compiler.option.warnings.syntax.305577832" superClass="gnu.c.compiler.option.warnings.syntax"/>
+								<option id="gnu.c.compiler.option.warnings.pedantic.error.74676000" superClass="gnu.c.compiler.option.warnings.pedantic.error"/>
+								<option id="gnu.c.compiler.option.warnings.nowarn.1310372668" superClass="gnu.c.compiler.option.warnings.nowarn"/>
+								<option id="gnu.c.compiler.option.warnings.allwarn.1043021804" superClass="gnu.c.compiler.option.warnings.allwarn"/>
+								<option id="gnu.c.compiler.option.warnings.toerrors.251646113" superClass="gnu.c.compiler.option.warnings.toerrors"/>
+								<option id="gnu.c.compiler.option.warnings.wconversion.1434907622" superClass="gnu.c.compiler.option.warnings.wconversion"/>
+								<option id="gnu.c.compiler.option.misc.verbose.2099303220" superClass="gnu.c.compiler.option.misc.verbose"/>
+								<option id="gnu.c.compiler.option.misc.ansi.1654759878" superClass="gnu.c.compiler.option.misc.ansi"/>
+								<option id="gnu.c.compiler.option.misc.pic.1266050038" superClass="gnu.c.compiler.option.misc.pic"/>
+								<option id="com.crt.advproject.gcc.lto.fat.2077515534" superClass="com.crt.advproject.gcc.lto.fat"/>
+								<option id="com.crt.advproject.gcc.thumbinterwork.2047311806" superClass="com.crt.advproject.gcc.thumbinterwork"/>
+								<option id="com.crt.advproject.gcc.securestate.947079665" superClass="com.crt.advproject.gcc.securestate"/>
+								<option id="com.crt.advproject.gcc.config.242154192" superClass="com.crt.advproject.gcc.config"/>
+								<option id="com.crt.advproject.gcc.store.909202396" superClass="com.crt.advproject.gcc.store"/>
 								<inputType id="com.crt.advproject.compiler.input.493414265" superClass="com.crt.advproject.compiler.input"/>
 							</tool>
 							<tool command="arm-none-eabi-gcc" commandLinePattern="${COMMAND} ${FLAGS} ${OUTPUT_FLAG} ${OUTPUT_PREFIX}${OUTPUT} ${INPUTS}" errorParsers="org.eclipse.cdt.core.GASErrorParser" id="com.crt.advproject.gas.exe.release.684255909" name="MCU Assembler" superClass="com.crt.advproject.gas.exe.release">
@@ -190,6 +274,12 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/lpc_chip_11cxx_lib/inc}&quot;"/>
 								</option>
 								<option id="com.crt.advproject.gas.fpu.372075839" name="Floating point" superClass="com.crt.advproject.gas.fpu" useByScannerDiscovery="false"/>
+								<option id="gnu.both.asm.option.warnings.nowarn.1139423806" superClass="gnu.both.asm.option.warnings.nowarn"/>
+								<option id="gnu.both.asm.option.version.1326619740" superClass="gnu.both.asm.option.version"/>
+								<option id="com.crt.advproject.gas.debug.521234042" superClass="com.crt.advproject.gas.debug"/>
+								<option id="com.crt.advproject.gas.thumbinterwork.1711564196" superClass="com.crt.advproject.gas.thumbinterwork"/>
+								<option id="com.crt.advproject.gas.config.1338334748" superClass="com.crt.advproject.gas.config"/>
+								<option id="com.crt.advproject.gas.store.588173071" superClass="com.crt.advproject.gas.store"/>
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.1949738268" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 								<inputType id="com.crt.advproject.assembler.input.707753119" name="Additional Assembly Source Files" superClass="com.crt.advproject.assembler.input"/>
 							</tool>
@@ -204,7 +294,7 @@
 								<option id="com.crt.advproject.link.memory.sections.1505949657" name="Extra linker script input sections" superClass="com.crt.advproject.link.memory.sections" useByScannerDiscovery="false" valueType="stringList"/>
 								<option id="com.crt.advproject.link.gcc.multicore.master.userobjs.421859265" name="Slave Objects (not visible)" superClass="com.crt.advproject.link.gcc.multicore.master.userobjs" useByScannerDiscovery="false" valueType="userObjs"/>
 								<option id="com.crt.advproject.link.arch.1362438005" name="Architecture" superClass="com.crt.advproject.link.arch" useByScannerDiscovery="false" value="com.crt.advproject.link.target.cm0" valueType="enumerated"/>
-								<option id="com.crt.advproject.link.script.1218882224" name="Linker script" superClass="com.crt.advproject.link.script" useByScannerDiscovery="false" value="&quot;cardreader_Release.ld&quot;" valueType="string"/>
+								<option id="com.crt.advproject.link.script.1218882224" name="Linker script" superClass="com.crt.advproject.link.script" useByScannerDiscovery="false" value="&quot;acs-panel_Release.ld&quot;" valueType="string"/>
 								<option id="com.crt.advproject.link.manage.1502678463" name="Manage linker script" superClass="com.crt.advproject.link.manage" useByScannerDiscovery="false" value="true" valueType="boolean"/>
 								<option id="gnu.c.link.option.nostdlibs.856831857" name="No startup or default libs (-nostdlib)" superClass="gnu.c.link.option.nostdlibs" useByScannerDiscovery="false" value="true" valueType="boolean"/>
 								<option id="gnu.c.link.option.other.1449252564" name="Other options (-Xlinker [option])" superClass="gnu.c.link.option.other" useByScannerDiscovery="false" valueType="stringList">
@@ -225,12 +315,41 @@
 								<option defaultValue="com.crt.advproject.heapAndStack.lpcXpressoStyle" id="com.crt.advproject.link.memory.heapAndStack.style.68554868" name="Heap and Stack placement" superClass="com.crt.advproject.link.memory.heapAndStack.style" useByScannerDiscovery="false" value="com.crt.advproject.heapAndStack.mcuXpressoStyle" valueType="enumerated"/>
 								<option id="com.crt.advproject.link.gcc.multicore.slave.1003648933" name="Multicore configuration" superClass="com.crt.advproject.link.gcc.multicore.slave" useByScannerDiscovery="false"/>
 								<option id="com.crt.advproject.link.gcc.lto.855511731" name="Enable Link-time optimization (-flto)" superClass="com.crt.advproject.link.gcc.lto" useByScannerDiscovery="false" value="false" valueType="boolean"/>
+								<option id="gnu.c.link.option.nostart.1149665645" superClass="gnu.c.link.option.nostart"/>
+								<option id="gnu.c.link.option.nodeflibs.686244797" superClass="gnu.c.link.option.nodeflibs"/>
+								<option id="gnu.c.link.option.strip.517979421" superClass="gnu.c.link.option.strip"/>
+								<option id="gnu.c.link.option.noshared.793223923" superClass="gnu.c.link.option.noshared"/>
+								<option id="gnu.c.link.option.ldflags.1842069374" superClass="gnu.c.link.option.ldflags"/>
+								<option id="gnu.c.link.option.userobjs.1840245591" superClass="gnu.c.link.option.userobjs"/>
+								<option id="gnu.c.link.option.shared.1736710581" superClass="gnu.c.link.option.shared"/>
+								<option id="gnu.c.link.option.soname.1155945474" superClass="gnu.c.link.option.soname"/>
+								<option id="gnu.c.link.option.implname.1808563255" superClass="gnu.c.link.option.implname"/>
+								<option id="gnu.c.link.option.defname.638589271" superClass="gnu.c.link.option.defname"/>
+								<option id="gnu.c.link.option.debugging.prof.517492663" superClass="gnu.c.link.option.debugging.prof"/>
+								<option id="gnu.c.link.option.debugging.gprof.573307417" superClass="gnu.c.link.option.debugging.gprof"/>
+								<option id="gnu.c.link.option.debugging.codecov.165296192" superClass="gnu.c.link.option.debugging.codecov"/>
+								<option id="com.crt.advproject.link.gcc.lto.optmization.level.1388690977" superClass="com.crt.advproject.link.gcc.lto.optmization.level"/>
+								<option id="com.crt.advproject.link.scriptdir.66081478" superClass="com.crt.advproject.link.scriptdir"/>
+								<option id="com.crt.advproject.link.flashconfigenable.1951815090" superClass="com.crt.advproject.link.flashconfigenable"/>
+								<option id="com.crt.advproject.link.ecrp.2136711046" superClass="com.crt.advproject.link.ecrp"/>
+								<option id="com.crt.advproject.link.gcc.nanofloat.1287271074" superClass="com.crt.advproject.link.gcc.nanofloat"/>
+								<option id="com.crt.advproject.link.gcc.nanofloat.scanf.1392116118" superClass="com.crt.advproject.link.gcc.nanofloat.scanf"/>
+								<option id="com.crt.advproject.link.toram.587501905" superClass="com.crt.advproject.link.toram"/>
+								<option id="com.crt.advproject.link.stackOffset.1788989571" superClass="com.crt.advproject.link.stackOffset"/>
+								<option id="com.crt.advproject.link.gcc.multicore.master.1528969729" superClass="com.crt.advproject.link.gcc.multicore.master"/>
+								<option id="com.crt.advproject.link.gcc.multicore.empty.1882416933" superClass="com.crt.advproject.link.gcc.multicore.empty"/>
+								<option id="com.crt.advproject.link.config.957038611" superClass="com.crt.advproject.link.config"/>
+								<option id="com.crt.advproject.link.store.897128675" superClass="com.crt.advproject.link.store"/>
+								<option id="com.crt.advproject.link.securestate.1575537024" superClass="com.crt.advproject.link.securestate"/>
 								<inputType id="cdt.managedbuild.tool.gnu.c.linker.input.1875446177" superClass="cdt.managedbuild.tool.gnu.c.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
 								</inputType>
 							</tool>
-							<tool errorParsers="" id="com.crt.advproject.tool.debug.release.1379543231" name="MCU Debugger" superClass="com.crt.advproject.tool.debug.release"/>
+							<tool errorParsers="" id="com.crt.advproject.tool.debug.release.1379543231" name="MCU Debugger">
+								<option id="com.crt.advproject.linkserver.debug.prevent.release.1085470585" superClass="com.crt.advproject.linkserver.debug.prevent.release"/>
+							</tool>
+							<tool id="com.crt.advproject.tool.debug.release.1853718639" name="MCU Debugger" superClass="com.crt.advproject.tool.debug.release"/>
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
@@ -270,27 +389,27 @@
 &lt;memory id="Periph" is_volatile="true" type="Peripheral"/&gt;&#13;
 &lt;memoryInstance derived_from="Flash" id="MFlash32" location="0x0" size="0x8000"/&gt;&#13;
 &lt;memoryInstance derived_from="RAM" id="RamLoc8" location="0x10000000" size="0x2000"/&gt;&#13;
-&lt;peripheralInstance derived_from="V6M_NVIC" id="NVIC" location="0xe000e000"/&gt;&#13;
-&lt;peripheralInstance derived_from="V6M_DCR" id="DCR" location="0xe000edf0"/&gt;&#13;
-&lt;peripheralInstance derived_from="I2C" id="I2C" location="0x40000000"/&gt;&#13;
-&lt;peripheralInstance derived_from="WWDT" id="WWDT" location="0x40004000"/&gt;&#13;
-&lt;peripheralInstance derived_from="UART" id="UART" location="0x40008000"/&gt;&#13;
-&lt;peripheralInstance derived_from="CT16B0" id="CT16B0" location="0x4000c000"/&gt;&#13;
-&lt;peripheralInstance derived_from="CT16B1" id="CT16B1" location="0x40010000"/&gt;&#13;
-&lt;peripheralInstance derived_from="CT32B0" id="CT32B0" location="0x40014000"/&gt;&#13;
-&lt;peripheralInstance derived_from="CT32B1" id="CT32B1" location="0x40018000"/&gt;&#13;
-&lt;peripheralInstance derived_from="ADC" id="ADC" location="0x4001c000"/&gt;&#13;
-&lt;peripheralInstance derived_from="PMU" id="PMU" location="0x40038000"/&gt;&#13;
-&lt;peripheralInstance derived_from="FLASHCTRL" id="FLASHCTRL" location="0x4003c000"/&gt;&#13;
-&lt;peripheralInstance derived_from="SPI0" id="SPI0" location="0x40040000"/&gt;&#13;
-&lt;peripheralInstance derived_from="IOCON" id="IOCON" location="0x40044000"/&gt;&#13;
-&lt;peripheralInstance derived_from="SYSCON" id="SYSCON" location="0x40048000"/&gt;&#13;
-&lt;peripheralInstance derived_from="SPI1" id="SPI1" location="0x40058000"/&gt;&#13;
-&lt;peripheralInstance derived_from="GPIO0" id="GPIO0" location="0x50000000"/&gt;&#13;
-&lt;peripheralInstance derived_from="GPIO1" id="GPIO1" location="0x50010000"/&gt;&#13;
-&lt;peripheralInstance derived_from="GPIO2" id="GPIO2" location="0x50020000"/&gt;&#13;
-&lt;peripheralInstance derived_from="GPIO3" id="GPIO3" location="0x50030000"/&gt;&#13;
-&lt;peripheralInstance derived_from="C-CAN" id="C-CAN" location="0x40050000"/&gt;&#13;
+&lt;peripheralInstance derived_from="V6M_NVIC" determined="infoFile" id="NVIC" location="0xe000e000"/&gt;&#13;
+&lt;peripheralInstance derived_from="V6M_DCR" determined="infoFile" id="DCR" location="0xe000edf0"/&gt;&#13;
+&lt;peripheralInstance derived_from="I2C" determined="infoFile" id="I2C" location="0x40000000"/&gt;&#13;
+&lt;peripheralInstance derived_from="WWDT" determined="infoFile" id="WWDT" location="0x40004000"/&gt;&#13;
+&lt;peripheralInstance derived_from="UART" determined="infoFile" id="UART" location="0x40008000"/&gt;&#13;
+&lt;peripheralInstance derived_from="CT16B0" determined="infoFile" id="CT16B0" location="0x4000c000"/&gt;&#13;
+&lt;peripheralInstance derived_from="CT16B1" determined="infoFile" id="CT16B1" location="0x40010000"/&gt;&#13;
+&lt;peripheralInstance derived_from="CT32B0" determined="infoFile" id="CT32B0" location="0x40014000"/&gt;&#13;
+&lt;peripheralInstance derived_from="CT32B1" determined="infoFile" id="CT32B1" location="0x40018000"/&gt;&#13;
+&lt;peripheralInstance derived_from="ADC" determined="infoFile" id="ADC" location="0x4001c000"/&gt;&#13;
+&lt;peripheralInstance derived_from="PMU" determined="infoFile" id="PMU" location="0x40038000"/&gt;&#13;
+&lt;peripheralInstance derived_from="FLASHCTRL" determined="infoFile" id="FLASHCTRL" location="0x4003c000"/&gt;&#13;
+&lt;peripheralInstance derived_from="SPI0" determined="infoFile" id="SPI0" location="0x40040000"/&gt;&#13;
+&lt;peripheralInstance derived_from="IOCON" determined="infoFile" id="IOCON" location="0x40044000"/&gt;&#13;
+&lt;peripheralInstance derived_from="SYSCON" determined="infoFile" id="SYSCON" location="0x40048000"/&gt;&#13;
+&lt;peripheralInstance derived_from="SPI1" determined="infoFile" id="SPI1" location="0x40058000"/&gt;&#13;
+&lt;peripheralInstance derived_from="GPIO0" determined="infoFile" id="GPIO0" location="0x50000000"/&gt;&#13;
+&lt;peripheralInstance derived_from="GPIO1" determined="infoFile" id="GPIO1" location="0x50010000"/&gt;&#13;
+&lt;peripheralInstance derived_from="GPIO2" determined="infoFile" id="GPIO2" location="0x50020000"/&gt;&#13;
+&lt;peripheralInstance derived_from="GPIO3" determined="infoFile" id="GPIO3" location="0x50030000"/&gt;&#13;
+&lt;peripheralInstance derived_from="C-CAN" determined="infoFile" id="C-CAN" location="0x40050000"/&gt;&#13;
 &lt;/chip&gt;&#13;
 &lt;processor&gt;&#13;
 &lt;name gcc_name="cortex-m0"&gt;Cortex-M0&lt;/name&gt;&#13;

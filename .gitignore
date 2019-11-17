@@ -1,5 +1,4 @@
-Debug/
-Release/
-lpc_chip_11cxx_lib/
+/lpc_chip_11cxx_lib
 .settings
 .metadata
+.mcuxpressoide_packages_support

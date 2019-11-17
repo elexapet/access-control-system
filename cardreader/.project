@@ -3,7 +3,7 @@
 	<name>cardreader</name>
 	<comment></comment>
 	<projects>
-		<project>lpc_chip_11cxx_lib</project>
+		<project>liblpc_chip_11cxx</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

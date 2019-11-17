@@ -1,4 +1,4 @@
-MIT License
+Access control server
 
 Copyright (c) 2019 Bc. Petr Elexa. All Rights Reserved.
 

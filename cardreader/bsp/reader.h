@@ -78,7 +78,7 @@ void reader_deinit(uint8_t idx);
  * @param idx ... reader index
  * @param ... time_to_wait_ms ... time to wait for request
  */
-int8_t reader_get_request_from_buffer(uint32_t * user_id, uint16_t time_to_wait_ms);
+uint8_t reader_get_request_from_buffer(uint32_t * user_id, uint16_t time_to_wait_ms);
 
 /**
  * @brief Unlock door belonging to reader.

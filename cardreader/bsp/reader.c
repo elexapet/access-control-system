@@ -127,13 +127,13 @@ void reader_init(uint8_t idx)
   //Create timer only once
   if (reader_conf[idx].timer_open == NULL)
   {
-    reader_conf[idx].timer_open = xTimerCreate("PT0", (reader_conf[idx].open_time_sec / portTICK_PERIOD_MS), pdFALSE, (void *)(uint32_t) idx, _timer_open_callback);
+    reader_conf[idx].timer_open = xTimerCreate("PT0", pdMS_TO_TICKS(reader_conf[idx].open_time_sec), pdFALSE, (void *)(uint32_t) idx, _timer_open_callback);
   }
   configASSERT(reader_conf[idx].timer_open);
 
   if (reader_conf[idx].timer_ok == NULL)
   {
-    reader_conf[idx].timer_ok = xTimerCreate("PT1", (reader_conf[idx].gled_time_sec / portTICK_PERIOD_MS), pdFALSE, (void *)(uint32_t) idx, _timer_ok_callback);
+    reader_conf[idx].timer_ok = xTimerCreate("PT1", pdMS_TO_TICKS(reader_conf[idx].gled_time_sec), pdFALSE, (void *)(uint32_t) idx, _timer_ok_callback);
   }
   configASSERT(reader_conf[idx].timer_ok);
 
@@ -181,7 +181,7 @@ void reader_deinit(uint8_t idx)
   weigand_disable(_reader_wiring[idx].data_port, _reader_wiring[idx].d0_pin, _reader_wiring[idx].d1_pin);
 }
 
-int8_t reader_get_request_from_buffer(uint32_t * user_id, uint16_t time_to_wait_ms)
+uint8_t reader_get_request_from_buffer(uint32_t * user_id, uint16_t time_to_wait_ms)
 {
   weigand26_buff_item_t item;
   size_t bytes_got;
@@ -196,7 +196,7 @@ int8_t reader_get_request_from_buffer(uint32_t * user_id, uint16_t time_to_wait_
   }
   else
   {
-    return -1;
+    return UINT8_MAX;
   }
 }
 

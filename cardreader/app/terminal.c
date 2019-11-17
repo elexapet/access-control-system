@@ -27,6 +27,8 @@
 // This also controls intensity of door status messages.
 static const uint16_t USER_REQUEST_WAIT_MS = 1500;
 
+static const uint16_t USER_REQUEST_MIN_PERIOD_MS = 1000;
+
 // Cache entry type mapping to our type.
 typedef cache_item_t term_cache_item_t;  // 4 bytes
 
@@ -313,7 +315,20 @@ static void terminal_task(void *pvParameters)
   {
     // Get pending user request
     uint32_t user_id;
+
+    TickType_t begin_time = xTaskGetTickCount();
+
     uint8_t reader_idx = reader_get_request_from_buffer(&user_id, USER_REQUEST_WAIT_MS);
+
+    // Calculate actual wait time.
+    TickType_t wait_time = xTaskGetTickCount() - begin_time;
+
+    // Prevent brute-force attack by limiting requests frequency.
+    if (wait_time < pdMS_TO_TICKS(USER_REQUEST_MIN_PERIOD_MS))
+		{
+      vTaskDelay(pdMS_TO_TICKS(USER_REQUEST_MIN_PERIOD_MS) - wait_time);
+		}
+
     if (reader_idx < ACS_READER_COUNT)
     {
       DEBUGSTR("user identified\n");

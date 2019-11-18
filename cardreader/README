@@ -1,3 +1,10 @@
 This is Access control system panel source code and project for MCUXpresso IDE.
 
-Main firmware behavior setting are in app/terminal_config.h.
+Main firmware behavior setting can be controlled in app/terminal_config.h.
+
+To build firmware from IDE:
+   Import enclosed project for MCUXpresso IDE 10.3.1.
+
+To build fimware from command line:
+   Run build_release_fw.bat.
+   This requires CMake 3.11+ (https://cmake.org) and NXP version of ARM GCC Toolchain which can be obtained only by installing MCUXpresso IDE.

@@ -43,7 +43,7 @@ Prerequisites:
     * Linux with SocketCAN (tested on 3.13.0)
     * CAN 2.0 controller supported by SocketCAN
     * Python 3.5 or higher + pip
-    * Redis database >= 2.0 (see below)
+    * Accessible Redis database >= 2.0 (see below)
         - It is the the only implemented but support for others can be added.
 
 ----------------------------------------

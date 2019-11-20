@@ -17,7 +17,7 @@ REDIS_ADDR=localhost
 
 NAME=acs-server
 EXEC=/usr/local/bin/$NAME
-LOG=/var/log/acs_server_${CAN_IF}_${ACS_ADDR}.log
+LOG=/var/log/acs_server
 EXEC_ARGS="-l $LOG $CAN_IF $ACS_ADDR $REDIS_ADDR $REDIS_PORT"
 PIDFILE=/var/run/acs_server_${CAN_IF}_${ACS_ADDR}.pid
 SCRIPTNAME=/etc/init.d/asc-server

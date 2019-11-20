@@ -2,6 +2,8 @@
  *  @file
  *  @brief Terminal client for access control system (ACS).
  *
+ *				 Contains main processing loop.
+ *
  *  @author Petr Elexa
  *  @see LICENSE
  *
@@ -10,6 +12,7 @@
 #include "terminal.h"
 #include "board.h"
 #include "weigand.h"
+#include "watchdog.h"
 #include "static_cache.h"
 #include "FreeRTOS.h"
 #include "task.h"
@@ -24,9 +27,9 @@
  ****************************************************************************/
 
 // How long to wait for user request.
-// This also controls intensity of door status messages.
-static const uint16_t USER_REQUEST_WAIT_MS = 1500;
-
+static const uint16_t USER_REQUEST_WAIT_MS = 500;
+// This is minimal period between each request.
+// Also controls intensity of door status messages (sent each 2*period).
 static const uint16_t USER_REQUEST_MIN_PERIOD_MS = 1000;
 
 // Cache entry type mapping to our type.
@@ -55,6 +58,9 @@ static const uint32_t _act_timer_id = TERMINAL_TIMER_ID;
 
 // Last door open(true) / close(false) status
 static bool _last_door_state[ACS_READER_COUNT] = {false, false};
+
+// Signal request to clear cache.
+static bool _cache_clear_req = false;
 
 /*****************************************************************************
  * Private functions
@@ -153,6 +159,7 @@ void term_can_recv(uint8_t msg_obj_num)
       {
         _act_master = head.src;
         Board_LED_Set(BOARD_LED_STATUS, true);
+        _cache_clear_req = true;
       }
       _master_timeout = false;
       portEXIT_CRITICAL();
@@ -205,7 +212,7 @@ void term_can_recv(uint8_t msg_obj_num)
       case DATA_DOOR_CTRL_CLR_CACHE:
         DEBUGSTR("cmd CLR CACHE\n");
 #if CACHING_ENABLED
-        static_cache_reset();
+        _cache_clear_req = true;
 #endif
         break;
       default:
@@ -285,7 +292,8 @@ static void terminal_user_identified(uint32_t user_id, uint8_t reader_idx)
   if (reader_idx < ACS_READER_COUNT)
   {
 #if CACHING_ENABLED
-    if (static_cache_get(&user))
+  	// Read from cache online if master is offline.
+    if ((_act_master == ACS_RESERVED_ADDR) && static_cache_get(&user))
     {
       if (map_reader_idx_to_cache(reader_idx) & user.value)
       {
@@ -311,39 +319,59 @@ static void terminal_task(void *pvParameters)
   // start timer for detecting master timeout
   configASSERT(xTimerStart(_act_timer, 0));
 
+  bool send_door_status = true;
+
   while (true)
   {
-    // Get pending user request
-    uint32_t user_id;
+  	WDT_Feed(); // Feed HW watchdog
 
     TickType_t begin_time = xTaskGetTickCount();
 
+    // Get pending user request
+    uint32_t user_id;
+
     uint8_t reader_idx = reader_get_request_from_buffer(&user_id, USER_REQUEST_WAIT_MS);
-
-    // Calculate actual wait time.
-    TickType_t wait_time = xTaskGetTickCount() - begin_time;
-
-    // Prevent brute-force attack by limiting requests frequency.
-    if (wait_time < pdMS_TO_TICKS(USER_REQUEST_MIN_PERIOD_MS))
-		{
-      vTaskDelay(pdMS_TO_TICKS(USER_REQUEST_MIN_PERIOD_MS) - wait_time);
-		}
 
     if (reader_idx < ACS_READER_COUNT)
     {
       DEBUGSTR("user identified\n");
       terminal_user_identified(user_id, reader_idx);
     }
-    // Check if door open/close state changed
-    for (size_t idx = 0; idx < ACS_READER_COUNT; ++idx)
+
+#if CACHING_ENABLED
+    if (_cache_clear_req)
     {
-      if (reader_is_door_open(idx) != _last_door_state[idx])
-      {
-        DEBUGSTR("new door state\n");
-        _last_door_state[idx] = !_last_door_state[idx];
-        terminal_send_door_status(idx, _last_door_state[idx]);
-      }
+    	_cache_clear_req = false;
+      static_cache_reset();
     }
+#endif
+
+    // Calculate actual processing time.
+		TickType_t proces_time = xTaskGetTickCount() - begin_time;
+
+    WDT_Feed(); // Feed HW watchdog
+
+    // Protect against brute-force attack by limiting processing frequency.
+    // Also controls frequency of door status update.
+    if (proces_time < pdMS_TO_TICKS(USER_REQUEST_MIN_PERIOD_MS))
+		{
+      vTaskDelay(pdMS_TO_TICKS(USER_REQUEST_MIN_PERIOD_MS) - proces_time);
+		}
+
+    if (send_door_status)
+    {
+			// Check if door open/close state changed
+			for (size_t idx = 0; idx < ACS_READER_COUNT; ++idx)
+			{
+				if (reader_is_door_open(idx) != _last_door_state[idx])
+				{
+					DEBUGSTR("new door state\n");
+					_last_door_state[idx] = !_last_door_state[idx];
+					terminal_send_door_status(idx, _last_door_state[idx]);
+				}
+			}
+    }
+    send_door_status = !send_door_status;
   }
 }
 

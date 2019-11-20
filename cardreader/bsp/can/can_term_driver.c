@@ -186,7 +186,7 @@ void CAN_init(CCAN_CALLBACKS_T * ptr_callbacks, uint32_t baud_rate)
 
   /* Initialize CAN Controller structure*/
   uint32_t ClkInitTable[2];
-  _timing_calculate(baud_rate, &ClkInitTable[0]);
+  _timing_calculate_sp(baud_rate, &ClkInitTable[0]);
 
   /* Initialize the CAN controller */
   LPC_CCAN_API->init_can(&ClkInitTable[0], TRUE);

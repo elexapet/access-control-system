@@ -13,7 +13,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define DEVEL_BOARD
+//#define DEVEL_BOARD // LPCXpresso11C24 development board
 
 //-------------------------------------------------------------
 // General settings.
@@ -178,6 +178,7 @@ void set_reader_addr(const uint16_t acs_addr);
 * @brief Initialize configuration for terminal.
 *
 *        Reads address from storage.
+* @note Fails if I2C bus is in invalid state
 * @return true if succeeded
 */
 bool terminal_config_init(void);

@@ -74,7 +74,7 @@ bool terminal_config_init(void)
 {
   bool ret_val = true;
 
-#if (defined(DEVEL_BOARD) && ENABLE_LOCAL_ACS_ADDR_WRITE)
+#if (ENABLE_LOCAL_ACS_ADDR_WRITE)
   ret_val &= _save_acs_addrs_from_ext_stor();
 #endif
 

@@ -334,7 +334,7 @@ static void terminal_task(void *pvParameters)
 
     if (reader_idx < ACS_READER_COUNT)
     {
-      DEBUGSTR("user identified\n");
+      DEBUGSTR("user req\n");
       terminal_user_identified(user_id, reader_idx);
     }
 

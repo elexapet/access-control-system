@@ -57,7 +57,7 @@ static TimerHandle_t _act_timer = NULL;
 static const uint32_t _act_timer_id = TERMINAL_TIMER_ID;
 
 // Last door open(true) / close(false) status
-static bool _last_door_state[ACS_READER_COUNT] = {false, false};
+static bool _last_door_state[ACS_READER_MAXCOUNT] = {false, false};
 
 // Signal request to clear cache.
 static bool _cache_clear_req = false;
@@ -170,7 +170,7 @@ void term_can_recv(uint8_t msg_obj_num)
   else return;
 
   // Stop processing if card reader not configured.
-  if (reader_idx >= ACS_READER_COUNT) return;
+  if (reader_idx >= ACS_READER_MAXCOUNT || !reader_conf[reader_idx].enabled) return;
 
   // Continue deducing action and execute it.
   if (head.fc == FC_USER_AUTH_RESP)
@@ -289,7 +289,7 @@ static void terminal_user_identified(uint32_t user_id, uint8_t reader_idx)
   term_cache_item_t user = {.key = user_id};
 #endif
 
-  if (reader_idx < ACS_READER_COUNT)
+  if (reader_idx < ACS_READER_MAXCOUNT && reader_conf[reader_idx].enabled)
   {
 #if CACHING_ENABLED
   	// Read from cache online if master is offline.
@@ -332,7 +332,7 @@ static void terminal_task(void *pvParameters)
 
     uint8_t reader_idx = reader_get_request_from_buffer(&user_id, USER_REQUEST_WAIT_MS);
 
-    if (reader_idx < ACS_READER_COUNT)
+    if (reader_idx < ACS_READER_MAXCOUNT && reader_conf[reader_idx].enabled)
     {
       DEBUGSTR("user req\n");
       terminal_user_identified(user_id, reader_idx);
@@ -361,9 +361,9 @@ static void terminal_task(void *pvParameters)
     if (send_door_status)
     {
 			// Check if door open/close state changed
-			for (size_t idx = 0; idx < ACS_READER_COUNT; ++idx)
+			for (size_t idx = 0; idx < ACS_READER_MAXCOUNT; ++idx)
 			{
-				if (reader_is_door_open(idx) != _last_door_state[idx])
+				if (reader_conf[idx].enabled && (reader_is_door_open(idx) != _last_door_state[idx]))
 				{
 					DEBUGSTR("new door state\n");
 					_last_door_state[idx] = !_last_door_state[idx];
@@ -411,8 +411,9 @@ void terminal_init(void)
                   ACS_DST_ADDR_MASK, true);
 
   // Initialize card readers.
-  for (size_t id = 0; id < ACS_READER_COUNT; ++id)
+  for (size_t id = 0; id < ACS_READER_MAXCOUNT; ++id)
   {
+  	// Config only present CR
     if (reader_conf[id].enabled) terminal_reconfigure(NULL, id);
   }
 
@@ -427,7 +428,7 @@ void terminal_init(void)
 
 void terminal_reconfigure(reader_conf_t * reader_cfg, uint8_t reader_idx)
 {
-  if (reader_idx >= ACS_READER_COUNT) return;
+  if (reader_idx >= ACS_READER_MAXCOUNT) return;
 
   portENTER_CRITICAL(); // Effectively disables interrupts.
 

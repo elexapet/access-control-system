@@ -87,7 +87,7 @@ static void _timer_open_callback(TimerHandle_t pxTimer)
   // Which timer expired
   uint32_t id = (uint32_t) pvTimerGetTimerID(pxTimer);
 
-  if (id < ACS_READER_COUNT)
+  if (id < ACS_READER_MAXCOUNT && reader_conf[id].enabled)
   {
     // Lock state
     Chip_GPIO_SetPinState(LPC_GPIO, _reader_wiring[id].relay_port, _reader_wiring[id].relay_pin, LOG_HIGH);
@@ -102,7 +102,7 @@ static void _timer_ok_callback(TimerHandle_t pxTimer)
   // Which timer expired
   uint32_t id = (uint32_t) pvTimerGetTimerID(pxTimer);
 
-  if (id < ACS_READER_COUNT)
+  if (id < ACS_READER_MAXCOUNT && reader_conf[id].enabled)
   {
     // Lock state
     Chip_GPIO_SetPinState(LPC_GPIO, _reader_wiring[id].beep_port, _reader_wiring[id].beep_pin, LOG_LOW);
@@ -117,7 +117,7 @@ void reader_init(uint8_t idx)
   //Create stream buffer to receive idx from all card readers
   if (_reader_buffer == NULL)
   {
-    _reader_buffer = xStreamBufferCreate(2 * ACS_READER_COUNT * WEIGAND26_BUFF_ITEM_SIZE, WEIGAND26_BUFF_ITEM_SIZE);
+    _reader_buffer = xStreamBufferCreate(2 * ACS_READER_MAXCOUNT * WEIGAND26_BUFF_ITEM_SIZE, WEIGAND26_BUFF_ITEM_SIZE);
   }
   configASSERT(_reader_buffer);
 

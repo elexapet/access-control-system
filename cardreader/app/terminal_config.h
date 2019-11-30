@@ -35,14 +35,11 @@
 #define STORE_I2C_BUS_FREQ   400000 // 100kHz or 400kHz
 #define STORE_I2C_SLAVE_ADDR 0x50   // 7bit address
 
-// Internal index of card readers (can be swapped).
+// Internal index of card readers (can be only swapped).
 #define ACS_READER_A_IDX 0
 #define ACS_READER_B_IDX 1
 
-// Number of card readers present 1 or 2.
-#define ACS_READER_COUNT 2
-
-#define BEEP_ON_SUCCESS false
+#define BEEP_ON_SUCCESS true
 #define OK_LED_ON_SUCCESS true
 
 // Door sensor types (reed switch).
@@ -117,8 +114,8 @@ void set_reader_addr(const uint16_t acs_addr);
 #define ACS_READER_A_SENSOR_PORT          1 // Can be only 0 or 1.
 #define ACS_READER_A_SENSOR_PIN           8
 
-#define ACS_READER_A_OPEN_TIME_MS         8000
-#define ACS_READER_A_OK_GLED_TIME_MS      4000
+#define ACS_READER_A_OPEN_TIME_MS         5000
+#define ACS_READER_A_OK_GLED_TIME_MS      500
 
 //---------------------------------------------------------------------------------------------------------------------
 // Settings for RFID reader B
@@ -140,23 +137,19 @@ void set_reader_addr(const uint16_t acs_addr);
 #define ACS_READER_B_SENSOR_PORT          1 // Can be only 0 or 1.
 #define ACS_READER_B_SENSOR_PIN           5
 
-#define ACS_READER_B_OPEN_TIME_MS         8000
-#define ACS_READER_B_OK_GLED_TIME_MS      4000
+#define ACS_READER_B_OPEN_TIME_MS         5000
+#define ACS_READER_B_OK_GLED_TIME_MS      500
 
 
 //---------------------------------------------------------------------------------------------------------------------
 // Internal setting
 //---------------------------------------------------------------------------------------------------------------------
 
-// if following is changed it will need code modification
+// Not user modifiable.
 #define WEIGAND_DEVICE_LIMIT 4
 #define SERIAL_DEVICE_LIMIT 0
 #define ACS_READER_MAXCOUNT 2
 #define TERMINAL_TIMER_ID 15
-
-#if ACS_READER_COUNT > ACS_READER_MAXCOUNT
-#error "reader max count limit"
-#endif
 
 //---------------------------------------------------------------------------------------------------------------------
 //---------------------------------------------------------------------------------------------------------------------

@@ -55,7 +55,7 @@ typedef struct
 /**
  * @brief Configuration of readers
  */
-extern reader_conf_t reader_conf[ACS_READER_COUNT];
+extern reader_conf_t reader_conf[ACS_READER_MAXCOUNT];
 
 /**
  * @brief Initialize reader driver.

@@ -12,4 +12,4 @@ SCRIPT=$(readlink -f "$0")
 SCRIPTPATH=$(dirname "$SCRIPT")
 
 # Start the server
-python3 $SCRIPTPATH/src/acs_server.py $CAN_IF $CAN_ADDR $REDIS_HOST $REDIS_PORT
+python3 $SCRIPTPATH/src/acs_server.py -v $CAN_IF $CAN_ADDR $REDIS_HOST $REDIS_PORT

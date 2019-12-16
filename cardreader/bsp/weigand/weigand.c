@@ -2,9 +2,9 @@
  *  @file
  *  @brief Wiegand26 interface driver.
  *
- *  500 b/s transfer rate
- *  data pulse 40-70us
- *  data interval >2ms
+ *  ~490 b/s transfer rate
+ *  data pulse nominal 40us (standard 20-100us)
+ *  data interval nominal 2ms (standard 200us-20ms)
  *
  *  Only Wiegand 26bit format
  *  Frame:

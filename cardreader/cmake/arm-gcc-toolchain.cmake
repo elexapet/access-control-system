@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.11)
 
 #---------------------
-# ARM GCC Toolchain for cross-compiling to LPC11C24_301
+# ARM GCC Toolchain for cross-compiling to NXP LPC11C24_301
 #---------------------
 
 set(CMAKE_SYSTEM_NAME Generic)
@@ -30,13 +30,14 @@ get_filename_component(ARM_TOOLCHAIN_DIR "${ARM_COMPILER_PATH}" DIRECTORY)
 message(STATUS "Using ARM GCC toolchain:\"${ARM_TOOLCHAIN_DIR}\"")
 
 set(CMAKE_C_COMPILER "${ARM_TOOLCHAIN_DIR}/${TOOLCHAIN_PREFIX}gcc${EXE}")
-set(CMAKE_ASM_COMPILER "${CMAKE_C_COMPILER}")
+set(CMAKE_ASM_COMPILER "${ARM_TOOLCHAIN_DIR}/${TOOLCHAIN_PREFIX}gcc${EXE}")
 set(CMAKE_CXX_COMPILER "${ARM_TOOLCHAIN_DIR}/${TOOLCHAIN_PREFIX}g++${EXE}")
 
 set(CMAKE_OBJCOPY "${ARM_TOOLCHAIN_DIR}/${TOOLCHAIN_PREFIX}objcopy${EXE}" CACHE INTERNAL "objcopy tool")
 set(CMAKE_SIZE_UTIL "${ARM_TOOLCHAIN_DIR}/${TOOLCHAIN_PREFIX}size${EXE}" CACHE INTERNAL "size tool")
 
 set(CMAKE_SYSROOT "${ARM_TOOLCHAIN_DIR}/../arm-none-eabi")
+set(CMAKE_PREFIX_PATH "${ARM_TOOLCHAIN_DIR}/../arm-none-eabi")
 set(CMAKE_FIND_ROOT_PATH "${ARM_TOOLCHAIN_DIR}")
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
@@ -59,19 +60,21 @@ function(firmware_size target)
 endfunction()
 
 # Add a command to generate firmare in a provided format
-function(generate_object target suffix type)
+function(generate_object target in_suffix suffix type)
     add_custom_command(TARGET ${target} POST_BUILD
+        COMMAND echo Generating ${type}...
         COMMAND ${CMAKE_OBJCOPY} -v -O ${type}
-        "${CMAKE_CURRENT_BINARY_DIR}/${target}${CMAKE_EXECUTABLE_SUFFIX}" "${CMAKE_CURRENT_BINARY_DIR}/${target}${suffix}"
-        COMMENT "Generating binary..."
+        "${CMAKE_CURRENT_BINARY_DIR}/${target}${in_suffix}" "${CMAKE_CURRENT_BINARY_DIR}/${target}${suffix}"
+        COMMENT "Generating ${type}..."
     )
 endfunction()
 
-function(calculate_checksum target)
+function(calculate_bin_checksum target)
     if(CHECKSUM_BIN)
         add_custom_command(TARGET ${target} POST_BUILD
+            COMMAND echo Calculating binary checksum...
             COMMAND ${CHECKSUM_BIN} -p LPC11C24_301 -d "${CMAKE_CURRENT_BINARY_DIR}/${target}.bin"
-            COMMENT "Calculating checksum..."
+            COMMENT "Calculating binary checksum..."
         )
     endif()
 endfunction()

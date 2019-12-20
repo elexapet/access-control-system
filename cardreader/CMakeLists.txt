@@ -10,20 +10,22 @@ project(acs-panel VERSION 1.0 LANGUAGES C)
 
 set(CMAKE_EXECUTABLE_SUFFIX ".axf")
 
-set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_LIST_DIR}")
+set(PROJECT_ROOT "${CMAKE_CURRENT_LIST_DIR}")
+
+set(CMAKE_INSTALL_PREFIX "${PROJECT_ROOT}")
 
 # LPCOpen chip library
 
 add_library(lpc_chip_11cxx STATIC IMPORTED)
 
 target_include_directories(lpc_chip_11cxx INTERFACE
-    lib/include
+    "${PROJECT_ROOT}/lib/include"
 )
 
 set_target_properties(lpc_chip_11cxx
     PROPERTIES
-    IMPORTED_LOCATION_DEBUG "${CMAKE_CURRENT_LIST_DIR}/lib/Debug/liblpc_chip_11cxx.a"
-    IMPORTED_LOCATION_RELEASE "${CMAKE_CURRENT_LIST_DIR}/lib/Release/liblpc_chip_11cxx.a"
+    IMPORTED_LOCATION_DEBUG "${PROJECT_ROOT}/lib/Debug/liblpc_chip_11cxx.a"
+    IMPORTED_LOCATION_RELEASE "${PROJECT_ROOT}/lib/Release/liblpc_chip_11cxx.a"
 )
 
 
@@ -32,39 +34,39 @@ set_target_properties(lpc_chip_11cxx
 add_executable(${PROJECT_NAME})
 
 target_include_directories(${PROJECT_NAME} PRIVATE
-    app
-    bsp
-    bsp/board
-    bsp/can
-    bsp/weigand
-    freertos/include
+    "${PROJECT_ROOT}/app"
+    "${PROJECT_ROOT}/bsp"
+    "${PROJECT_ROOT}/bsp/board"
+    "${PROJECT_ROOT}/bsp/can"
+    "${PROJECT_ROOT}/bsp/weigand"
+    "${PROJECT_ROOT}/freertos/include"
 )
 
 target_sources(${PROJECT_NAME} PRIVATE
-    app/crp.c
-    app/start.c
-    app/static_cache.c
-    app/terminal.c
-    app/terminal_config.c
-    bsp/brownout.c
-    bsp/reader.c
-    bsp/storage.c
-    bsp/watchdog.c
-    bsp/board/board.c
-    bsp/board/board_sysinit.c
-    bsp/board/cr_startup_lpc11xx.c
-    bsp/board/sysinit.c
-    bsp/can/can_term_driver.c
-    bsp/weigand/weigand.c
-    freertos/croutine.c
-    freertos/event_groups.c
-    freertos/heap_1.c
-    freertos/list.c
-    freertos/port.c
-    freertos/queue.c
-    freertos/stream_buffer.c
-    freertos/tasks.c
-    freertos/timers.c
+    "${PROJECT_ROOT}/app/crp.c"
+    "${PROJECT_ROOT}/app/start.c"
+    "${PROJECT_ROOT}/app/static_cache.c"
+    "${PROJECT_ROOT}/app/terminal.c"
+    "${PROJECT_ROOT}/app/terminal_config.c"
+    "${PROJECT_ROOT}/bsp/brownout.c"
+    "${PROJECT_ROOT}/bsp/reader.c"
+    "${PROJECT_ROOT}/bsp/storage.c"
+    "${PROJECT_ROOT}/bsp/watchdog.c"
+    "${PROJECT_ROOT}/bsp/board/board.c"
+    "${PROJECT_ROOT}/bsp/board/board_sysinit.c"
+    "${PROJECT_ROOT}/bsp/board/cr_startup_lpc11xx.c"
+    "${PROJECT_ROOT}/bsp/board/sysinit.c"
+    "${PROJECT_ROOT}/bsp/can/can_term_driver.c"
+    "${PROJECT_ROOT}/bsp/weigand/weigand.c"
+    "${PROJECT_ROOT}/freertos/croutine.c"
+    "${PROJECT_ROOT}/freertos/event_groups.c"
+    "${PROJECT_ROOT}/freertos/heap_1.c"
+    "${PROJECT_ROOT}/freertos/list.c"
+    "${PROJECT_ROOT}/freertos/port.c"
+    "${PROJECT_ROOT}/freertos/queue.c"
+    "${PROJECT_ROOT}/freertos/stream_buffer.c"
+    "${PROJECT_ROOT}/freertos/tasks.c"
+    "${PROJECT_ROOT}/freertos/timers.c"
 )
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE
@@ -116,13 +118,13 @@ else()
 endif()
 
 
-linker_script_add(${PROJECT_NAME} "${CMAKE_CURRENT_LIST_DIR}/cmake/${PROJECT_NAME}_${CMAKE_BUILD_TYPE}.ld")
-linker_script_target_dependency(${PROJECT_NAME} "${CMAKE_CURRENT_LIST_DIR}/cmake/${PROJECT_NAME}_${CMAKE_BUILD_TYPE}.ld")
+linker_script_add(${PROJECT_NAME} "${PROJECT_ROOT}/cmake/${PROJECT_NAME}_${CMAKE_BUILD_TYPE}.ld")
+linker_script_target_dependency(${PROJECT_NAME} "${PROJECT_ROOT}/cmake/${PROJECT_NAME}_${CMAKE_BUILD_TYPE}.ld")
 
 # Post build steps
 firmware_size(${PROJECT_NAME})
-generate_object(${PROJECT_NAME} .bin binary)
-
-if(${CMAKE_BUILD_TYPE} STREQUAL Release)
-    calculate_checksum(${PROJECT_NAME})
-endif()
+# generate BIN from AXF
+generate_object(${PROJECT_NAME} ${CMAKE_EXECUTABLE_SUFFIX} .bin binary)
+calculate_bin_checksum(${PROJECT_NAME})
+# generate HEX from BIN with checksum
+generate_object(${PROJECT_NAME} ${CMAKE_EXECUTABLE_SUFFIX} .hex ihex)

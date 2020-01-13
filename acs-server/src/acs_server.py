@@ -69,7 +69,7 @@ class acs_server(object):
         if self.db.get_user_group(user_id) is not None:
             return
         # create special group
-        group = self.db.create_group_for_panel(reader_addr)
+        group = self.db.create_group_for_door(reader_addr)
         if group is not None:
             if self.db.add_user(user_id, group):
                 return

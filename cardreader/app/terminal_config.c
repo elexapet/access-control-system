@@ -9,6 +9,7 @@
 
 #include "terminal_config.h"
 #include "storage.h"
+#include "watchdog.h"
 #include "acs_can_protocol.h"
 
 // Network address mask.
@@ -45,7 +46,7 @@ static bool _load_acs_addrs_from_ext_stor(void)
   return ret_val;
 }
 
-static bool _save_acs_addrs_from_ext_stor(void)
+static bool _save_acs_addrs_to_ext_stor(void)
 {
   bool ret_val = true;
 
@@ -73,13 +74,40 @@ void set_reader_addr(uint16_t acs_addr)
 bool terminal_config_init(void)
 {
   bool ret_val = true;
+  uint16_t acs_addr = 0;
 
 #if (ENABLE_LOCAL_ACS_ADDR_WRITE)
-  ret_val &= _save_acs_addrs_from_ext_stor();
+  Board_UARTGetChar();
+	for (volatile uint32_t i = 0; i < 2*SystemCoreClock; ++i)
+	{
+			WDT_Feed();
+	}
+  if (Board_UARTGetChar() == 's')
+  {
+    Board_UARTPutSTR("Panel address setup\n enter in bin format (2 bytes, MSB first)\n");
+    acs_addr = Board_UARTGetChar() << 8;
+    acs_addr = Board_UARTGetChar();
+    if (acs_addr > 0 && acs_addr <= ACS_ADDR_BIT_MASK)
+    {
+      Board_UARTPutSTR("ok");
+    }
+	  else
+    {
+      Board_UARTPutSTR("fail");
+    }
+  }
 #endif
 
-  //Read ACS ID from external storage
-  ret_val &= _load_acs_addrs_from_ext_stor();
+  if (acs_addr != 0)
+  {
+    set_reader_addr(acs_addr);
+		ret_val &= _save_acs_addrs_to_ext_stor();
+  }
+  else
+  {
+  	//Read ACS ID from external storage
+  	ret_val &= _load_acs_addrs_from_ext_stor();
+  }
 
   return ret_val;
 }

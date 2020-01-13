@@ -42,14 +42,13 @@ static void weigand_frame_timeout(TimerHandle_t pxTimer)
   // Which timer expired
   uint32_t id = (int32_t) pvTimerGetTimerID(pxTimer);
 
-  portENTER_CRITICAL(); // Prevent weigand_int_handler from being invoked
-  if (device[id].frame_buffer_ptr != WEIGAND26_FRAME_SIZE)
-  {
-    // Empty the frame buffer
-    device[id].frame_buffer.value = 0;
-    device[id].frame_buffer_ptr = WEIGAND26_FRAME_SIZE;
-
-  }
+  // Atomicity is guaranteed because when weigand_int_handler is invoked
+  // weigand_frame_timeout will not be called. But we need to prevent
+  // weigand_int_handler from being invoked.
+  portENTER_CRITICAL();
+	// Empty the frame buffer because next bit period expired
+	device[id].frame_buffer.value = 0;
+	device[id].frame_buffer_ptr = WEIGAND26_FRAME_SIZE;
   portEXIT_CRITICAL();
 }
 
@@ -87,7 +86,7 @@ void weigand_init(StreamBufferHandle_t buffer, uint8_t id, uint8_t dx_port, uint
 	//Create timer
 	if (device[dx_port].timer == NULL)
   {
-	  device[dx_port].timer = xTimerCreate("WG", (WEIGAND26_FRAME_TIME_LIMIT / portTICK_PERIOD_MS), pdFALSE, (void *)(uint32_t) dx_port, weigand_frame_timeout);
+	  device[dx_port].timer = xTimerCreate("WG", (WEIGAND26_MAX_BIT_PERIOD / portTICK_PERIOD_MS), pdFALSE, (void *)(uint32_t) dx_port, weigand_frame_timeout);
   }
   configASSERT(device[dx_port].timer);
 
@@ -129,12 +128,14 @@ bool weigand_is_parity_ok(weigand26_frame_t frame)
 	return even_parity == ((frame.value >> 25) & 0x1) && odd_parity == (frame.value & 0x1);
 }
 
-static inline void _wake_timer_on_frame_start(weigand26_t * device)
+static inline void _refresh_frame_time(weigand26_t * device)
 {
-  if (device->frame_buffer_ptr == WEIGAND26_FRAME_SIZE)
-  {
-    configASSERT(xTimerStart(device->timer, 0)); // Restarts timer if still running
-  }
+  configASSERT(xTimerStart(device->timer, 0)); // Restart frame expiration timer
+}
+
+static inline void _stop_frame_time(weigand26_t * device)
+{
+  configASSERT(xTimerStop(device->timer, 0)); // Stop frame expiration timer
 }
 
 void weigand_int_handler(weigand26_t * device)
@@ -144,20 +145,20 @@ void weigand_int_handler(weigand26_t * device)
 	Chip_GPIO_ClearInts(LPC_GPIO, device->port, 0xFFFFFFFF);
 
 	//Resolve pin
-	if (int_states & (1 << device->pin_d1)) // 0's
+	if (int_states & (1 << device->pin_d1)) // 1's
 	{
 		if (Chip_GPIO_ReadPortBit(LPC_GPIO, device->port, device->pin_d1) == 0)
 		{
-		  _wake_timer_on_frame_start(device);
+		  _refresh_frame_time(device);
 			device->frame_buffer_ptr--;
 			device->frame_buffer.value |= (1 << device->frame_buffer_ptr);
 		}
 	}
-	else if (int_states & (1 << device->pin_d0)) // 1's
+	else if (int_states & (1 << device->pin_d0)) // 0's
 	{
 		if (Chip_GPIO_ReadPortBit(LPC_GPIO, device->port, device->pin_d0) == 0)
 		{
-		  _wake_timer_on_frame_start(device);
+			_refresh_frame_time(device);
 			device->frame_buffer_ptr--;
 			device->frame_buffer.value &= ~(1 << device->frame_buffer_ptr);
 		}
@@ -169,6 +170,8 @@ void weigand_int_handler(weigand26_t * device)
 	//Whole frame received
 	if (device->frame_buffer_ptr == 0)
 	{
+		_stop_frame_time(device);
+
 	  BaseType_t pxHigherPriorityTaskWoken = pdFALSE;
 
 	  // Check if not full

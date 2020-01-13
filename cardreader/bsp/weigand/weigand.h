@@ -27,7 +27,7 @@
 #include "stream_buffer.h"
 
 #define WEIGAND26_FRAME_SIZE 26
-#define WEIGAND26_FRAME_TIME_LIMIT 125  // This limits data interval to maximum of 5ms!
+#define WEIGAND26_MAX_BIT_PERIOD 20  // Should be equal to upper limit of data interval.
 
 typedef union
 {

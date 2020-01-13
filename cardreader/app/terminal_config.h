@@ -22,8 +22,8 @@
 // Enable write of ACS address to external storage on startup.
 #define ENABLE_LOCAL_ACS_ADDR_WRITE 0
 
-// Enable caching for operation when communication is lost.
-// Cache expiration is to be handled by master (Not implemented).
+// Enable caching for operation when communication is lost. (Experimental feature)
+// Cache expiration is to be handled by master (Not implemented)
 #define CACHING_ENABLED 0
 
 // CAN bus speed b/s - affects maximum data cable length.
@@ -43,8 +43,8 @@
 #define OK_LED_ON_SUCCESS true
 
 // Door sensor types (reed switch).
-#define SENSOR_IS_NO 0  // Normally open (Form A).
-#define SENSOR_IS_NC 1  // Normally closed (Form B).
+#define SENSOR_IS_NO 0  // Normally open (Form A) when door open.
+#define SENSOR_IS_NC 1  // Normally closed (Form B) when door open.
 
 // If DOOR_SENSOR_TYPE is defined enables door sensor.
 #define DOOR_SENSOR_TYPE SENSOR_IS_NO

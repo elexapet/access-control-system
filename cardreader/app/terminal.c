@@ -112,8 +112,11 @@ static void _timer_callback(TimerHandle_t pxTimer)
 
 void term_can_error(uint32_t error_info)
 {
-  (void)error_info;
-  /* TODO Process CAN bus errors. */
+  if (error_info == CAN_ERROR_BOFF) // if bus off do reset by WDG timeout
+  {
+  	WDT_Feed();
+    configASSERT(false);
+  }
 }
 
 void term_can_send(uint8_t msg_obj_num)

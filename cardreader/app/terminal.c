@@ -324,10 +324,10 @@ static void terminal_task(void *pvParameters)
 
   bool send_door_status = true;
 
+  WDT_Feed(); // Feed HW watchdog
+
   while (true)
   {
-  	WDT_Feed(); // Feed HW watchdog
-
     TickType_t begin_time = xTaskGetTickCount();
 
     // Get pending user request
@@ -352,14 +352,14 @@ static void terminal_task(void *pvParameters)
     // Calculate actual processing time.
 		TickType_t proces_time = xTaskGetTickCount() - begin_time;
 
-    WDT_Feed(); // Feed HW watchdog
-
     // Protect against brute-force attack by limiting processing frequency.
     // Also controls frequency of door status update.
     if (proces_time < pdMS_TO_TICKS(USER_REQUEST_MIN_PERIOD_MS))
 		{
       vTaskDelay(pdMS_TO_TICKS(USER_REQUEST_MIN_PERIOD_MS) - proces_time);
 		}
+
+    WDT_Feed(); // Feed HW watchdog
 
     if (send_door_status)
     {

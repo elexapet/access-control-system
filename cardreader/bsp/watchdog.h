@@ -11,6 +11,7 @@
 #define BSP_WATCHDOG_H_
 
 #include <stdint.h>
+#include "board.h"
 
 /**
 * @brief Watchdog timer interrupt handler.
@@ -35,6 +36,9 @@ void WDT_Init(uint8_t timeout);
 * @brief Feed watchdog timer.
 *
 */
-void WDT_Feed(void);
+static inline void WDT_Feed(void)
+{
+	Chip_WWDT_Feed(LPC_WWDT);
+}
 
 #endif /* BSP_WATCHDOG_H_ */

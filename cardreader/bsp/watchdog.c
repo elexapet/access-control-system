@@ -33,7 +33,6 @@
  */
 
 #include "watchdog.h"
-#include "board.h"
 
 
 /*****************************************************************************
@@ -95,9 +94,4 @@ void WDT_Init(uint8_t timeout)
 
 	/* Start watchdog */
 	Chip_WWDT_Start(LPC_WWDT);
-}
-
-void WDT_Feed(void)
-{
-	Chip_WWDT_Feed(LPC_WWDT);
 }

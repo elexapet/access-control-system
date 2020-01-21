@@ -16,8 +16,8 @@
 #define ACS_ADDR_BIT_MASK ((1 << ACS_ADDR_BITS) - 1)
 
 // Door addresses in ACS.
-uint16_t _READER_A_ADDR = 0x4; // even
-uint16_t _READER_B_ADDR = 0x5; // odd
+uint16_t _READER_A_ADDR = ACS_PNL_FIRST_ADDR;     // even
+uint16_t _READER_B_ADDR = ACS_PNL_FIRST_ADDR + 1; // odd
 
 
 inline uint16_t get_reader_a_addr(void)
@@ -71,37 +71,53 @@ void set_reader_addr(uint16_t acs_addr)
   }
 }
 
+static inline uint16_t _setup_addr_from_console(void)
+{
+  uint16_t acs_addr = 0;
+
+  while (Board_UARTGetChar() != EOF); // flush read buffer
+  for (volatile uint32_t i = 0; i < SystemCoreClock/4; ++i)
+  {
+    WDT_Feed();
+  }
+  if (Board_UARTGetChar() == 's')
+  {
+    while (Board_UARTGetChar() != EOF); // flush read buffer
+    Board_UARTPutSTR("Panel address setup (enter in bin format - 2 bytes, MSB first):\n");
+
+    // read address
+    int addr_byte;
+    while ((addr_byte = Board_UARTGetChar()) == EOF) WDT_Feed();
+    acs_addr = addr_byte << 8;
+    while ((addr_byte = Board_UARTGetChar()) == EOF) WDT_Feed();
+    acs_addr = addr_byte;
+
+    if (acs_addr >= ACS_PNL_FIRST_ADDR && acs_addr <= ACS_PNL_LAST_ADDR)
+    {
+      Board_UARTPutSTR("ok\n");
+    }
+    else
+    {
+      acs_addr = 0;
+      Board_UARTPutSTR("fail\n");
+    }
+  }
+  return acs_addr;
+}
+
 bool terminal_config_init(void)
 {
   bool ret_val = true;
   uint16_t acs_addr = 0;
 
-#if (ENABLE_LOCAL_ACS_ADDR_WRITE)
-  Board_UARTGetChar();
-	for (volatile uint32_t i = 0; i < 2*SystemCoreClock; ++i)
-	{
-			WDT_Feed();
-	}
-  if (Board_UARTGetChar() == 's')
-  {
-    Board_UARTPutSTR("Panel address setup\n enter in bin format (2 bytes, MSB first)\n");
-    acs_addr = Board_UARTGetChar() << 8;
-    acs_addr = Board_UARTGetChar();
-    if (acs_addr > 0 && acs_addr <= ACS_ADDR_BIT_MASK)
-    {
-      Board_UARTPutSTR("ok");
-    }
-	  else
-    {
-      Board_UARTPutSTR("fail");
-    }
-  }
-#endif
+  acs_addr = _setup_addr_from_console();
 
   if (acs_addr != 0)
   {
     set_reader_addr(acs_addr);
-		ret_val &= _save_acs_addrs_to_ext_stor();
+#if (ENABLE_LOCAL_ACS_ADDR_WRITE)
+    ret_val &= _save_acs_addrs_to_ext_stor();
+#endif
   }
   else
   {

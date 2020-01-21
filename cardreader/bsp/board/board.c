@@ -128,6 +128,8 @@ void Board_Print_Reset_Reason(void)
   else if (status & SYSCTL_RST_EXTRST) Board_UARTPutSTR("EXT RST");
   else if (status & SYSCTL_RST_POR) Board_UARTPutSTR("PWR-ON RST");
   Board_UARTPutChar('\n');
+  Board_UARTPutSTR(FW_VERSION_STR);
+  Board_UARTPutChar('\n');
 }
 
 /* Sends a character on the UART */

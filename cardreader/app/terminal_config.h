@@ -15,12 +15,14 @@
 
 //#define DEVEL_BOARD // LPCXpresso11C24 development board
 
+#define FW_VERSION_STR "1.0.1"
+
 //-------------------------------------------------------------
 // General settings.
 //-------------------------------------------------------------
 
 // Enable write of ACS address to external storage on startup.
-#define ENABLE_LOCAL_ACS_ADDR_WRITE 0
+#define ENABLE_LOCAL_ACS_ADDR_WRITE 1
 
 // Enable caching for operation when communication is lost. (Experimental feature)
 // Cache expiration is to be handled by master (Not implemented)

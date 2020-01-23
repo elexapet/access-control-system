@@ -1,6 +1,7 @@
 FLUSHALL
 SELECT 1
 SADD __all 0
+SADD __learn 0
 SADD __void 0
 SADD door_A 4
 SADD door_B 5
@@ -17,7 +18,7 @@ SET 7577396 door_B
 SET 814190 door_C
 SET 814185 door_C
 SET 814204 door_D
-SET 814199 door_D
+SET 814199 __learn
 SET 1000 __void
 SET 1001 __void
 SET 1002 __void

@@ -53,6 +53,9 @@
 #define FC_DOOR_CTRL           0x4 // M -> S
 #define FC_DOOR_STATUS         0x5 // S -> M
 #define FC_ALIVE               0x6 // M -> S
+#define FC_LEARN_USER          0x7 // S -> M
+#define FC_LEARN_USER_OK       0x8 // M -> S
+#define FC_LEARN_USER_FAIL     0x9 // M -> S
 
 // Priority range.
 #define ACS_MAX_PRIO  0
@@ -66,10 +69,15 @@
 #define PRIO_DOOR_CTRL           0x3
 #define PRIO_DOOR_STATUS         0x4
 #define PRIO_ALIVE               0x1
+#define PRIO_LEARN_USER          0x2
+#define PRIO_LEARN_USER_FAIL     0x2
+#define PRIO_LEARN_USER_OK       0x2
 
 // Data for FC_DOOR_CTRL.
 #define DATA_DOOR_CTRL_REMOTE_UNLCK 0x01
 #define DATA_DOOR_CTRL_CLR_CACHE    0x02
+#define DATA_DOOR_CTRL_LEARN_MODE   0x03
+#define DATA_DOOR_CTRL_NORMAL_MODE  0x04
 
 // Data for FC_DOOR_STATUS.
 #define DATA_DOOR_STATUS_CLOSED   0x01

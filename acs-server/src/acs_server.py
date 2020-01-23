@@ -26,8 +26,9 @@ class acs_server(object):
         self.can_if = can_if
         self.addr = addr
         try:
-            self.proto = acs_can_proto(addr, cb_user_auth_req=self.resp_to_auth_req,
-                                       cb_door_status_update=self.door_status_update)
+            self.proto = acs_can_proto(addr, cb_user_auth_req=self._resp_to_auth_req,
+                                       cb_door_status_update=self._door_status_update,
+                                       cb_learn_user=self._learn_user)
             self.proto.bind(can_if)
         except Exception as e:
             logging.exception("Unable to start the server: %s", e)
@@ -55,6 +56,18 @@ class acs_server(object):
             sys.exit(0)
 
     # server command to unlock door
+    def change_door_mode(self, reader_addr, mode):
+        if self.debug:
+            logging.debug("change_door_mode: reader={}, mode={}".format(reader_addr, mode))
+        self.db.set_door_mode(reader_addr, self.db.DOOR_MODE_ENABLED)
+        if mode == self.db.DOOR_MODE_LEARN:
+            can_id, dlc, data = self.proto.msg_reader_learn_mode(reader_addr)
+            self.proto.can_sock.send(can_id, dlc, data)
+        else:
+            can_id, dlc, data = self.proto.msg_reader_normal_mode(reader_addr)
+            self.proto.can_sock.send(can_id, dlc, data)
+
+    # server command to unlock door
     def remote_unlock_door(self, reader_addr):
         if self.debug:
             logging.debug("remote_unlock_door: reader={}".format(reader_addr))
@@ -62,44 +75,70 @@ class acs_server(object):
         self.proto.can_sock.send(can_id, dlc, data)
 
     # add a new user to database
-    def add_new_user(self, user_id, reader_addr):
+    def add_new_user(self, user_id, reader_addr, extend_group):
         if self.debug:
             logging.debug("add_new_user: reader={}, user={}".format(reader_addr, user_id))
         # do not add existing users
-        if self.db.get_user_group(user_id) is not None:
-            return
-        # create special group
-        group = self.db.create_group_for_door(reader_addr)
+        group = self.db.get_user_group(user_id)
         if group is not None:
-            if self.db.add_user(user_id, group):
-                return
+            if extend_group:
+                # add door to user's group
+                return (self.db.add_doors_to_group(group, reader_addr) > 0)
             else:
-                self.db.remove_group(group)
-                return
-        return
+                return False
+        else:
+            # create special group
+            group = self.db.create_group_for_door(reader_addr)
+            if group is not None:
+                if self.db.add_user(user_id, group):
+                    return True
+                else:
+                    # remove group is adding failed
+                    self.db.remove_group(group)
+                    return False
+
+    # callback to learn user request
+    def _learn_user(self, user_id, reader_addr):
+        if self.debug:
+            logging.debug("learn_user: reader={}, user={}".format(reader_addr, user_id))
+        mode = self.db.get_door_mode(reader_addr)
+        if mode is None:
+            return False  # treat as invalid request (door does not exist)
+        if mode == self.db.DOOR_MODE_LEARN:
+            user_auth_type = self.db.user_authorization(user_id, reader_addr)
+            if user_auth_type == self.db.USER_AUTH_LEARN:
+                self.change_door_mode(reader_addr, self.db.DOOR_MODE_ENABLED)
+                return None
+            elif user_auth_type == self.db.USER_NOT_EXIST:
+                return self.add_new_user(user_id, reader_addr, False)
+            elif user_auth_type == self.db.USER_AUTH_OK:
+                return self.add_new_user(user_id, reader_addr, True)
+        else:
+            return False
 
     # callback to authorization request
     # return True if authorized to open door False otherwise
-    def resp_to_auth_req(self, reader_addr, user_id):
+    def _resp_to_auth_req(self, reader_addr, user_id):
         if self.debug:
             logging.debug("resp_to_auth_req: reader={}, user={}".format(reader_addr, user_id))
         mode = self.db.get_door_mode(reader_addr)
         if mode is None:
             return False  # treat as invalid request (door does not exist)
         if mode == self.db.DOOR_MODE_ENABLED:
-            if self.db.is_user_authorized(user_id, reader_addr):
+            user_auth_type = self.db.user_authorization(user_id, reader_addr)
+            if user_auth_type == self.db.USER_AUTH_OK:
                 self.db.log_user_access(user_id, reader_addr)
                 return True
+            elif user_auth_type == self.db.USER_AUTH_LEARN:
+                self.change_door_mode(reader_addr, self.db.DOOR_MODE_LEARN)
+                return None
             else:
                 return False
-        elif mode == self.db.DOOR_MODE_LEARN:
-            self.add_new_user(user_id, reader_addr)
-            return True
         else:
             return False
 
     # callback for door status update
-    def door_status_update(self, reader_addr, is_open:bool):
+    def _door_status_update(self, reader_addr, is_open:bool):
         if self.debug:
             logging.debug("door_status_update: reader={} open={}".format(reader_addr, is_open))
         self.db.set_door_is_open(reader_addr, is_open)

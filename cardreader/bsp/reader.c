@@ -66,6 +66,7 @@ reader_conf_t reader_conf[ACS_READER_MAXCOUNT] =
     .open_time_sec = ACS_READER_A_OPEN_TIME_MS,
     .gled_time_sec = ACS_READER_A_OK_GLED_TIME_MS,
     .enabled = ACS_READER_A_ENABLED,
+    .learn_mode = false,
     .door_open = DOOR_CLOSED
   },
   {
@@ -74,6 +75,7 @@ reader_conf_t reader_conf[ACS_READER_MAXCOUNT] =
     .open_time_sec = ACS_READER_B_OPEN_TIME_MS,
     .gled_time_sec = ACS_READER_B_OK_GLED_TIME_MS,
     .enabled = ACS_READER_B_ENABLED,
+    .learn_mode = false,
     .door_open = DOOR_CLOSED
   }
 };
@@ -202,6 +204,10 @@ uint8_t reader_get_request_from_buffer(uint32_t * user_id, uint16_t time_to_wait
 
 void reader_unlock(uint8_t idx, bool with_beep, bool with_ok_led)
 {
+  configASSERT(xTimerStart(reader_conf[idx].timer_ok, 0));
+  Chip_GPIO_SetPinState(LPC_GPIO, _reader_wiring[idx].rled_port, _reader_wiring[idx].rled_pin, LOG_LOW);
+  configASSERT(xTimerStart(reader_conf[idx].timer_open, 0));
+  Chip_GPIO_SetPinState(LPC_GPIO, _reader_wiring[idx].relay_port, _reader_wiring[idx].relay_pin, LOG_LOW);
   // Unlock state
   if (with_beep)
   {
@@ -211,11 +217,17 @@ void reader_unlock(uint8_t idx, bool with_beep, bool with_ok_led)
   {
     Chip_GPIO_SetPinState(LPC_GPIO, _reader_wiring[idx].gled_port, _reader_wiring[idx].gled_pin, LOG_HIGH);
   }
-  Chip_GPIO_SetPinState(LPC_GPIO, _reader_wiring[idx].rled_port, _reader_wiring[idx].rled_pin, LOG_LOW);
-  configASSERT(xTimerStart(reader_conf[idx].timer_open, 0));
+}
 
-  Chip_GPIO_SetPinState(LPC_GPIO, _reader_wiring[idx].relay_port, _reader_wiring[idx].relay_pin, LOG_LOW);
+void reader_signal_to_user(uint8_t idx, bool with_beep)
+{
   configASSERT(xTimerStart(reader_conf[idx].timer_ok, 0));
+  Chip_GPIO_SetPinState(LPC_GPIO, _reader_wiring[idx].rled_port, _reader_wiring[idx].rled_pin, LOG_HIGH);
+  Chip_GPIO_SetPinState(LPC_GPIO, _reader_wiring[idx].gled_port, _reader_wiring[idx].gled_pin, LOG_HIGH);
+  if (with_beep)
+  {
+    Chip_GPIO_SetPinState(LPC_GPIO, _reader_wiring[idx].beep_port, _reader_wiring[idx].beep_pin, LOG_HIGH);
+  }
 }
 
 bool reader_is_door_open(uint8_t reader_idx)

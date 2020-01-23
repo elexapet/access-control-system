@@ -24,12 +24,19 @@ class acs_database(object):
 
     __ALL_GRP = b"__all"  # Special group representing all doors.
     __EMPTY_GRP = b"__void"  # Special empty group.
+    __LEARN_GRP = b"__learn"  # Special group for switching between on and learn.
     __NONAME_GRP_PREFIX = "__nng_"
     __RESERVED_ADDR = 0
     __DEFAULT_HOST = "localhost"
     __DEFAULT_PORT = 6379
     __DOOR_MODE_IDX = 0
     __DOOR_STATUS_IDX = 1
+
+    # user auth types
+    USER_AUTH_FAIL = 0
+    USER_AUTH_OK = 1
+    USER_NOT_EXIST = 2
+    USER_AUTH_LEARN = 3
 
     # Doors can be disabled to prevent access. Or switched to learn mode where authorization request
     # is interpreted that door is unlocked and user is added to database and given access to source door.
@@ -51,6 +58,7 @@ class acs_database(object):
         # create basic groups (if not present)
         self.add_doors_to_group(self.__ALL_GRP, self.__RESERVED_ADDR)
         self.add_doors_to_group(self.__EMPTY_GRP, self.__RESERVED_ADDR)
+        self.add_doors_to_group(self.__LEARN_GRP, self.__RESERVED_ADDR)
 
     # Return user's group name or None if user does not exist.
     def get_user_group(self, user_id:int) -> str:
@@ -118,15 +126,21 @@ class acs_database(object):
     def is_door_registered(self, door_addr:int) -> bool:
         self.__rclient_door.llen(door_addr) == 2
 
-    # Return True if user is authorized for given door (door) number.
-    def is_user_authorized(self, user_id:int, door_addr:int) -> bool:
+    # Return user authorization for given door address.
+    def user_authorization(self, user_id:int, door_addr:int) -> bool:
         group = self.get_user_group(user_id)
-        if group is None or user_id == self.__RESERVED_ADDR or group == self.__EMPTY_GRP:
-            return False
+        if group is None:
+            return self.USER_NOT_EXIST
+        elif user_id == self.__RESERVED_ADDR or group == self.__EMPTY_GRP:
+            return self.USER_AUTH_FAIL
         elif group == self.__ALL_GRP:
-            return True
+            return self.USER_AUTH_OK
+        elif group == self.__LEARN_GRP:
+            return self.USER_AUTH_LEARN
+        elif self.__rclient_group.sismember(group, door_addr):
+            return self.USER_AUTH_OK
         else:
-            return self.__rclient_group.sismember(group, door_addr)
+            return self.USER_AUTH_FAIL
 
     # Log that user accessed a door/door.
     def log_user_access(self, user_id, door_addr):

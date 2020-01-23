@@ -5,7 +5,7 @@ This is readme for Access control system server (ACS server/master).
 ********************************************************************
 Its main job is to respond to authentication requests from RFID readers connected on CAN bus.
 
-The server is designed to be not accessible from ethernet network and be administred through ssh from outside
+The server is designed to be not accessible from public network and be administred through ssh from outside
 or from administrative application over secured channel.
 Redis server should be on the same machine or network as it is designed to be accesed only from trusted clients
 inside trusted environments.

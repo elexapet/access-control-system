@@ -131,6 +131,12 @@ class acs_can_proto(object):
     FC_DOOR_STATUS = 5
     # m->s
     FC_ALIVE = 6
+    # m<-s
+    FC_LEARN_USER = 7
+    # m->s
+    FC_LEARN_USER_OK = 8
+    # m->s
+    FC_LEARN_USER_FAIL = 9
 
     # priorities
     PRIO_RESERVED = 0
@@ -140,6 +146,9 @@ class acs_can_proto(object):
     PRIO_DOOR_CTRL = 3
     PRIO_DOOR_STATUS = 4
     PRIO_ALIVE = 1
+    PRIO_LEARN_USER = 2
+    PRIO_LEARN_USER_FAIL = 2
+    PRIO_LEARN_USER_OK = 2
 
     MASTER_ALIVE_PERIOD = 5  # seconds
     MASTER_ALIVE_TIMEOUT = 12
@@ -147,6 +156,8 @@ class acs_can_proto(object):
     # Data for FC_DOOR_CTRL
     DATA_DOOR_CTRL_REMOTE_UNLCK = b'\x01'
     DATA_DOOR_CTRL_CLR_CACHE = b'\x02'
+    DATA_DOOR_CTRL_LEARN_MODE = b'\x03'
+    DATA_DOOR_CTRL_NORMAL_MODE = b'\x04'
 
     # Data for FC_DOOR_STATUS
     DATA_DOOR_STATUS_CLOSED = b'\x01'
@@ -184,13 +195,14 @@ class acs_can_proto(object):
 
     CAN_ID_MASK = 0xFFFFFFFF
 
-    def __init__(self, master_addr:int, cb_user_auth_req, cb_door_status_update):
+    def __init__(self, master_addr:int, cb_user_auth_req, cb_door_status_update, cb_learn_user):
         # create socket
         self.can_sock = can_raw_sock()
 
         # register message callbacks
         self.cb_user_auth_req = cb_user_auth_req
         self.cb_door_status_update = cb_door_status_update
+        self.cb_learn_user = cb_learn_user
 
         if self.ACS_MSTR_LAST_ADDR >= master_addr >= self.ACS_MSTR_FIRST_ADDR:
             self.addr = master_addr
@@ -239,6 +251,22 @@ class acs_can_proto(object):
         return (self.__msg(self.PRIO_ALIVE, self.FC_ALIVE, self.ACS_BROADCAST_ADDR),
                 0, b'\x00')
 
+    def msg_reader_normal_mode(self, reader_addr):
+        return (self.__msg(self.PRIO_DOOR_CTRL, self.FC_DOOR_CTRL, reader_addr),
+                1, self.DATA_DOOR_CTRL_NORMAL_MODE)
+
+    def msg_reader_learn_mode(self, reader_addr):
+        return (self.__msg(self.PRIO_DOOR_CTRL, self.FC_DOOR_CTRL, reader_addr),
+                1, self.DATA_DOOR_CTRL_LEARN_MODE)
+
+    def msg_learn_user_ok(self, reader_addr, user_id:int):
+        return (self.__msg(self.PRIO_LEARN_USER_OK, self.FC_LEARN_USER_OK, reader_addr),
+                4, user_id.to_bytes(4, "little", signed=True))
+
+    def msg_learn_user_fail(self, reader_addr, user_id:int):
+        return (self.__msg(self.PRIO_LEARN_USER_FAIL, self.FC_LEARN_USER_FAIL, reader_addr),
+                4, user_id.to_bytes(4, "little", signed=True))
+
     # Parse arbitration ID
     def __parse_msg_head(self, msg_head):
         prio = (msg_head & self.ACS_PRIO_MASK) >> self.ACS_PRIO_OFFSET
@@ -258,10 +286,22 @@ class acs_can_proto(object):
             if fc == self.FC_USER_AUTH_REQ:
                 if self.cb_user_auth_req is not None:
                     user_id = int.from_bytes(msg_data[:4], "little", signed=True)
-                    if self.cb_user_auth_req(src, user_id):
+                    ok = self.cb_user_auth_req(src, user_id)
+                    if ok is None:
+                        return self.NO_MESSAGE
+                    elif ok:
                         return self.msg_auth_ok(src, user_id)
                     else:
                         return self.msg_auth_fail(src, user_id)
+            elif fc == self.FC_LEARN_USER:
+                if self.cb_learn_user is not None:
+                    ok = self.cb_learn_user(src, int.from_bytes(msg_data[:4], "little", signed=True))
+                    if ok is None:
+                        return self.NO_MESSAGE
+                    elif ok:
+                        return self.msg_learn_user_ok(src, user_id)
+                    else:
+                        return self.msg_learn_user_fail(src, user_id)
             elif fc == self.FC_DOOR_STATUS:
                 if self.cb_door_status_update is not None:
                     self.cb_door_status_update(src, msg_data[:1] == self.DATA_DOOR_STATUS_OPEN)

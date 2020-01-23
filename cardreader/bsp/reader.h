@@ -18,13 +18,6 @@
 #include "timers.h"
 #include "weigand.h"
 
-typedef enum
-{
-  READER_MODE_DEF = 0,
-  READER_MODE_LOCKED,
-  READER_MODE_LEARN
-} reader_mode_t;
-
 typedef struct
 {
   TimerHandle_t timer_open;
@@ -32,6 +25,7 @@ typedef struct
   uint16_t open_time_sec;
   uint16_t gled_time_sec;
   uint8_t enabled;
+  uint8_t learn_mode;
   uint8_t door_open;
 } reader_conf_t;
 
@@ -88,6 +82,14 @@ uint8_t reader_get_request_from_buffer(uint32_t * user_id, uint16_t time_to_wait
  * @param with_ok_led ... true for visual signal
  */
 void reader_unlock(uint8_t idx, bool with_beep, bool with_ok_led);
+
+/**
+ * @brief Activate sound and light on reader.
+ *
+ * @param idx ... reader index
+ * @param with_beep ... true for sound signal
+ */
+void reader_signal_to_user(uint8_t idx, bool with_beep);
 
 /**
  * @brief Check door status.

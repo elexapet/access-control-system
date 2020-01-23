@@ -204,6 +204,10 @@ void term_can_recv(uint8_t msg_obj_num)
       static_cache_insert(user);
     #endif
   }
+  else if (head.fc == FC_LEARN_USER_OK)
+  {
+      reader_signal_to_user(reader_idx, BEEP_ON_SUCCESS);
+  }
   else if (head.fc == FC_DOOR_CTRL)
   {
     switch (msg_obj.data[0])
@@ -217,6 +221,16 @@ void term_can_recv(uint8_t msg_obj_num)
 #if CACHING_ENABLED
         _cache_clear_req = true;
 #endif
+        break;
+      case DATA_DOOR_CTRL_NORMAL_MODE:
+        DEBUGSTR("cmd NORMAL MODE\n");
+        reader_conf[reader_idx].learn_mode = false;
+        reader_signal_to_user(reader_idx, BEEP_ON_SUCCESS);
+        break;
+      case DATA_DOOR_CTRL_LEARN_MODE:
+        DEBUGSTR("cmd LEARN MODE\n");
+        reader_conf[reader_idx].learn_mode = true;
+        reader_signal_to_user(reader_idx, BEEP_ON_SUCCESS);
         break;
       default:
         break;
@@ -285,6 +299,35 @@ static void terminal_request_auth(uint32_t user_id, uint8_t reader_idx)
   }
 }
 
+// Send command to server that request to learn a user for given reader.
+static void terminal_request_user_learn(uint32_t user_id, uint8_t reader_idx)
+{
+  // Check if master online.
+  if (_act_master == ACS_RESERVED_ADDR)
+  {
+    DEBUGSTR("master off-line\n");
+    return;
+  }
+
+  // Prepare message head to send request on CAN.
+  acs_msg_head_t head;
+  head.scalar = CAN_MSGOBJ_EXT;
+  head.prio = PRIO_LEARN_USER;
+  head.fc = FC_LEARN_USER;
+  head.dst = _act_master;
+
+  if (reader_idx == ACS_READER_A_IDX)
+  {
+    head.src = get_reader_a_addr();
+    CAN_send_once(ACS_MSGOBJ_SEND_DOOR_A, head.scalar, (void *)&user_id, sizeof(user_id));
+  }
+  else if (reader_idx == ACS_READER_B_IDX)
+  {
+    head.src = get_reader_b_addr();
+    CAN_send_once(ACS_MSGOBJ_SEND_DOOR_B, head.scalar, (void *)&user_id, sizeof(user_id));
+  }
+}
+
 // Process user identification on a reader.
 static void terminal_user_identified(uint32_t user_id, uint8_t reader_idx)
 {
@@ -294,17 +337,21 @@ static void terminal_user_identified(uint32_t user_id, uint8_t reader_idx)
 
   if (reader_idx < ACS_READER_MAXCOUNT && reader_conf[reader_idx].enabled)
   {
+    if (reader_conf[reader_idx].learn_mode)
+    {
+      terminal_request_user_learn(user_id, reader_idx);
+    }
 #if CACHING_ENABLED
   	// Read from cache online if master is offline.
-    if ((_act_master == ACS_RESERVED_ADDR) && static_cache_get(&user))
+    else if ((_act_master == ACS_RESERVED_ADDR) && static_cache_get(&user))
     {
       if (map_reader_idx_to_cache(reader_idx) & user.value)
       {
         _terminal_user_authorized(reader_idx);
       }
     }
-    else
 #else
+    else
     {
       terminal_request_auth(user_id, reader_idx);
     }

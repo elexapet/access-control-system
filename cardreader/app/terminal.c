@@ -27,7 +27,7 @@
  ****************************************************************************/
 
 // How long to wait for user request.
-static const uint16_t USER_REQUEST_WAIT_MS = 500;
+static const uint16_t USER_REQUEST_WAIT_MS = 400;
 // This is minimal period between each request.
 // Also controls intensity of door status messages (sent each 2*period).
 static const uint16_t USER_REQUEST_MIN_PERIOD_MS = 1000;
@@ -377,15 +377,19 @@ static void terminal_task(void *pvParameters)
   {
     TickType_t begin_time = xTaskGetTickCount();
 
-    // Get pending user request
-    uint32_t user_id;
-
-    uint8_t reader_idx = reader_get_request_from_buffer(&user_id, USER_REQUEST_WAIT_MS);
-
-    if (reader_idx < ACS_READER_MAXCOUNT && reader_conf[reader_idx].enabled)
+    // Service pending user requests for all readers
+    for (size_t i = 0; i < ACS_READER_MAXCOUNT; ++i)
     {
-      DEBUGSTR("user req\n");
-      terminal_user_identified(user_id, reader_idx);
+      if (!reader_conf[i].enabled) continue;
+
+      uint32_t user_id;
+      uint8_t reader_idx = reader_get_request_from_buffer(&user_id, USER_REQUEST_WAIT_MS);
+
+      if (reader_idx < ACS_READER_MAXCOUNT && reader_conf[reader_idx].enabled)
+      {
+        DEBUGSTR("user req\n");
+        terminal_user_identified(user_id, reader_idx);
+      }
     }
 
 #if CACHING_ENABLED

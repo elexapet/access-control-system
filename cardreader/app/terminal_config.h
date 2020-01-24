@@ -15,7 +15,7 @@
 
 //#define DEVEL_BOARD // LPCXpresso11C24 development board
 
-#define FW_VERSION_STR "1.1.0"
+#define FW_VERSION_STR "1.1.1"
 
 //-------------------------------------------------------------
 // General settings.

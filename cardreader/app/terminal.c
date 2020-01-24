@@ -29,8 +29,10 @@
 // How long to wait for user request.
 static const uint16_t USER_REQUEST_WAIT_MS = 400;
 // This is minimal period between each request.
-// Also controls intensity of door status messages (sent each 2*period).
+// Also controls intensity of door status messages (sent each SEND_DOOR_STATUS_RATE*period).
 static const uint16_t USER_REQUEST_MIN_PERIOD_MS = 1000;
+// Door status update rate (period multiplier)
+static const uint16_t SEND_DOOR_STATUS_RATE = 5;
 
 // Cache entry type mapping to our type.
 typedef cache_item_t term_cache_item_t;  // 4 bytes
@@ -369,7 +371,7 @@ static void terminal_task(void *pvParameters)
   // start timer for detecting master timeout
   configASSERT(xTimerStart(_act_timer, 0));
 
-  bool send_door_status = true;
+  uint8_t send_door_status = SEND_DOOR_STATUS_RATE;
 
   WDT_Feed(); // Feed HW watchdog
 
@@ -412,8 +414,10 @@ static void terminal_task(void *pvParameters)
 
     WDT_Feed(); // Feed HW watchdog
 
-    if (send_door_status)
+    if (send_door_status == SEND_DOOR_STATUS_RATE)
     {
+      send_door_status = 0;
+
 			// Check if door open/close state changed
 			for (size_t idx = 0; idx < ACS_READER_MAXCOUNT; ++idx)
 			{
@@ -425,7 +429,7 @@ static void terminal_task(void *pvParameters)
 				}
 			}
     }
-    send_door_status = !send_door_status;
+    send_door_status++;
   }
 }
 

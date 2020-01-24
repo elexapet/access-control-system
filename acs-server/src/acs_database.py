@@ -65,23 +65,26 @@ class acs_database(object):
         group = self.__rclient_user.get(user_id)
         return group
 
-    # Return True if user was added.
+    # add user to an existing group
     def add_user(self, user_id:int, group:str=__ALL_GRP, expire_secs:int=0) -> bool:
+        if self.__rclient_group.exists(group) == 0:
+            return False
         if expire_secs > 0:
-            status = self.__rclient_user.set(user_id, group, ex=expire_secs)
+            self.__rclient_user.set(user_id, group, ex=expire_secs)
         else:
-            status = self.__rclient_user.set(user_id, group)
-        return status
+            self.__rclient_user.set(user_id, group)
+        return True
 
     # Return True if user was removed.
     def remove_user(self, user_id) -> bool:
         status = self.__rclient_user.delete(user_id)
-        return True if (status == 1) else False
+        return True if (status > 0) else False
 
     # Return True if group was removed.
-    def remove_group(self, group) -> bool:
-        status = self.__rclient_group.delete(group)
-        return True if (status == 1) else False
+    def remove_group(self, group, only_empty) -> bool:
+        if not only_empty or (only_empty and (self.__rclient_group.scard(group) == 0)):
+            status = self.__rclient_group.delete(group)
+        return True if (status > 0) else False
 
     # Return portition of users (depending on the cursor value).
     def get_users(self, cursor:int=0):
@@ -98,10 +101,8 @@ class acs_database(object):
     # Return created group's name, None if failed.
     def create_group_for_door(self, door_addr:int) -> str:
         group = "{}{}".format(self.__NONAME_GRP_PREFIX, door_addr)
-        if self.add_doors_to_group(group, door_addr):
-            return group
-        else:
-            return None
+        self.add_doors_to_group(group, door_addr)
+        return group
 
     # Return the number of doors that were added,
     # not including all the doors already present.
@@ -143,8 +144,14 @@ class acs_database(object):
             return self.USER_AUTH_FAIL
 
     # Log that user accessed a door/door.
-    def log_user_access(self, user_id, door_addr):
-        logging.info("User \"{}\" accessed \"{}\"".format(user_id, door_addr))
+    def log_user_access(self, user_id, door_addr, allowed):
+        group = self.get_user_group(user_id)
+        if group is None:
+            group = ""
+        if allowed:
+            logging.info("User \"{}\" from \"{}\" access to \"{}\" allowed".format(user_id, group, door_addr))
+        else:
+            logging.info("User \"{}\" from \"{}\" access to \"{}\" denied".format(user_id, group, door_addr))
 
     # Mode is one of DOOR_MODE_...
     def set_door_mode(self, door_addr, mode):

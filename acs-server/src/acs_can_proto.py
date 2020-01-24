@@ -295,7 +295,8 @@ class acs_can_proto(object):
                         return self.msg_auth_fail(src, user_id)
             elif fc == self.FC_LEARN_USER:
                 if self.cb_learn_user is not None:
-                    ok = self.cb_learn_user(src, int.from_bytes(msg_data[:4], "little", signed=True))
+                    user_id = int.from_bytes(msg_data[:4], "little", signed=True)
+                    ok = self.cb_learn_user(src, user_id)
                     if ok is None:
                         return self.NO_MESSAGE
                     elif ok:

@@ -59,7 +59,7 @@ class acs_server(object):
     def change_door_mode(self, reader_addr, mode):
         if self.debug:
             logging.debug("change_door_mode: reader={}, mode={}".format(reader_addr, mode))
-        self.db.set_door_mode(reader_addr, self.db.DOOR_MODE_ENABLED)
+        self.db.set_door_mode(reader_addr, mode)
         if mode == self.db.DOOR_MODE_LEARN:
             can_id, dlc, data = self.proto.msg_reader_learn_mode(reader_addr)
             self.proto.can_sock.send(can_id, dlc, data)
@@ -75,10 +75,10 @@ class acs_server(object):
         self.proto.can_sock.send(can_id, dlc, data)
 
     # add a new user to database
-    def add_new_user(self, user_id, reader_addr, extend_group):
+    def add_new_user(self, reader_addr, user_id, extend_group):
         if self.debug:
             logging.debug("add_new_user: reader={}, user={}".format(reader_addr, user_id))
-        # do not add existing users
+        # check if existing user
         group = self.db.get_user_group(user_id)
         if group is not None:
             if extend_group:
@@ -89,16 +89,14 @@ class acs_server(object):
         else:
             # create special group
             group = self.db.create_group_for_door(reader_addr)
-            if group is not None:
-                if self.db.add_user(user_id, group):
-                    return True
-                else:
-                    # remove group is adding failed
-                    self.db.remove_group(group)
-                    return False
+            if self.db.add_user(user_id, group):
+                return True
+            else:
+                logging.error("Created group does not exist")
+                return False
 
     # callback to learn user request
-    def _learn_user(self, user_id, reader_addr):
+    def _learn_user(self, reader_addr, user_id):
         if self.debug:
             logging.debug("learn_user: reader={}, user={}".format(reader_addr, user_id))
         mode = self.db.get_door_mode(reader_addr)
@@ -110,11 +108,14 @@ class acs_server(object):
                 self.change_door_mode(reader_addr, self.db.DOOR_MODE_ENABLED)
                 return None
             elif user_auth_type == self.db.USER_NOT_EXIST:
-                return self.add_new_user(user_id, reader_addr, False)
+                return self.add_new_user(reader_addr, user_id, False)
             elif user_auth_type == self.db.USER_AUTH_OK:
-                return self.add_new_user(user_id, reader_addr, True)
+                return self.add_new_user(reader_addr, user_id, True)
         else:
-            return False
+            # reset reader mode because it is inconsistent
+            can_id, dlc, data = self.proto.msg_reader_normal_mode(reader_addr)
+            self.proto.can_sock.send(can_id, dlc, data)
+            return None
 
     # callback to authorization request
     # return True if authorized to open door False otherwise
@@ -127,12 +128,13 @@ class acs_server(object):
         if mode == self.db.DOOR_MODE_ENABLED:
             user_auth_type = self.db.user_authorization(user_id, reader_addr)
             if user_auth_type == self.db.USER_AUTH_OK:
-                self.db.log_user_access(user_id, reader_addr)
+                self.db.log_user_access(user_id, reader_addr, True)
                 return True
             elif user_auth_type == self.db.USER_AUTH_LEARN:
                 self.change_door_mode(reader_addr, self.db.DOOR_MODE_LEARN)
                 return None
             else:
+                self.db.log_user_access(user_id, reader_addr, False)
                 return False
         else:
             return False
